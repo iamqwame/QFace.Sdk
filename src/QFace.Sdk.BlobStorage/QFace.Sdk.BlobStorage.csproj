@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>QFace.Sdk.BlobStorage</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>IAmQwame</Authors>
+        <Company>QFace</Company>
+        <Description>A library for handling blob storage operations in .NET applications.</Description>
+        <PackageTags>blobstorage;s3;digitalocean;qface</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/iamqwame/qface-sdk</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/iamqwame/qface-sdk</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AWSSDK.S3" Version="3.7.101.50" />
+        <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.4.24266.19" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0" />
+    </ItemGroup>
+
+    <!-- Documentation files -->
+    <ItemGroup>
+        <None Include="$(SolutionDir)README.md" Pack="true" PackagePath="\" />
+        <None Include="$(SolutionDir)docs\blob-storage.md" Pack="true" PackagePath="content\docs\" />
+        <None Include="$(SolutionDir)docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
+    </ItemGroup>
+
+</Project>

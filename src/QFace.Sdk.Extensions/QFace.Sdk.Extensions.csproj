@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>QFace.Sdk.Extensions</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>IAmQwame</Authors>
+        <Company>QFace</Company>
+        <Description>Common extension methods and utility helpers for .NET applications.</Description>
+        <PackageTags>extensions;helpers;utilities;qface</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/iamqwame/qface-sdk</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/iamqwame/qface-sdk</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
+        <PackageReference Include="Microsoft.AspNetCore.Http.Extensions" Version="2.2.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="System.Text.Json" Version="7.0.2" />
+    </ItemGroup>
+
+    <!-- Documentation files -->
+    <ItemGroup>
+        <None Include="$(SolutionDir)README.md" Pack="true" PackagePath="\" />
+        <None Include="$(SolutionDir)docs\extensions.md" Pack="true" PackagePath="content\docs\" />
+        <None Include="$(SolutionDir)docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
+    </ItemGroup>
+
+</Project>

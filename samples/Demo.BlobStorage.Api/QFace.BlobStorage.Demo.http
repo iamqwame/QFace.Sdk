@@ -1,0 +1,6 @@
+@QFace.BlobStorage.Demo_HostAddress = http://localhost:5012
+
+GET {{QFace.BlobStorage.Demo_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

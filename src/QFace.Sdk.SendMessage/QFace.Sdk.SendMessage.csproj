@@ -1,0 +1,45 @@
+﻿
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+<PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>QFace.Sdk.SendMessage</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>IAmQwame</Authors>
+    <Company>QFace</Company>
+    <Description>A library for sending various types of messages (email, SMS, etc.) in .NET applications.</Description>
+    <PackageTags>email;sms;messaging;qface</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/iamqwame/qface-sdk</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/iamqwame/qface-sdk</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>latest</LangVersion>
+</PropertyGroup>
+
+<ItemGroup>
+    <PackageReference Include="Akka" Version="1.5.0" />
+    <PackageReference Include="Akka.DependencyInjection" Version="1.5.0" />
+    <PackageReference Include="MailKit" Version="4.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+    <PackageReference Include="MimeKit" Version="4.0.0" />
+</ItemGroup>
+<ItemGroup>
+    <ProjectReference Include="..\QFace.Sdk.ActorSystems\QFace.Sdk.ActorSystems.csproj" />
+</ItemGroup>
+
+<!-- Documentation files -->
+<ItemGroup>
+    <None Include="$(SolutionDir)README.md" Pack="true" PackagePath="\" />
+    <None Include="$(SolutionDir)docs\send-message.md" Pack="true" PackagePath="content\docs\" />
+    <None Include="$(SolutionDir)docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
+</ItemGroup>
+
+</Project>
