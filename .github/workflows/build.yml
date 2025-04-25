@@ -2,7 +2,7 @@ name: Build and Publish NuGet Packages
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     tags: ["v*.*.*"] # Will trigger on version tags
   workflow_dispatch: # Allows manual triggering
 
