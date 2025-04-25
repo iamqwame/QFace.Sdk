@@ -1,6 +1,6 @@
-namespace QFace.Sdk.SendMessage.Models;
-
-/// <summary>
+namespace QFace.Sdk.SendMessage.Models
+{
+    /// <summary>
     /// Command for sending emails via the email actor system
     /// </summary>
     public class SendEmailCommand
@@ -8,30 +8,32 @@ namespace QFace.Sdk.SendMessage.Models;
         /// <summary>
         /// List of recipient email addresses
         /// </summary>
-        public List<string> ToEmails { get; private set; } = [];
-        
+        public List<string> ToEmails { get; private set; } = new List<string>();
+
         /// <summary>
         /// Email subject
         /// </summary>
         public string Subject { get; private set; }
-        
+
         /// <summary>
         /// Email body content (for non-templated emails)
         /// </summary>
         public string Body { get; private set; }
-        
+
         /// <summary>
         /// Email template name (for templated emails)
         /// </summary>
         public string Template { get; private set; }
-        
+
         /// <summary>
         /// Replacement values for template placeholders
         /// </summary>
-        public Dictionary<string, string> Replacements { get; private set; } = new();
+        public Dictionary<string, string> Replacements { get; private set; } = new Dictionary<string, string>();
 
         // Private constructor to enforce factory methods
-        private SendEmailCommand() { }
+        private SendEmailCommand()
+        {
+        }
 
         /// <summary>
         /// Creates a simple email command for a single recipient
@@ -42,12 +44,13 @@ namespace QFace.Sdk.SendMessage.Models;
         /// <returns>SendEmailCommand instance</returns>
         public static SendEmailCommand Create(string toEmail, string subject, string body)
         {
-            return new SendEmailCommand
+            var command = new SendEmailCommand
             {
-                ToEmails = [toEmail],
                 Subject = subject,
                 Body = body
             };
+            command.ToEmails.Add(toEmail);
+            return command;
         }
 
         /// <summary>
@@ -75,15 +78,17 @@ namespace QFace.Sdk.SendMessage.Models;
         /// <param name="template">Email template</param>
         /// <param name="replacements">Template placeholder replacements</param>
         /// <returns>SendEmailCommand instance</returns>
-        public static SendEmailCommand CreateWithTemplate(string toEmail, string subject, string template, Dictionary<string, string> replacements)
+        public static SendEmailCommand CreateWithTemplate(string toEmail, string subject, string template,
+            Dictionary<string, string> replacements)
         {
-            return new SendEmailCommand
+            var command = new SendEmailCommand
             {
-                ToEmails = [toEmail],
                 Subject = subject,
                 Template = template,
                 Replacements = replacements
             };
+            command.ToEmails.Add(toEmail);
+            return command;
         }
 
         /// <summary>
@@ -94,7 +99,8 @@ namespace QFace.Sdk.SendMessage.Models;
         /// <param name="template">Email template</param>
         /// <param name="replacements">Template placeholder replacements</param>
         /// <returns>SendEmailCommand instance</returns>
-        public static SendEmailCommand CreateWithTemplate(List<string> toEmails, string subject, string template, Dictionary<string, string> replacements)
+        public static SendEmailCommand CreateWithTemplate(List<string> toEmails, string subject, string template,
+            Dictionary<string, string> replacements)
         {
             return new SendEmailCommand
             {
@@ -105,3 +111,4 @@ namespace QFace.Sdk.SendMessage.Models;
             };
         }
     }
+}
