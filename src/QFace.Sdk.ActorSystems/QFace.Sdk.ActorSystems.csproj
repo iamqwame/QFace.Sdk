@@ -6,14 +6,14 @@
         <Nullable>enable</Nullable>
         <PackageId>QFace.Sdk.ActorSystems</PackageId>
         <Version>1.0.0</Version>
-        <Authors>YourName</Authors>
+        <Authors>IAmQwame</Authors>
         <Company>QFace</Company>
         <Description>A lightweight wrapper around Akka.NET that simplifies the creation and management of actor-based systems in .NET applications.</Description>
         <PackageTags>akka;actor;actorsystem;qface</PackageTags>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageProjectUrl>https://github.com/yourorg/qface-sdk</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/yourorg/qface-sdk</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/iamqwame/qface-sdk</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/iamqwame/qface-sdk</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>

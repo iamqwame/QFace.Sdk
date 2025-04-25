@@ -27,6 +27,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{383E4D
 		docs\shared\configuration.md = docs\shared\configuration.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{4CC07EAE-051E-4B68-80F8-3DA7D5786444}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\build-sdks.sh = scripts\build-sdks.sh
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

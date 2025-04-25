@@ -81,3 +81,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+To Push new update
+
+dotnet build -c Release
+dotnet pack -c Release -o ./nupkgs
+
+dotnet nuget push ./nupkgs/\*.nupkg -k oy2polxwsro22r4ttwgaj4bi3tciirvezlmw2cttu5tjci -s https://api.nuget.org/v3/index.json

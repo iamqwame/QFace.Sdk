@@ -1,0 +1,43 @@
+name: Build and Publish NuGet Packages
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"] # Will trigger on version tags
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 6.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build SDK projects
+        run: |
+          for project in ./src/QFace.Sdk.*/*.csproj; do
+            echo "Building $project..."
+            dotnet build "$project" -c Release
+          done
+
+      - name: Create NuGet packages
+        run: |
+          mkdir -p ./nupkgs
+          for project in ./src/QFace.Sdk.*/*.csproj; do
+            echo "Packing $project..."
+            dotnet pack "$project" -c Release -o ./nupkgs
+          done
+
+      - name: Publish to NuGet
+        # Only publish on tagged commits or manual trigger
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        run: |
+          dotnet nuget push ./nupkgs/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
