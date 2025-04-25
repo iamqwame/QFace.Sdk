@@ -59,7 +59,7 @@ app.MapPost("/api/upload", async (
             folder ?? "uploads", 
             fileName);
 
-        return Results.Ok(new { FileUrl = fileUrl });
+        return Results.Ok(new { FileUrl = fileUrl.Url });
     }
     catch (Exception ex)
     {

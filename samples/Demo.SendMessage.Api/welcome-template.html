@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Welcome Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+        }
+        .footer {
+            background-color: #f1f1f1;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.8em;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Welcome, {{Name}}!</h1>
+</div>
+<div class="content">
+    <p>Hello {{Name}},</p>
+
+    <p>Thank you for joining {{CompanyName}}! We're excited to have you on board.</p>
+
+    <p>Your account has been successfully created with the following details:</p>
+    <ul>
+        <li><strong>Username:</strong> {{Username}}</li>
+        <li><strong>Email:</strong> {{Email}}</li>
+        <li><strong>Account Type:</strong> {{AccountType}}</li>
+    </ul>
+
+    <p>To get started, please click the button below to verify your email address:</p>
+
+    <a href="{{VerificationLink}}" class="button">Verify Email</a>
+
+    <p>If you have any questions or need assistance, please don't hesitate to contact our support team at {{SupportEmail}}.</p>
+
+    <p>Best regards,<br>
+        The {{CompanyName}} Team</p>
+</div>
+<div class="footer">
+    <p>&copy; {{CurrentYear}} {{CompanyName}}. All rights reserved.</p>
+    <p>{{CompanyAddress}}</p>
+</div>
+</body>
+</html>

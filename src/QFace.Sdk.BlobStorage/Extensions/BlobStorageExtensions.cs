@@ -14,7 +14,7 @@ namespace QFace.Sdk.BlobStorage.Extensions;
             
             // Register services
             services.AddSingleton<IAmazonS3>(sp => CreateS3Client(sp));
-            services.AddScoped<IFileUploadService, S3FileUploadService>();
+            services.AddScoped<IFileUploadService, FileUploadService>();
             
             return services;
         }
