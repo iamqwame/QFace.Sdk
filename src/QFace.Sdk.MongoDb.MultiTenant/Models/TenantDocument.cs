@@ -3,7 +3,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Models;
 /// <summary>
 /// Tenant document for storing tenant configuration
 /// </summary>
-public class TenantDocument : TenantBaseDocument
+public class Tenant : BaseDocument
 {
     /// <summary>
     /// Unique code/slug for the tenant (used in URLs)
@@ -33,7 +33,7 @@ public class TenantDocument : TenantBaseDocument
     /// <summary>
     /// Type of tenant (shared, dedicated, etc.)
     /// </summary>
-    public TenantType TenantType { get; set; } = TenantType.Dedicated;
+    public TenantType TenantType { get; set; } = TenantType.Shared;
         
     /// <summary>
     /// Connection string for tenant database (if different from default)

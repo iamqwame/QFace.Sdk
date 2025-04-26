@@ -11,7 +11,7 @@ public interface ITenantService
     /// <param name="id">The tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The tenant or null if not found</returns>
-    Task<TenantDocument?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+    Task<Tenant?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
         
     /// <summary>
     /// Gets a tenant by code
@@ -19,7 +19,7 @@ public interface ITenantService
     /// <param name="code">The tenant code</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The tenant or null if not found</returns>
-    Task<TenantDocument?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
+    Task<Tenant?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
         
     /// <summary>
     /// Gets all tenants
@@ -27,7 +27,7 @@ public interface ITenantService
     /// <param name="includeInactive">Whether to include inactive tenants</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>All tenants</returns>
-    Task<IEnumerable<TenantDocument>> GetAllAsync(bool includeInactive = false, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Tenant>> GetAllAsync(bool includeInactive = false, CancellationToken cancellationToken = default);
         
     /// <summary>
     /// Creates a new tenant
@@ -35,7 +35,7 @@ public interface ITenantService
     /// <param name="tenant">The tenant to create</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The ID of the created tenant</returns>
-    Task<string> CreateAsync(TenantDocument tenant, CancellationToken cancellationToken = default);
+    Task<string> CreateAsync(Tenant tenant, CancellationToken cancellationToken = default);
         
     /// <summary>
     /// Updates a tenant
@@ -43,7 +43,7 @@ public interface ITenantService
     /// <param name="tenant">The tenant to update</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successful, false otherwise</returns>
-    Task<bool> UpdateAsync(TenantDocument tenant, CancellationToken cancellationToken = default);
+    Task<bool> UpdateAsync(Tenant tenant, CancellationToken cancellationToken = default);
         
     /// <summary>
     /// Deletes a tenant
@@ -68,7 +68,7 @@ public interface ITenantService
     /// <param name="includeInactive">Whether to include inactive tenants</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The accessible tenants</returns>
-    Task<IEnumerable<TenantDocument>> GetAccessibleTenantsAsync(
+    Task<IEnumerable<Tenant>> GetAccessibleTenantsAsync(
         string userId, 
         bool includeInactive = false, 
         CancellationToken cancellationToken = default);

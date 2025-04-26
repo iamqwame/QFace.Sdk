@@ -11,7 +11,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Services
         /// <param name="tenant">The tenant</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Completion task</returns>
-        Task ProvisionTenantDatabaseAsync(TenantDocument tenant, CancellationToken cancellationToken = default);
+        Task ProvisionTenantDatabaseAsync(Tenant tenant, CancellationToken cancellationToken = default);
         
         /// <summary>
         /// Deprovisions a tenant database
@@ -19,6 +19,6 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Services
         /// <param name="tenant">The tenant</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Completion task</returns>
-        Task DeprovisionTenantDatabaseAsync(TenantDocument tenant, CancellationToken cancellationToken = default);
+        Task DeprovisionTenantDatabaseAsync(Tenant tenant, CancellationToken cancellationToken = default);
     }
 }

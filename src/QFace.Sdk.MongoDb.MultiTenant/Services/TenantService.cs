@@ -32,7 +32,7 @@ public class TenantService : ITenantService
     /// <summary>
     /// Gets a tenant by ID
     /// </summary>
-    public async Task<TenantDocument?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<Tenant?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(id))
             return null;
@@ -43,7 +43,7 @@ public class TenantService : ITenantService
     /// <summary>
     /// Gets a tenant by code
     /// </summary>
-    public async Task<TenantDocument?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
+    public async Task<Tenant?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(code))
             return null;
@@ -54,7 +54,7 @@ public class TenantService : ITenantService
     /// <summary>
     /// Gets all tenants
     /// </summary>
-    public async Task<IEnumerable<TenantDocument>> GetAllAsync(bool includeInactive = false, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Tenant>> GetAllAsync(bool includeInactive = false, CancellationToken cancellationToken = default)
     {
         return await _tenantRepository.GetAllAsync(includeInactive, cancellationToken);
     }
@@ -62,7 +62,7 @@ public class TenantService : ITenantService
     /// <summary>
     /// Creates a new tenant
     /// </summary>
-    public async Task<string> CreateAsync(TenantDocument tenant, CancellationToken cancellationToken = default)
+    public async Task<string> CreateAsync(Tenant tenant, CancellationToken cancellationToken = default)
     {
         if (tenant == null)
             throw new ArgumentNullException(nameof(tenant));
@@ -88,7 +88,7 @@ public class TenantService : ITenantService
     /// <summary>
     /// Updates a tenant
     /// </summary>
-    public async Task<bool> UpdateAsync(TenantDocument tenant, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateAsync(Tenant tenant, CancellationToken cancellationToken = default)
     {
         if (tenant == null)
             throw new ArgumentNullException(nameof(tenant));
@@ -199,26 +199,26 @@ public class TenantService : ITenantService
     /// <summary>
     /// Gets tenants accessible by a user
     /// </summary>
-    public async Task<IEnumerable<TenantDocument>> GetAccessibleTenantsAsync(
+    public async Task<IEnumerable<Tenant>> GetAccessibleTenantsAsync(
         string userId, 
         bool includeInactive = false, 
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(userId))
-            return Enumerable.Empty<TenantDocument>();
+            return Enumerable.Empty<Tenant>();
                 
         // Get tenant-user associations
         var tenantUsers = await _tenantUserRepository.GetTenantsByUserIdAsync(
             userId, includeInactive, cancellationToken);
                 
         if (!tenantUsers.Any())
-            return Enumerable.Empty<TenantDocument>();
+            return Enumerable.Empty<Tenant>();
                 
         // Get tenant IDs
         var tenantIds = tenantUsers.Select(tu => tu.TenantId).ToList();
             
         // Get tenants
-        var tenants = new List<TenantDocument>();
+        var tenants = new List<Tenant>();
             
         foreach (var tenantId in tenantIds)
         {
@@ -255,7 +255,7 @@ public class TenantService : ITenantService
     /// <summary>
     /// Validates and prepares a tenant
     /// </summary>
-    private void ValidateAndPrepareTenant(TenantDocument tenant)
+    private void ValidateAndPrepareTenant(Tenant tenant)
     {
         // Validate required fields
         if (string.IsNullOrEmpty(tenant.Name))

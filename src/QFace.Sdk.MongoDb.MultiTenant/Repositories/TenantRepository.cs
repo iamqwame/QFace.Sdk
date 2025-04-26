@@ -3,7 +3,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Repositories;
 /// <summary>
 /// Implementation of tenant repository
 /// </summary>
-public class TenantRepository : MongoRepository<TenantDocument>, ITenantRepository
+public class TenantRepository : MongoRepository<Tenant>, ITenantRepository
 {
     /// <summary>
     /// Creates a new tenant repository
@@ -22,7 +22,7 @@ public class TenantRepository : MongoRepository<TenantDocument>, ITenantReposito
     /// <summary>
     /// Gets a tenant by its unique code
     /// </summary>
-    public async Task<TenantDocument?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
+    public async Task<Tenant?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(code))
             return null;
@@ -59,8 +59,8 @@ public class TenantRepository : MongoRepository<TenantDocument>, ITenantReposito
     /// </summary>
     public async Task<bool> UpdateProvisioningStatusAsync(string id, bool isProvisioned, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<TenantDocument>.Filter.Eq(t => t.Id, id);
-        var update = Builders<TenantDocument>.Update
+        var filter = Builders<Tenant>.Filter.Eq(t => t.Id, id);
+        var update = Builders<Tenant>.Update
             .Set(t => t.IsProvisioned, isProvisioned)
             .Set(t => t.LastModifiedDate, DateTime.UtcNow);
                 
@@ -82,16 +82,16 @@ public class TenantRepository : MongoRepository<TenantDocument>, ITenantReposito
         await base.CreateIndexesAsync(cancellationToken);
             
         // Create unique index on Code field
-        var indexModel = new CreateIndexModel<TenantDocument>(
-            Builders<TenantDocument>.IndexKeys.Ascending(t => t.Code),
+        var indexModel = new CreateIndexModel<Tenant>(
+            Builders<Tenant>.IndexKeys.Ascending(t => t.Code),
             new CreateIndexOptions { Unique = true, Background = true, Name = "code_unique_idx" }
         );
             
         await _collection.Indexes.CreateOneAsync(indexModel, cancellationToken: cancellationToken);
             
         // Create index on tenant type
-        var typeIndexModel = new CreateIndexModel<TenantDocument>(
-            Builders<TenantDocument>.IndexKeys.Ascending(t => t.TenantType),
+        var typeIndexModel = new CreateIndexModel<Tenant>(
+            Builders<Tenant>.IndexKeys.Ascending(t => t.TenantType),
             new CreateIndexOptions { Background = true, Name = "tenant_type_idx" }
         );
             

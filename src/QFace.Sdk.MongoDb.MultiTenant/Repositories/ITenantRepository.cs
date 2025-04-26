@@ -3,7 +3,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Repositories;
 /// <summary>
 /// Interface for tenant repository
 /// </summary>
-public interface ITenantRepository : IMongoRepository<TenantDocument>
+public interface ITenantRepository : IMongoRepository<Tenant>
 {
     /// <summary>
     /// Gets a tenant by its unique code
@@ -11,7 +11,7 @@ public interface ITenantRepository : IMongoRepository<TenantDocument>
     /// <param name="code">The tenant code</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The tenant or null if not found</returns>
-    Task<TenantDocument?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
+    Task<Tenant?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
         
     /// <summary>
     /// Checks if a tenant exists

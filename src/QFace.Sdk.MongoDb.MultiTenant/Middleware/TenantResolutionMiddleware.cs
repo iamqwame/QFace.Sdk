@@ -32,140 +32,132 @@ public class TenantResolutionMiddleware
     /// <param name="tenantAccessor">The tenant accessor</param>
     /// <param name="tenantService">The tenant service</param>
     public async Task InvokeAsync(
-        HttpContext context,
-        ITenantAccessor tenantAccessor,
-        ITenantService tenantService)
-    {
-        if (context == null)
-            throw new ArgumentNullException(nameof(context));
-                
-        if (tenantAccessor == null)
-            throw new ArgumentNullException(nameof(tenantAccessor));
-                
-        if (tenantService == null)
-            throw new ArgumentNullException(nameof(tenantService));
-                
-        // Skip tenant resolution for excluded paths
-        if (ShouldSkipTenantResolution(context))
+            HttpContext context,
+            ITenantAccessor tenantAccessor,
+            ITenantService tenantService)
         {
-            // Clear tenant ID to ensure no tenant context
-            tenantAccessor.ClearCurrentTenant();
-                
-            // Continue with request pipeline
-            await _next(context);
-            return;
-        }
-            
-        try
-        {
-            // Resolve tenant ID from request
-            string? tenantId = null;
-            string? tenantCode = null;
-                
-            if (_options.UseRouteResolution)
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (tenantAccessor == null) throw new ArgumentNullException(nameof(tenantAccessor));
+            if (tenantService == null) throw new ArgumentNullException(nameof(tenantService));
+
+            _logger.LogInformation("Starting tenant resolution for request: {Path}", context.Request.Path);
+
+            if (ShouldSkipTenantResolution(context))
             {
-                (tenantId, tenantCode) = TryResolveFromRoute(context);
+                _logger.LogInformation("Skipping tenant resolution for excluded path: {Path}", context.Request.Path);
+
+                tenantAccessor.ClearCurrentTenant();
+                await _next(context);
+                return;
             }
-                
-            if (string.IsNullOrEmpty(tenantId) && _options.UseHeaderResolution)
+
+            try
             {
-                (tenantId, tenantCode) = TryResolveFromHeader(context);
-            }
-                
-            if (string.IsNullOrEmpty(tenantId) && _options.UseQueryStringResolution)
-            {
-                (tenantId, tenantCode) = TryResolveFromQueryString(context);
-            }
-                
-            if (string.IsNullOrEmpty(tenantId) && _options.UseCookieResolution)
-            {
-                (tenantId, tenantCode) = TryResolveFromCookie(context);
-            }
-                
-            if (string.IsNullOrEmpty(tenantId) && _options.UseAuthClaimResolution)
-            {
-                (tenantId, tenantCode) = TryResolveFromClaims(context);
-            }
-                
-            // If we have a tenant code but no ID, try to resolve ID from code
-            if (string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(tenantCode))
-            {
-                var tenant = await tenantService.GetByCodeAsync(tenantCode);
-                tenantId = tenant?.Id;
-            }
-                
-            // If we have a tenant ID, verify and set it
-            if (!string.IsNullOrEmpty(tenantId))
-            {
-                var tenant = await tenantService.GetByIdAsync(tenantId);
-                    
-                if (tenant != null && tenant.IsActive)
+                string? tenantId = null;
+                string? tenantCode = null;
+
+                if (_options.UseRouteResolution)
                 {
-                    if (tenant.IsProvisioned)
+                    (tenantId, tenantCode) = TryResolveFromRoute(context);
+                    _logger.LogDebug("Route resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
+                }
+
+                if (string.IsNullOrEmpty(tenantId) && _options.UseHeaderResolution)
+                {
+                    (tenantId, tenantCode) = TryResolveFromHeader(context);
+                    _logger.LogDebug("Header resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
+                }
+
+                if (string.IsNullOrEmpty(tenantId) && _options.UseQueryStringResolution)
+                {
+                    (tenantId, tenantCode) = TryResolveFromQueryString(context);
+                    _logger.LogDebug("Query string resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
+                }
+
+                if (string.IsNullOrEmpty(tenantId) && _options.UseCookieResolution)
+                {
+                    (tenantId, tenantCode) = TryResolveFromCookie(context);
+                    _logger.LogDebug("Cookie resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
+                }
+
+                if (string.IsNullOrEmpty(tenantId) && _options.UseAuthClaimResolution)
+                {
+                    (tenantId, tenantCode) = TryResolveFromClaims(context);
+                    _logger.LogDebug("Auth claims resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
+                }
+
+                if (string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(tenantCode))
+                {
+                    _logger.LogInformation("Attempting to resolve tenantId from tenantCode: {TenantCode}", tenantCode);
+                    var tenant = await tenantService.GetByCodeAsync(tenantCode);
+                    tenantId = tenant?.Id;
+                    if (tenant == null)
                     {
-                        // Set tenant ID in accessor
-                        tenantAccessor.SetCurrentTenantId(tenantId);
-                            
-                        // Add tenant info to response headers if configured
-                        if (_options.IncludeTenantInfoInResponse)
+                        _logger.LogWarning("No tenant found for tenantCode: {TenantCode}", tenantCode);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(tenantId))
+                {
+                    var tenant = await tenantService.GetByIdAsync(tenantId);
+
+                    if (tenant != null && tenant.IsActive)
+                    {
+                        if (tenant.IsProvisioned)
                         {
-                            context.Response.Headers["X-Tenant-ID"] = tenantId;
-                            if (!string.IsNullOrEmpty(tenant.Code))
+                            _logger.LogInformation("Successfully resolved tenant: {TenantId} - {TenantCode}", tenant.Id, tenant.Code);
+
+                            tenantAccessor.SetCurrentTenantId(tenantId);
+
+                            if (_options.IncludeTenantInfoInResponse)
                             {
-                                context.Response.Headers["X-Tenant-Code"] = tenant.Code;
+                                context.Response.Headers["X-Tenant-ID"] = tenantId;
+                                if (!string.IsNullOrEmpty(tenant.Code))
+                                {
+                                    context.Response.Headers["X-Tenant-Code"] = tenant.Code;
+                                }
                             }
                         }
-                            
-                        _logger.LogDebug("Resolved tenant ID: {TenantId}, Code: {TenantCode}", 
-                            tenantId, tenant.Code);
+                        else if (_options.RejectUnprovisionedTenants)
+                        {
+                            _logger.LogWarning("Tenant is not provisioned: {TenantId}", tenantId);
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            await context.Response.WriteAsync("Tenant database has not been provisioned");
+                            return;
+                        }
                     }
-                    else if (_options.RejectUnprovisionedTenants)
+                    else if (_options.RejectInvalidTenants)
                     {
-                        _logger.LogWarning("Rejected request for unprovisioned tenant: {TenantId}", tenantId);
-                            
+                        _logger.LogWarning("Tenant invalid or inactive: {TenantId}", tenantId);
                         context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                        await context.Response.WriteAsync("Tenant database has not been provisioned");
+                        await context.Response.WriteAsync("Invalid or inactive tenant");
                         return;
                     }
                 }
-                else if (_options.RejectInvalidTenants)
+                else if (_options.RequireTenant && !IsExemptFromTenantRequirement(context))
                 {
-                    _logger.LogWarning("Rejected request for invalid or inactive tenant: {TenantId}", tenantId);
-                        
-                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    await context.Response.WriteAsync("Invalid or inactive tenant");
+                    _logger.LogWarning("Tenant resolution failed and tenant is required for path: {Path}", context.Request.Path);
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsync("Tenant identifier is required");
                     return;
                 }
-            }
-            else if (_options.RequireTenant && !IsExemptFromTenantRequirement(context))
-            {
-                _logger.LogWarning("Rejected request with no tenant identifier");
-                    
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsync("Tenant identifier is required");
-                return;
-            }
-                
-            // Continue with request pipeline
-            await _next(context);
-        }
-        catch (Exception ex)
-        {
-            // Handle exceptions during tenant resolution
-            _logger.LogError(ex, "Error during tenant resolution");
-                
-            if (_options.FailOnResolutionError)
-            {
-                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                await context.Response.WriteAsync("Error resolving tenant");
-            }
-            else
-            {
-                // Continue with request pipeline
+
                 await _next(context);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled exception during tenant resolution");
+                if (_options.FailOnResolutionError)
+                {
+                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                    await context.Response.WriteAsync("Error resolving tenant");
+                }
+                else
+                {
+                    await _next(context);
+                }
+            }
         }
-    }
         
     /// <summary>
     /// Tries to resolve tenant from route values

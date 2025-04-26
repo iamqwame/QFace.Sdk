@@ -16,7 +16,7 @@ public static class MultiTenantExtensions
         services.AddSingleton<ITenantAccessor, TenantAccessor>();
             
         // Register tenant repositories
-        services.AddMongoRepository<TenantDocument, TenantRepository>("tenants");
+        services.AddMongoRepository<Tenant, TenantRepository>("tenants");
         services.AddMongoRepository<TenantUserDocument, TenantUserRepository>("tenant_users");
             
         // Register tenant services

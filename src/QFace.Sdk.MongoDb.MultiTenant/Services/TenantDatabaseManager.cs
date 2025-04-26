@@ -24,7 +24,7 @@ public class TenantDatabaseManager : ITenantDatabaseManager
     /// <summary>
     /// Provisions a tenant database
     /// </summary>
-    public async Task ProvisionTenantDatabaseAsync(TenantDocument tenant, CancellationToken cancellationToken = default)
+    public async Task ProvisionTenantDatabaseAsync(Tenant tenant, CancellationToken cancellationToken = default)
     {
         if (tenant == null)
             throw new ArgumentNullException(nameof(tenant));
@@ -60,7 +60,7 @@ public class TenantDatabaseManager : ITenantDatabaseManager
     /// <summary>
     /// Deprovisions a tenant database
     /// </summary>
-    public async Task DeprovisionTenantDatabaseAsync(TenantDocument tenant, CancellationToken cancellationToken = default)
+    public async Task DeprovisionTenantDatabaseAsync(Tenant tenant, CancellationToken cancellationToken = default)
     {
         if (tenant == null)
             throw new ArgumentNullException(nameof(tenant));
@@ -126,7 +126,7 @@ public class TenantDatabaseManager : ITenantDatabaseManager
     /// <summary>
     /// Gets a MongoDB client for a tenant
     /// </summary>
-    private IMongoClient GetTenantMongoClient(TenantDocument tenant)
+    private IMongoClient GetTenantMongoClient(Tenant tenant)
     {
         // Use tenant-specific connection string if provided, otherwise use default
         if (!string.IsNullOrEmpty(tenant.ConnectionString))
@@ -142,7 +142,7 @@ public class TenantDatabaseManager : ITenantDatabaseManager
     /// <summary>
     /// Checks if dropping a database is allowed
     /// </summary>
-    private bool IsDropDatabaseAllowed(TenantDocument tenant)
+    private bool IsDropDatabaseAllowed(Tenant tenant)
     {
         // In a real system, you might want to check environment, have explicit confirmation,
         // or have a specific flag in tenant settings that allows database dropping

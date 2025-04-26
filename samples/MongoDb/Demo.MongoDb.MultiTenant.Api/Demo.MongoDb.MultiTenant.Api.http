@@ -1,6 +1,113 @@
-@Demo.MongoDb.MultiTenant.Api_HostAddress = http://localhost:5066
+@baseUrl = http://localhost:5066
 
-GET {{Demo.MongoDb.MultiTenant.Api_HostAddress}}/weatherforecast/
-Accept: application/json
 
-###
+### 1. Create First Tenant - Acme Corporation
+POST {{baseUrl}}/api/tenants
+Content-Type: application/json
+
+{
+  "Name": "Acme Corporation",
+  "Code": "acme",
+  "Description": "Technology solutions provider",
+  "AdminEmail": "admin@acme.com",
+  "AdminName": "John Doe"
+}
+
+### 2. Create Second Tenant - Beta Industries
+POST {{baseUrl}}/api/tenants
+Content-Type: application/json
+
+{
+  "Name": "Beta Industries",
+  "Code": "beta",
+  "Description": "Innovative manufacturing",
+  "AdminEmail": "admin@beta.com",
+  "AdminName": "Jane Smith"
+}
+
+### 3. List All Tenants
+GET {{baseUrl}}/api/tenants
+
+### 4. Create Product for Acme Tenant
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+X-Tenant-ID: 680d6a2579081050292bff5d
+X-Tenant-Code: acme
+
+{
+  "Name": "Acme Gadget",
+  "Price": 49.99
+}
+
+### 5. Create Another Product for Acme Tenant
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+X-Tenant-ID: 680d68df5d58c730dc244826
+X-Tenant-Code: acme
+
+{
+  "Name": "Acme Widget",
+  "Price": 29.99
+}
+
+### 6. Create Product for Beta Tenant
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+X-Tenant-ID: 680d69305d58c730dc24482a
+X-Tenant-Code: beta
+
+{
+  "Name": "Beta Innovator",
+  "Price": 79.99
+}
+
+### 7. Get Products for Acme Tenant
+GET {{baseUrl}}/api/products
+X-Tenant-ID: 680d68df5d58c730dc244826
+X-Tenant-Code: acme
+
+### 8. Get Products for Beta Tenant
+GET {{baseUrl}}/api/products
+X-Tenant-ID: beta
+X-Tenant-Code: beta
+
+### 9. Update Product for Acme Tenant (Replace {PRODUCT_ID} with actual ID)
+PUT {{baseUrl}}/api/products/{PRODUCT_ID}
+Content-Type: application/json
+X-Tenant-ID: acme
+X-Tenant-Code: acme
+
+{
+  "Name": "Updated Acme Gadget",
+  "Price": 59.99
+}
+
+### 10. Delete Product for Acme Tenant (Replace {PRODUCT_ID} with actual ID)
+DELETE {{baseUrl}}/api/products/{PRODUCT_ID}
+X-Tenant-ID: acme
+X-Tenant-Code: acme
+
+### 11. Attempt to Access Product from Wrong Tenant (Replace {PRODUCT_ID} with an existing product ID)
+GET {{baseUrl}}/api/products/{PRODUCT_ID}
+X-Tenant-ID: beta
+X-Tenant-Code: beta
+
+### 12. Error Case - Create Product Without Tenant Context
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+
+{
+  "Name": "Unauthorized Product",
+  "Price": 99.99
+}
+
+### 13. Error Case - Invalid Product Creation
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+X-Tenant-ID: acme
+X-Tenant-Code: acme
+
+{
+  "Name": "",
+  "Price": -10
+}
