@@ -14,4 +14,5 @@ global using MimeKit;
 global using QFace.Sdk.ActorSystems;
 global using QFace.Sdk.SendMessage.Actors;
 global using QFace.Sdk.SendMessage.Models;
+global using QFace.Sdk.SendMessage.Providers;
 global using QFace.Sdk.SendMessage.Services;

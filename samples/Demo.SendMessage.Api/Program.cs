@@ -1,21 +1,16 @@
 using QFace.Sdk.ActorSystems;
-using QFace.Sdk.SendMessage.Actors;
 using QFace.Sdk.SendMessage.Extensions;
-using QFace.Sdk.SendMessage.Models;
+using QFace.Sdk.SendMessage.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-// Add Email Services
-builder.Services.AddEmailServices(config => {
-    config.SystemName = "EmailDemo";
+builder.Services.AddMessagingServices(builder.Configuration, config => {
+    config.SystemName = "MessagingDemo";
 });
-
-// Add logging
 builder.Services.AddLogging(logging => {
     logging.AddConsole();
     logging.SetMinimumLevel(LogLevel.Information);
@@ -23,93 +18,134 @@ builder.Services.AddLogging(logging => {
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// Swagger UI
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Email Demo API v1"));
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Messaging Demo API v1"));
 }
 
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthorization();
-
-
-// API Endpoints
+app.UseActorSystem();
 app.MapControllers();
 
-// Simple Email Endpoints
-app.MapPost("/api/email/simple", async (HttpContext context, IActorService actorService) => {
-    var request = await context.Request.ReadFromJsonAsync<SimpleEmailRequest>();
-    
+// ---------------- EMAIL ----------------
+
+// Send simple email
+app.MapPost("/api/email/simple", async (SimpleEmailRequest request, IMessageService messageService) =>
+{
     if (request == null || string.IsNullOrEmpty(request.ToEmail) || string.IsNullOrEmpty(request.Subject))
     {
-        context.Response.StatusCode = 400;
-        await context.Response.WriteAsJsonAsync(new { error = "Invalid request parameters" });
-        return;
+        return Results.BadRequest(new { error = "Invalid request parameters" });
     }
-    
-    var command = SendEmailCommand.Create(
-        request.ToEmail,
+
+    await messageService.SendEmailAsync(
+        new List<string> { request.ToEmail },
         request.Subject,
         request.Body ?? "Empty email body"
     );
-    actorService.Tell<SendEmailActor>(command);
-    
-    
-    await context.Response.WriteAsJsonAsync(new { message = "Email sending in progress" });
+
+    return Results.Ok(new { message = "Email sending in progress" });
 });
 
-// Templated Email Endpoint
-app.MapPost("/api/email/template", async (HttpContext context,  IActorService actorService) => {
-    var request = await context.Request.ReadFromJsonAsync<TemplatedEmailRequest>();
-    
+// Send templated email
+app.MapPost("/api/email/template", async (TemplatedEmailRequest request, IMessageService messageService) =>
+{
     if (request == null || string.IsNullOrEmpty(request.ToEmail) || 
         string.IsNullOrEmpty(request.Subject) || string.IsNullOrEmpty(request.Template))
     {
-        context.Response.StatusCode = 400;
-        await context.Response.WriteAsJsonAsync(new { error = "Invalid request parameters" });
-        return;
+        return Results.BadRequest(new { error = "Invalid request parameters" });
     }
-    
-    var command = SendEmailCommand.CreateWithTemplate(
-        request.ToEmail,
+
+    await messageService.SendEmailWithTemplateAsync(
+        new List<string> { request.ToEmail },
         request.Subject,
         request.Template,
-        request.Replacements
+        request.Replacements ?? new Dictionary<string, string>()
     );
-    actorService.Tell<SendEmailActor>(command);
-    
-    await context.Response.WriteAsJsonAsync(new { message = "Templated email sending in progress" });
+
+    return Results.Ok(new { message = "Templated email sending in progress" });
 });
 
-// Bulk Email Endpoint
-app.MapPost("/api/email/bulk", async (HttpContext context,IActorService actorService) => {
-    var request = await context.Request.ReadFromJsonAsync<BulkEmailRequest>();
-    
-    if (request?.ToEmails == null || request.ToEmails.Count == 0 || 
-        string.IsNullOrEmpty(request.Subject))
+// Send bulk email
+app.MapPost("/api/email/bulk", async (BulkEmailRequest request, IMessageService messageService) =>
+{
+    if (request?.ToEmails == null || request.ToEmails.Count == 0 || string.IsNullOrEmpty(request.Subject))
     {
-        context.Response.StatusCode = 400;
-        await context.Response.WriteAsJsonAsync(new { error = "Invalid request parameters" });
-        return;
+        return Results.BadRequest(new { error = "Invalid request parameters" });
     }
-    
-    var command = SendEmailCommand.Create(
+
+    await messageService.SendEmailAsync(
         request.ToEmails,
         request.Subject,
         request.Body ?? "Empty email body"
     );
-    
-    actorService.Tell<SendEmailActor>(command);
-    
-    await context.Response.WriteAsJsonAsync(new { message = "Bulk email sending in progress" });
+
+    return Results.Ok(new { message = "Bulk email sending in progress" });
 });
 
-// Run the application
+// ---------------- SMS ----------------
+
+// Send single SMS
+app.MapPost("/api/sms/send", async (SmsRequest request, IMessageService messageService) =>
+{
+    if (request == null || string.IsNullOrEmpty(request.PhoneNumber) || string.IsNullOrEmpty(request.Message))
+    {
+        return Results.BadRequest(new { error = "Invalid request parameters" });
+    }
+
+    await messageService.SendSmsAsync(
+        new List<string> { request.PhoneNumber },
+        request.Message
+    );
+
+    return Results.Ok(new { message = "SMS sending in progress" });
+});
+
+// Send bulk SMS
+app.MapPost("/api/sms/bulk", async (BulkSmsRequest request, IMessageService messageService) =>
+{
+    if (request?.PhoneNumbers == null || request.PhoneNumbers.Count == 0 || string.IsNullOrEmpty(request.Message))
+    {
+        return Results.BadRequest(new { error = "Invalid request parameters" });
+    }
+
+    await messageService.SendSmsAsync(
+        request.PhoneNumbers,
+        request.Message
+    );
+
+    return Results.Ok(new { message = "Bulk SMS sending in progress" });
+});
+
+// ---------------- BOTH ----------------
+
+// Send both email and SMS
+app.MapPost("/api/message/both", async (CombinedMessageRequest request, IMessageService messageService) =>
+{
+    if (request == null || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.PhoneNumber) ||
+        string.IsNullOrEmpty(request.Subject) || string.IsNullOrEmpty(request.Message))
+    {
+        return Results.BadRequest(new { error = "Invalid request parameters" });
+    }
+
+    await messageService.SendBothAsync(
+        new List<string> { request.Email },
+        new List<string> { request.PhoneNumber },
+        request.Subject,
+        request.Message
+    );
+
+    return Results.Ok(new { message = "Combined message sending in progress" });
+});
+
+// Run app
 app.Run();
 
-// Request DTOs
+// ---------------- Request DTOs ----------------
+
 public class SimpleEmailRequest
 {
     public string ToEmail { get; set; }
@@ -130,4 +166,24 @@ public class BulkEmailRequest
     public List<string> ToEmails { get; set; }
     public string Subject { get; set; }
     public string Body { get; set; }
+}
+
+public class SmsRequest
+{
+    public string PhoneNumber { get; set; }
+    public string Message { get; set; }
+}
+
+public class BulkSmsRequest
+{
+    public List<string> PhoneNumbers { get; set; }
+    public string Message { get; set; }
+}
+
+public class CombinedMessageRequest
+{
+    public string Email { get; set; }
+    public string PhoneNumber { get; set; }
+    public string Subject { get; set; }
+    public string Message { get; set; }
 }
