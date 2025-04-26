@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 
 namespace QFace.Sdk.Extensions;
 
@@ -296,5 +297,6 @@ public static class StringExtensions
     {
         return metrics == null || metrics.Contains(metricName);
     }
+    
 }
 

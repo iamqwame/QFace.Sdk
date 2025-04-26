@@ -1,4 +1,5 @@
 using QFace.Sdk.ActorSystems;
+using QFace.Sdk.Extensions;
 using QFace.Sdk.SendMessage.Extensions;
 using QFace.Sdk.SendMessage.Services;
 
@@ -186,4 +187,9 @@ public class CombinedMessageRequest
     public string PhoneNumber { get; set; }
     public string Subject { get; set; }
     public string Message { get; set; }
+    
+    
 }
+
+
+
