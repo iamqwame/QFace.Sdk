@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{03DC69E4-0
 		docs\rabbitmq-messaging.md = docs\rabbitmq-messaging.md
 		docs\send-message.md = docs\send-message.md
 		docs\blob-storage.md = docs\blob-storage.md
+		docs\mongodb.md = docs\mongodb.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RabbitMq", "RabbitMq", "{9D3000CA-2F36-42CC-8FF0-8B7314542C7D}"
@@ -46,6 +47,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.SendMessage.Api", "sam
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.MongoDb", "src\QFace.Sdk.MongoDb\QFace.Sdk.MongoDb.csproj", "{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{69C5394F-80E3-40E0-9037-836A716C3E9A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.MongoDb.Tests", "tests\QFace.Sdk.MongoDb.Tests\QFace.Sdk.MongoDb.Tests.csproj", "{3068EB64-68B0-482C-B377-EE48B018B337}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MongoDb", "MongoDb", "{42656D83-FE64-4547-B6E8-8447CA044085}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.MongoDb.MultiTenant.Api", "samples\MongoDb\Demo.MongoDb.MultiTenant.Api\Demo.MongoDb.MultiTenant.Api.csproj", "{6AA05E7B-3ADF-4F18-B41B-B2C67BFE6CC1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.MongoDb.Normal.Api", "samples\MongoDb\Demo.MongoDb.Normal.Api\Demo.MongoDb.Normal.Api.csproj", "{983AEB79-6A73-4753-8944-A8F3D83C3CDA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.MongoDb.MultiTenant", "src\QFace.Sdk.MongoDb.MultiTenant\QFace.Sdk.MongoDb.MultiTenant.csproj", "{54D0E648-A9FD-4FC7-9D82-5167798938E1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,6 +77,11 @@ Global
 		{5D8D5D20-C316-4B6B-B0D6-8E62FCC196CC} = {108FEDD7-76A7-4275-968C-97F3FF941B47}
 		{E4D27898-F379-4EE9-8160-8F061381EDB4} = {108FEDD7-76A7-4275-968C-97F3FF941B47}
 		{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
+		{3068EB64-68B0-482C-B377-EE48B018B337} = {69C5394F-80E3-40E0-9037-836A716C3E9A}
+		{42656D83-FE64-4547-B6E8-8447CA044085} = {108FEDD7-76A7-4275-968C-97F3FF941B47}
+		{6AA05E7B-3ADF-4F18-B41B-B2C67BFE6CC1} = {42656D83-FE64-4547-B6E8-8447CA044085}
+		{983AEB79-6A73-4753-8944-A8F3D83C3CDA} = {42656D83-FE64-4547-B6E8-8447CA044085}
+		{54D0E648-A9FD-4FC7-9D82-5167798938E1} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{5A2D54B9-AE62-41BC-B21D-1E37FB19FFBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -106,5 +124,21 @@ Global
 		{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3068EB64-68B0-482C-B377-EE48B018B337}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3068EB64-68B0-482C-B377-EE48B018B337}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3068EB64-68B0-482C-B377-EE48B018B337}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3068EB64-68B0-482C-B377-EE48B018B337}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6AA05E7B-3ADF-4F18-B41B-B2C67BFE6CC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6AA05E7B-3ADF-4F18-B41B-B2C67BFE6CC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6AA05E7B-3ADF-4F18-B41B-B2C67BFE6CC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6AA05E7B-3ADF-4F18-B41B-B2C67BFE6CC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{983AEB79-6A73-4753-8944-A8F3D83C3CDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{983AEB79-6A73-4753-8944-A8F3D83C3CDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{983AEB79-6A73-4753-8944-A8F3D83C3CDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{983AEB79-6A73-4753-8944-A8F3D83C3CDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54D0E648-A9FD-4FC7-9D82-5167798938E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54D0E648-A9FD-4FC7-9D82-5167798938E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54D0E648-A9FD-4FC7-9D82-5167798938E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54D0E648-A9FD-4FC7-9D82-5167798938E1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

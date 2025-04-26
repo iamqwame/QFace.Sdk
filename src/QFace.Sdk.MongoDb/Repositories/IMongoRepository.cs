@@ -1,5 +1,3 @@
-using System.Linq.Expressions;
-
 namespace QFace.Sdk.MongoDb.Repositories;
 
 /// <summary>
@@ -19,7 +17,9 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="includeInactive">Whether to include inactive documents</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>All documents</returns>
-    Task<IEnumerable<TDocument>> GetAllAsync(bool includeInactive = false, CancellationToken cancellationToken = default);
+    Task<IEnumerable<TDocument>> GetAllAsync(
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Gets a document by its ID
@@ -27,7 +27,9 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="id">The document ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The document</returns>
-    Task<TDocument> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+    Task<TDocument> GetByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Finds a single document matching the filter expression
@@ -38,7 +40,7 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <returns>The matching document</returns>
     Task<TDocument> FindOneAsync(
         Expression<Func<TDocument, bool>> filterExpression, 
-        bool includeInactive = false, 
+        bool includeInactive = false,
         CancellationToken cancellationToken = default);
     
     /// <summary>
@@ -50,7 +52,7 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <returns>The matching documents</returns>
     Task<IEnumerable<TDocument>> FindAsync(
         Expression<Func<TDocument, bool>> filterExpression, 
-        bool includeInactive = false, 
+        bool includeInactive = false,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -59,7 +61,9 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="document">The document to insert</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Completion task</returns>
-    Task InsertOneAsync(TDocument document, CancellationToken cancellationToken = default);
+    Task InsertOneAsync(
+        TDocument document,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Inserts multiple documents
@@ -67,7 +71,9 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="documents">The documents to insert</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Completion task</returns>
-    Task InsertManyAsync(IEnumerable<TDocument> documents, CancellationToken cancellationToken = default);
+    Task InsertManyAsync(
+        IEnumerable<TDocument> documents,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Updates a document
@@ -75,7 +81,9 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="document">The document to update</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successful, false otherwise</returns>
-    Task<bool> UpdateAsync(TDocument document, CancellationToken cancellationToken = default);
+    Task<bool> UpdateAsync(
+        TDocument document,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Replaces a document
@@ -83,7 +91,9 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="document">The document to replace</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successful, false otherwise</returns>
-    Task<bool> ReplaceOneAsync(TDocument document, CancellationToken cancellationToken = default);
+    Task<bool> ReplaceOneAsync(
+        TDocument document,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Deletes a document by ID (hard delete)
@@ -91,7 +101,9 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="id">The document ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successful, false otherwise</returns>
-    Task<bool> DeleteByIdAsync(string id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Soft deletes a document by ID (sets IsActive to false)
@@ -99,7 +111,9 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="id">The document ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successful, false otherwise</returns>
-    Task<bool> SoftDeleteByIdAsync(string id, CancellationToken cancellationToken = default);
+    Task<bool> SoftDeleteByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Restores a soft-deleted document
@@ -107,7 +121,9 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="id">The document ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successful, false otherwise</returns>
-    Task<bool> RestoreByIdAsync(string id, CancellationToken cancellationToken = default);
+    Task<bool> RestoreByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Creates indexes for the collection
@@ -115,4 +131,46 @@ public interface IMongoRepository<TDocument> where TDocument : BaseDocument
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Completion task</returns>
     Task CreateIndexesAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Counts documents with optional filtering
+    /// </summary>
+    /// <param name="filterExpression">Optional filter expression</param>
+    /// <param name="includeInactive">Whether to include inactive documents</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The count of documents</returns>
+    Task<long> CountAsync(
+        Expression<Func<TDocument, bool>> filterExpression = null,
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Executes a bulk write operation
+    /// </summary>
+    /// <param name="writeModels">The write models to execute</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The bulk write result</returns>
+    Task<BulkWriteResult<TDocument>> BulkWriteAsync(
+        IEnumerable<WriteModel<TDocument>> writeModels,
+        CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Finds documents with paging and sorting
+    /// </summary>
+    /// <param name="filterExpression">The filter expression</param>
+    /// <param name="sortExpression">The sort expression</param>
+    /// <param name="sortDescending">Whether to sort in descending order</param>
+    /// <param name="page">The page number (1-based)</param>
+    /// <param name="pageSize">The page size</param>
+    /// <param name="includeInactive">Whether to include inactive documents</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The paged results and total count</returns>
+    Task<(IEnumerable<TDocument> Items, long TotalCount)> FindWithPagingAsync(
+        Expression<Func<TDocument, bool>> filterExpression,
+        Expression<Func<TDocument, object>> sortExpression,
+        bool sortDescending = false,
+        int page = 1,
+        int pageSize = 20,
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default);
 }

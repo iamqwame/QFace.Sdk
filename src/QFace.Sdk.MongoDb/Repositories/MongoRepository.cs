@@ -1,5 +1,3 @@
-using System.Linq.Expressions;
-
 namespace QFace.Sdk.MongoDb.Repositories;
 
 /// <summary>
@@ -30,7 +28,7 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
         _collection = database.GetCollection<TDocument>(collectionName);
         _logger = logger;
         CollectionName = collectionName;
-        
+            
         // Create indexes on initialization
         try
         {
@@ -45,13 +43,24 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// <summary>
     /// Gets all documents in the collection
     /// </summary>
-    public virtual async Task<IEnumerable<TDocument>> GetAllAsync(bool includeInactive = false, CancellationToken cancellationToken = default)
+    public virtual async Task<IEnumerable<TDocument>> GetAllAsync(
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = includeInactive
-                ? Builders<TDocument>.Filter.Empty
-                : Builders<TDocument>.Filter.Eq(doc => doc.IsActive, true);
+            var filters = new List<FilterDefinition<TDocument>>();
+                
+            // Add active filter
+            if (!includeInactive)
+            {
+                filters.Add(Builders<TDocument>.Filter.Eq(doc => doc.IsActive, true));
+            }
+                
+            // Combine filters
+            var filter = filters.Count > 0
+                ? Builders<TDocument>.Filter.And(filters)
+                : Builders<TDocument>.Filter.Empty;
 
             return await _collection.Find(filter).ToListAsync(cancellationToken);
         }
@@ -65,7 +74,9 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// <summary>
     /// Gets a document by its ID
     /// </summary>
-    public virtual async Task<TDocument> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public virtual async Task<TDocument> GetByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -74,7 +85,8 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document {Id} from collection {CollectionName}", id, CollectionName);
+            _logger.LogError(ex, "Error retrieving document {Id} from collection {CollectionName}", 
+                id, CollectionName);
             return null;
         }
     }
@@ -84,17 +96,23 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// </summary>
     public virtual async Task<TDocument> FindOneAsync(
         Expression<Func<TDocument, bool>> filterExpression, 
-        bool includeInactive = false, 
+        bool includeInactive = false,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = includeInactive
-                ? filterExpression
-                : Builders<TDocument>.Filter.And(
-                    Builders<TDocument>.Filter.Where(filterExpression),
-                    Builders<TDocument>.Filter.Eq(doc => doc.IsActive, true));
-
+            var filters = new List<FilterDefinition<TDocument>>
+            {
+                Builders<TDocument>.Filter.Where(filterExpression)
+            };
+                
+            // Add active filter
+            if (!includeInactive)
+            {
+                filters.Add(Builders<TDocument>.Filter.Eq(doc => doc.IsActive, true));
+            }
+                
+            var filter = Builders<TDocument>.Filter.And(filters);
             return await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
@@ -109,17 +127,23 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// </summary>
     public virtual async Task<IEnumerable<TDocument>> FindAsync(
         Expression<Func<TDocument, bool>> filterExpression, 
-        bool includeInactive = false, 
+        bool includeInactive = false,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = includeInactive
-                ? filterExpression
-                : Builders<TDocument>.Filter.And(
-                    Builders<TDocument>.Filter.Where(filterExpression),
-                    Builders<TDocument>.Filter.Eq(doc => doc.IsActive, true));
-
+            var filters = new List<FilterDefinition<TDocument>>
+            {
+                Builders<TDocument>.Filter.Where(filterExpression)
+            };
+                
+            // Add active filter
+            if (!includeInactive)
+            {
+                filters.Add(Builders<TDocument>.Filter.Eq(doc => doc.IsActive, true));
+            }
+                
+            var filter = Builders<TDocument>.Filter.And(filters);
             return await _collection.Find(filter).ToListAsync(cancellationToken);
         }
         catch (Exception ex)
@@ -132,20 +156,24 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// <summary>
     /// Inserts a document
     /// </summary>
-    public virtual async Task InsertOneAsync(TDocument document, CancellationToken cancellationToken = default)
+    public virtual async Task InsertOneAsync(
+        TDocument document,
+        CancellationToken cancellationToken = default)
     {
         try
         {
             // Set audit fields
             document.CreatedDate = DateTime.UtcNow;
             document.LastModifiedDate = DateTime.UtcNow;
-            
+                
             await _collection.InsertOneAsync(document, null, cancellationToken);
-            _logger.LogInformation("Document {Id} inserted into collection {CollectionName}", document.Id, CollectionName);
+            _logger.LogInformation("Document {Id} inserted into collection {CollectionName}", 
+                document.Id, CollectionName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error inserting document into collection {CollectionName}", CollectionName);
+            _logger.LogError(ex, "Error inserting document into collection {CollectionName}", 
+                CollectionName);
             throw;
         }
     }
@@ -153,7 +181,9 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// <summary>
     /// Inserts multiple documents
     /// </summary>
-    public virtual async Task InsertManyAsync(IEnumerable<TDocument> documents, CancellationToken cancellationToken = default)
+    public virtual async Task InsertManyAsync(
+        IEnumerable<TDocument> documents,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -164,13 +194,15 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
                 document.CreatedDate = now;
                 document.LastModifiedDate = now;
             }
-            
+                
             await _collection.InsertManyAsync(documents, null, cancellationToken);
-            _logger.LogInformation("Multiple documents inserted into collection {CollectionName}", CollectionName);
+            _logger.LogInformation("Multiple documents inserted into collection {CollectionName}", 
+                CollectionName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error inserting multiple documents into collection {CollectionName}", CollectionName);
+            _logger.LogError(ex, "Error inserting multiple documents into collection {CollectionName}", 
+                CollectionName);
             throw;
         }
     }
@@ -178,7 +210,9 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// <summary>
     /// Updates a document
     /// </summary>
-    public virtual async Task<bool> UpdateAsync(TDocument document, CancellationToken cancellationToken = default)
+    public virtual async Task<bool> UpdateAsync(
+        TDocument document,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -186,24 +220,27 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
             document.LastModifiedDate = DateTime.UtcNow;
 
             var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, document.Id);
-            var result = await _collection.ReplaceOneAsync(filter, document, new ReplaceOptions { IsUpsert = false }, cancellationToken);
+            var result = await _collection.ReplaceOneAsync(filter, document, 
+                new ReplaceOptions { IsUpsert = false }, cancellationToken);
 
             var success = result.IsAcknowledged && result.ModifiedCount > 0;
             if (success)
             {
-                _logger.LogInformation("Document {Id} updated in collection {CollectionName}", document.Id, CollectionName);
+                _logger.LogInformation("Document {Id} updated in collection {CollectionName}", 
+                    document.Id, CollectionName);
             }
             else
             {
                 _logger.LogWarning("Document {Id} not updated in collection {CollectionName}. Result: {Result}", 
                     document.Id, CollectionName, result.ToJson());
             }
-            
+                
             return success;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document {Id} in collection {CollectionName}", document.Id, CollectionName);
+            _logger.LogError(ex, "Error updating document {Id} in collection {CollectionName}", 
+                document.Id, CollectionName);
             return false;
         }
     }
@@ -211,7 +248,9 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// <summary>
     /// Replaces a document
     /// </summary>
-    public virtual async Task<bool> ReplaceOneAsync(TDocument document, CancellationToken cancellationToken = default)
+    public virtual async Task<bool> ReplaceOneAsync(
+        TDocument document,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -219,24 +258,27 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
             document.LastModifiedDate = DateTime.UtcNow;
 
             var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, document.Id);
-            var result = await _collection.ReplaceOneAsync(filter, document, new ReplaceOptions { IsUpsert = true }, cancellationToken);
+            var result = await _collection.ReplaceOneAsync(filter, document, 
+                new ReplaceOptions { IsUpsert = true }, cancellationToken);
 
             var success = result.IsAcknowledged && (result.ModifiedCount > 0 || result.UpsertedId != null);
             if (success)
             {
-                _logger.LogInformation("Document {Id} replaced in collection {CollectionName}", document.Id, CollectionName);
+                _logger.LogInformation("Document {Id} replaced in collection {CollectionName}", 
+                    document.Id, CollectionName);
             }
             else
             {
                 _logger.LogWarning("Document {Id} not replaced in collection {CollectionName}. Result: {Result}", 
                     document.Id, CollectionName, result.ToJson());
             }
-            
+                
             return success;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error replacing document {Id} in collection {CollectionName}", document.Id, CollectionName);
+            _logger.LogError(ex, "Error replacing document {Id} in collection {CollectionName}", 
+                document.Id, CollectionName);
             return false;
         }
     }
@@ -244,7 +286,9 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// <summary>
     /// Deletes a document by ID (hard delete)
     /// </summary>
-    public virtual async Task<bool> DeleteByIdAsync(string id, CancellationToken cancellationToken = default)
+    public virtual async Task<bool> DeleteByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -254,18 +298,21 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
             var success = result.IsAcknowledged && result.DeletedCount > 0;
             if (success)
             {
-                _logger.LogInformation("Document {Id} deleted from collection {CollectionName}", id, CollectionName);
+                _logger.LogInformation("Document {Id} deleted from collection {CollectionName}", 
+                    id, CollectionName);
             }
             else
             {
-                _logger.LogWarning("Document {Id} not deleted from collection {CollectionName}", id, CollectionName);
+                _logger.LogWarning("Document {Id} not deleted from collection {CollectionName}", 
+                    id, CollectionName);
             }
-            
+                
             return success;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document {Id} from collection {CollectionName}", id, CollectionName);
+            _logger.LogError(ex, "Error deleting document {Id} from collection {CollectionName}", 
+                id, CollectionName);
             return false;
         }
     }
@@ -273,7 +320,9 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// <summary>
     /// Soft deletes a document by ID (sets IsActive to false)
     /// </summary>
-    public virtual async Task<bool> SoftDeleteByIdAsync(string id, CancellationToken cancellationToken = default)
+    public virtual async Task<bool> SoftDeleteByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -287,18 +336,21 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
             var success = result.IsAcknowledged && result.ModifiedCount > 0;
             if (success)
             {
-                _logger.LogInformation("Document {Id} soft-deleted in collection {CollectionName}", id, CollectionName);
+                _logger.LogInformation("Document {Id} soft-deleted in collection {CollectionName}", 
+                    id, CollectionName);
             }
             else
             {
-                _logger.LogWarning("Document {Id} not soft-deleted in collection {CollectionName}", id, CollectionName);
+                _logger.LogWarning("Document {Id} not soft-deleted in collection {CollectionName}", 
+                    id, CollectionName);
             }
-            
+                
             return success;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error soft-deleting document {Id} in collection {CollectionName}", id, CollectionName);
+            _logger.LogError(ex, "Error soft-deleting document {Id} in collection {CollectionName}", 
+                id, CollectionName);
             return false;
         }
     }
@@ -306,7 +358,9 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// <summary>
     /// Restores a soft-deleted document
     /// </summary>
-    public virtual async Task<bool> RestoreByIdAsync(string id, CancellationToken cancellationToken = default)
+    public virtual async Task<bool> RestoreByIdAsync(
+        string id,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -320,18 +374,21 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
             var success = result.IsAcknowledged && result.ModifiedCount > 0;
             if (success)
             {
-                _logger.LogInformation("Document {Id} restored in collection {CollectionName}", id, CollectionName);
+                _logger.LogInformation("Document {Id} restored in collection {CollectionName}", 
+                    id, CollectionName);
             }
             else
             {
-                _logger.LogWarning("Document {Id} not restored in collection {CollectionName}", id, CollectionName);
+                _logger.LogWarning("Document {Id} not restored in collection {CollectionName}", 
+                    id, CollectionName);
             }
-            
+                
             return success;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error restoring document {Id} in collection {CollectionName}", id, CollectionName);
+            _logger.LogError(ex, "Error restoring document {Id} in collection {CollectionName}", 
+                id, CollectionName);
             return false;
         }
     }
@@ -341,13 +398,128 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     /// </summary>
     public virtual Task CreateIndexesAsync(CancellationToken cancellationToken = default)
     {
-        // Base implementation creates a text index on all fields
-        // Override this in derived classes for specific indexes
-        var indexModel = new CreateIndexModel<TDocument>(
+        // Base implementation creates standard indexes
+        var indexes = new List<CreateIndexModel<TDocument>>();
+            
+        // Create text index on all fields
+        indexes.Add(new CreateIndexModel<TDocument>(
             Builders<TDocument>.IndexKeys.Text("$**"), 
-            new CreateIndexOptions { Background = true }
-        );
+            new CreateIndexOptions { Background = true, Name = "text_idx" }
+        ));
 
-        return _collection.Indexes.CreateOneAsync(indexModel, null, cancellationToken);
+        return _collection.Indexes.CreateManyAsync(indexes, cancellationToken);
+    }
+        
+    /// <summary>
+    /// Counts documents with optional filtering
+    /// </summary>
+    public virtual async Task<long> CountAsync(
+        Expression<Func<TDocument, bool>> filterExpression = null,
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filters = new List<FilterDefinition<TDocument>>();
+                
+            // Add expression filter if provided
+            if (filterExpression != null)
+            {
+                filters.Add(Builders<TDocument>.Filter.Where(filterExpression));
+            }
+                
+            // Add active filter
+            if (!includeInactive)
+            {
+                filters.Add(Builders<TDocument>.Filter.Eq(doc => doc.IsActive, true));
+            }
+                
+            // Combine filters
+            var filter = filters.Count > 0
+                ? Builders<TDocument>.Filter.And(filters)
+                : Builders<TDocument>.Filter.Empty;
+                
+            return await _collection.CountDocumentsAsync(filter, null, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error counting documents in collection {CollectionName}", CollectionName);
+            return 0;
+        }
+    }
+        
+    /// <summary>
+    /// Executes a bulk write operation
+    /// </summary>
+    public virtual async Task<BulkWriteResult<TDocument>> BulkWriteAsync(
+        IEnumerable<WriteModel<TDocument>> writeModels,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _collection.BulkWriteAsync(writeModels, null, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error executing bulk write in collection {CollectionName}", CollectionName);
+            throw;
+        }
+    }
+        
+    /// <summary>
+    /// Finds documents with paging and sorting
+    /// </summary>
+    public virtual async Task<(IEnumerable<TDocument> Items, long TotalCount)> FindWithPagingAsync(
+        Expression<Func<TDocument, bool>> filterExpression,
+        Expression<Func<TDocument, object>> sortExpression,
+        bool sortDescending = false,
+        int page = 1,
+        int pageSize = 20,
+        bool includeInactive = false,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filters = new List<FilterDefinition<TDocument>>();
+                
+            // Add expression filter if provided
+            if (filterExpression != null)
+            {
+                filters.Add(Builders<TDocument>.Filter.Where(filterExpression));
+            }
+                
+            // Add active filter
+            if (!includeInactive)
+            {
+                filters.Add(Builders<TDocument>.Filter.Eq(doc => doc.IsActive, true));
+            }
+                
+            // Combine filters
+            var filter = filters.Count > 0
+                ? Builders<TDocument>.Filter.And(filters)
+                : Builders<TDocument>.Filter.Empty;
+                
+            // Create sort definition
+            var sort = sortDescending
+                ? Builders<TDocument>.Sort.Descending(sortExpression)
+                : Builders<TDocument>.Sort.Ascending(sortExpression);
+                
+            // Get total count
+            var totalCount = await _collection.CountDocumentsAsync(filter, null, cancellationToken);
+                
+            // Get paged items
+            var items = await _collection.Find(filter)
+                .Sort(sort)
+                .Skip((page - 1) * pageSize)
+                .Limit(pageSize)
+                .ToListAsync(cancellationToken);
+                
+            return (items, totalCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error finding documents with paging in collection {CollectionName}", CollectionName);
+            return (Enumerable.Empty<TDocument>(), 0);
+        }
     }
 }

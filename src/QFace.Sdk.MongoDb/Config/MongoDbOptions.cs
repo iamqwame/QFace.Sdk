@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace QFace.Sdk.MongoDb.Config;
 
 /// <summary>
@@ -45,7 +43,7 @@ public class MongoDbOptions
     /// <summary>
     /// Whether to use SSL for the connection
     /// </summary>
-    public bool UseSsl { get; set; } = true;
+    public bool UseSsl { get; set; } = false;
     
     /// <summary>
     /// Collection naming conventions configuration

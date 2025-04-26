@@ -1,5 +1,3 @@
-using MongoDB.Bson.Serialization.Attributes;
-
 namespace QFace.Sdk.MongoDb.Models;
 
 /// <summary>
@@ -36,6 +34,7 @@ public abstract class BaseDocument
     /// Identifier of the user who last modified the document
     /// </summary>
     public string LastModifiedBy { get; set; } = string.Empty;
+
     
     /// <summary>
     /// Flag indicating whether the document is active or soft-deleted
