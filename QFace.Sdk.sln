@@ -44,6 +44,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.BlobStorage.Api", "sam
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.SendMessage.Api", "samples\Demo.SendMessage.Api\Demo.SendMessage.Api.csproj", "{E4D27898-F379-4EE9-8160-8F061381EDB4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.MongoDb", "src\QFace.Sdk.MongoDb\QFace.Sdk.MongoDb.csproj", "{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +63,7 @@ Global
 		{1C9180C3-691C-4722-8E3F-C427E8824D4F} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
 		{5D8D5D20-C316-4B6B-B0D6-8E62FCC196CC} = {108FEDD7-76A7-4275-968C-97F3FF941B47}
 		{E4D27898-F379-4EE9-8160-8F061381EDB4} = {108FEDD7-76A7-4275-968C-97F3FF941B47}
+		{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{5A2D54B9-AE62-41BC-B21D-1E37FB19FFBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -99,5 +102,9 @@ Global
 		{E4D27898-F379-4EE9-8160-8F061381EDB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E4D27898-F379-4EE9-8160-8F061381EDB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E4D27898-F379-4EE9-8160-8F061381EDB4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1FAA3CC-1068-4234-8739-F7BDBBB6D3D0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
