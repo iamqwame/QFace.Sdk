@@ -1,9 +1,11 @@
 name: Build and Publish NuGet Packages
+
 on:
   push:
     branches: [master]
     tags: ["v*.*.*"]
   workflow_dispatch:
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -17,19 +19,14 @@ jobs:
 
       - name: Fix documentation paths
         run: |
-          # Get the root directory
           ROOT_DIR=$(pwd)
           
           for project_dir in ./src/QFace.Sdk.*; do
             echo "Updating paths for $project_dir"
           
-            # Create necessary directories
             mkdir -p "$project_dir/docs/shared"
-          
-            # Copy documentation files
             cp README.md "$project_dir/"
           
-            # Copy doc files that exist
             if [ -f "docs/actor-system.md" ]; then
               cp docs/actor-system.md "$project_dir/docs/"
             fi
@@ -42,12 +39,10 @@ jobs:
               cp docs/rabbitmq-messaging.md "$project_dir/docs/"
             fi
           
-            # Copy shared docs if they exist
             if [ -d "docs/shared" ]; then
               cp -r docs/shared/* "$project_dir/docs/shared/"
             fi
           
-            # Update the csproj file to use local paths
             project_file="$project_dir/$(basename "$project_dir").csproj"
             sed -i 's/<None Include="\$(SolutionDir)README.md"/<None Include="README.md"/g' "$project_file"
             sed -i 's/<None Include="\$(SolutionDir)docs\//<None Include="docs\//g' "$project_file"
@@ -68,6 +63,6 @@ jobs:
           ls -la ./nupkgs/
 
       - name: Publish to NuGet
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         run: |
           dotnet nuget push ./nupkgs/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
