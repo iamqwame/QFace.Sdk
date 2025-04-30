@@ -1,7 +1,7 @@
 namespace QFace.Sdk.MongoDb.MultiTenant.Middleware
 {
     /// <summary>
-    /// Options for tenant resolution middleware
+    /// Enhanced options for tenant resolution middleware with token support
     /// </summary>
     public class TenantResolutionOptions
     {
@@ -26,9 +26,29 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Middleware
         public bool UseCookieResolution { get; set; } = false;
         
         /// <summary>
-        /// Use auth claim resolution (tenant_id or tenant_code claims)
+        /// Use auth claim resolution (from token or identity)
         /// </summary>
         public bool UseAuthClaimResolution { get; set; } = true;
+        
+        /// <summary>
+        /// Names of claims to check for tenant ID (in order of priority)
+        /// </summary>
+        public List<string> TenantIdClaimNames { get; set; } = new()
+        {
+            "tenant_id",
+            "tenantId",
+            "tid"
+        };
+        
+        /// <summary>
+        /// Names of claims to check for tenant code (in order of priority)
+        /// </summary>
+        public List<string> TenantCodeClaimNames { get; set; } = new()
+        {
+            "tenant_code",
+            "tenantCode",
+            "tcode"
+        };
         
         /// <summary>
         /// Whether to include tenant info in response headers
@@ -58,7 +78,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Middleware
         /// <summary>
         /// Paths for which tenant resolution should be skipped
         /// </summary>
-        public List<string> ExcludedPaths { get; set; } = new List<string>
+        public List<string> ExcludedPaths { get; set; } = new()
         {
             "/health",
             "/metrics",
@@ -69,7 +89,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Middleware
         /// <summary>
         /// Paths that are exempt from tenant requirement
         /// </summary>
-        public List<string> TenantExemptPaths { get; set; } = new List<string>
+        public List<string> TenantExemptPaths { get; set; } = new()
         {
             "/api/tenants",
             "/api/auth"

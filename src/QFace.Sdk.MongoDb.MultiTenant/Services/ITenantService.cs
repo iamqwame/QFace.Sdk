@@ -1,3 +1,5 @@
+using QFace.Sdk.MongoDb.MultiTenant.Dtos;
+
 namespace QFace.Sdk.MongoDb.MultiTenant.Services;
 
 /// <summary>
@@ -36,6 +38,10 @@ public interface ITenantService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The ID of the created tenant</returns>
     Task<string> CreateAsync(Tenant tenant, CancellationToken cancellationToken = default);
+
+    Task<TenantCreationResult> CreateTenantAsync(
+        TenantCreationRequest request,
+        CancellationToken cancellationToken = default);
         
     /// <summary>
     /// Updates a tenant

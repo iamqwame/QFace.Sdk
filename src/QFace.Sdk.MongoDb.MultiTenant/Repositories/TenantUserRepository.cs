@@ -3,7 +3,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Repositories
     /// <summary>
     /// Implementation of tenant user repository
     /// </summary>
-    public class TenantUserRepository : MongoRepository<TenantUserDocument>, ITenantUserRepository
+    public class TenantUserRepository : MongoRepository<TenantUser>, ITenantUserRepository
     {
         /// <summary>
         /// Creates a new tenant user repository
@@ -22,7 +22,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Repositories
         /// <summary>
         /// Gets all tenant associations for a user
         /// </summary>
-        public async Task<IEnumerable<TenantUserDocument>> GetTenantsByUserIdAsync(
+        public async Task<IEnumerable<TenantUser>> GetTenantsByUserIdAsync(
             string userId, 
             bool includeInactive = false, 
             CancellationToken cancellationToken = default)
@@ -36,7 +36,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Repositories
         /// <summary>
         /// Gets all user associations for a tenant
         /// </summary>
-        public async Task<IEnumerable<TenantUserDocument>> GetUsersByTenantIdAsync(
+        public async Task<IEnumerable<TenantUser>> GetUsersByTenantIdAsync(
             string tenantId, 
             bool includeInactive = false, 
             CancellationToken cancellationToken = default)
@@ -50,7 +50,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Repositories
         /// <summary>
         /// Gets a specific tenant-user association
         /// </summary>
-        public async Task<TenantUserDocument?> GetTenantUserAsync(
+        public async Task<TenantUser?> GetTenantUserAsync(
             string userId, 
             string tenantId, 
             CancellationToken cancellationToken = default)
@@ -84,8 +84,8 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Repositories
             await base.CreateIndexesAsync(cancellationToken);
             
             // Create unique index on UserId + TenantId
-            var indexModel = new CreateIndexModel<TenantUserDocument>(
-                Builders<TenantUserDocument>.IndexKeys
+            var indexModel = new CreateIndexModel<TenantUser>(
+                Builders<TenantUser>.IndexKeys
                     .Ascending(tu => tu.UserId)
                     .Ascending(tu => tu.TenantId),
                 new CreateIndexOptions { Unique = true, Background = true, Name = "user_tenant_unique_idx" }
@@ -94,16 +94,16 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Repositories
             await _collection.Indexes.CreateOneAsync(indexModel, cancellationToken: cancellationToken);
             
             // Create index on UserId
-            var userIdIndexModel = new CreateIndexModel<TenantUserDocument>(
-                Builders<TenantUserDocument>.IndexKeys.Ascending(tu => tu.UserId),
+            var userIdIndexModel = new CreateIndexModel<TenantUser>(
+                Builders<TenantUser>.IndexKeys.Ascending(tu => tu.UserId),
                 new CreateIndexOptions { Background = true, Name = "user_id_idx" }
             );
             
             await _collection.Indexes.CreateOneAsync(userIdIndexModel, cancellationToken: cancellationToken);
             
             // Create index on TenantId
-            var tenantIdIndexModel = new CreateIndexModel<TenantUserDocument>(
-                Builders<TenantUserDocument>.IndexKeys.Ascending(tu => tu.TenantId),
+            var tenantIdIndexModel = new CreateIndexModel<TenantUser>(
+                Builders<TenantUser>.IndexKeys.Ascending(tu => tu.TenantId),
                 new CreateIndexOptions { Background = true, Name = "tenant_id_idx" }
             );
             

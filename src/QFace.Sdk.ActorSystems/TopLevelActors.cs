@@ -1,6 +1,4 @@
 using System.Collections.Concurrent;
-using Akka.Actor;
-using Akka.DependencyInjection;
 using Akka.Routing;
 
 namespace QFace.Sdk.ActorSystems;
