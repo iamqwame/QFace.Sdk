@@ -7,19 +7,37 @@ using Serilog.Sinks.Graylog.Core.Transport;
 namespace QFace.Sdk.Logging;
 
 public static class LoggingExtensions
-{
-    /// <summary>
-    /// Configure Serilog + Graylog sink using a "Logs" section in IConfiguration.
-    /// </summary>
-    public static IHostBuilder AddQFaceLogging(this IHostBuilder hostBuilder)
     {
-        return hostBuilder.UseSerilog((context, loggerConfig) =>
+        /// <summary>
+        /// Configure Serilog + Graylog sink using a "Logs" section in IConfiguration.
+        /// Works for both Web API and Console applications.
+        /// </summary>
+        public static IHostBuilder AddQFaceLogging(this IHostBuilder hostBuilder)
+        {
+            return hostBuilder.UseSerilog((context, loggerConfig) =>
+            {
+                ConfigureLogging(context.Configuration, loggerConfig);
+            });
+        }
+
+        /// <summary>
+        /// Configure Serilog + Graylog sink directly with an IConfiguration instance.
+        /// Useful for console applications where you need to configure logging before host building.
+        /// </summary>
+        public static void ConfigureQFaceLogging(this IConfiguration configuration)
+        {
+            var loggerConfig = new LoggerConfiguration();
+            ConfigureLogging(configuration, loggerConfig);
+            Log.Logger = loggerConfig.CreateLogger();
+        }
+
+        private static void ConfigureLogging(IConfiguration configuration, LoggerConfiguration loggerConfig)
         {
             try
             {
                 // Bind the Logs section from appsettings
                 var opts = new LoggingOptions();
-                ConfigurationBinder.Bind(context.Configuration.GetSection("Logs"), opts);
+                configuration.GetSection("Logs").Bind(opts);
 
                 if (!opts.Using.Equals("Graylog", StringComparison.OrdinalIgnoreCase))
                 {
@@ -39,16 +57,17 @@ public static class LoggingExtensions
                         TransportType = TransportType.Udp,
                         MinimumLogEventLevel = opts.MinimumLevel,
                     });
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 // Fallback to console logging if Graylog configuration fails
                 loggerConfig
                     .MinimumLevel.Information()
-                    .WriteTo.Console(outputTemplate: 
+                    .WriteTo.Console(outputTemplate:
                         "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} (Fallback){NewLine}{Exception}");
-                
+
                 // Log the configuration error to console
                 Console.Error.WriteLine($"Error configuring QFace logging: {ex.Message}");
             }
-        });}
-}
+        }
+    }
