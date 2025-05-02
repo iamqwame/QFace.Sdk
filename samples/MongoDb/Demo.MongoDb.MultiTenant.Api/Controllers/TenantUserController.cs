@@ -1,50 +1,37 @@
+using QFace.Sdk.Extensions.Services;
+
 namespace Demo.MongoDb.MultiTenant.Api.Controllers;
 
     [ApiController]
     [Route("api/tenant-users")]
     [Authorize(Policy = "TenantAdmin")]
-    public class TenantUserController : ControllerBase
+    public class TenantUserController(
+        ITenantUserRepository tenantUserRepository,
+        IUserRepository userRepository,
+        ITenantRepository tenantRepository,
+        IPasswordHasher passwordHasher,
+        ITenantAccessor tenantAccessor,
+        ILogger<TenantUserController> logger)
+        : ControllerBase
     {
-        private readonly ITenantUserRepository _tenantUserRepository;
-        private readonly IUserRepository _userRepository;
-        private readonly ITenantRepository _tenantRepository;
-        private readonly IPasswordHasher _passwordHasher;
-
-        private readonly ITenantAccessor _tenantAccessor;
-        private readonly ILogger<TenantUserController> _logger;
-
-        public TenantUserController(
-            ITenantUserRepository tenantUserRepository,
-            IUserRepository userRepository,
-            ITenantRepository tenantRepository,
-            IPasswordHasher passwordHasher,
-            ITenantAccessor tenantAccessor,
-            ILogger<TenantUserController> logger)
-        {
-            _tenantUserRepository = tenantUserRepository;
-            _userRepository = userRepository;
-            _tenantRepository = tenantRepository;
-            _passwordHasher = passwordHasher;
-            _tenantAccessor = tenantAccessor;
-            _logger = logger;
-        }
+        private readonly ITenantRepository _tenantRepository = tenantRepository;
 
         [HttpGet]
         public async Task<IActionResult> GetTenantUsers()
         {
             try
             {
-                var tenantId = _tenantAccessor.GetCurrentTenantId();
+                var tenantId = tenantAccessor.GetCurrentTenantId();
                 if (string.IsNullOrEmpty(tenantId))
                     return BadRequest("No tenant context available");
 
-                var tenantUsers = await _tenantUserRepository.GetUsersByTenantIdAsync(tenantId);
+                var tenantUsers = await tenantUserRepository.GetUsersByTenantIdAsync(tenantId);
                 
                 // Map to a view model with user details
                 var userDetails = new List<TenantUserViewModel>();
                 foreach (var tu in tenantUsers)
                 {
-                    var user = await _userRepository.GetByIdAsync(tu.UserId);
+                    var user = await userRepository.GetByIdAsync(tu.UserId);
                     if (user != null)
                     {
                         userDetails.Add(new TenantUserViewModel
@@ -70,7 +57,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving tenant users");
+                logger.LogError(ex, "Error retrieving tenant users");
                 return StatusCode(500, new { error = "An error occurred while retrieving tenant users" });
             }
         }
@@ -80,15 +67,15 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
         {
             try
             {
-                var tenantId = _tenantAccessor.GetCurrentTenantId();
+                var tenantId = tenantAccessor.GetCurrentTenantId();
                 if (string.IsNullOrEmpty(tenantId))
                     return BadRequest("No tenant context available");
 
-                var tenantUser = await _tenantUserRepository.GetByIdAsync(id);
+                var tenantUser = await tenantUserRepository.GetByIdAsync(id);
                 if (tenantUser == null || tenantUser.TenantId != tenantId)
                     return NotFound();
 
-                var user = await _userRepository.GetByIdAsync(tenantUser.UserId);
+                var user = await userRepository.GetByIdAsync(tenantUser.UserId);
                 if (user == null)
                     return NotFound();
 
@@ -113,7 +100,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving tenant user {Id}", id);
+                logger.LogError(ex, "Error retrieving tenant user {Id}", id);
                 return StatusCode(500, new { error = "An error occurred while retrieving the tenant user" });
             }
         }
@@ -126,7 +113,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
 
             try
             {
-                var tenantId = _tenantAccessor.GetCurrentTenantId();
+                var tenantId = tenantAccessor.GetCurrentTenantId();
                 if (string.IsNullOrEmpty(tenantId))
                     return BadRequest("No tenant context available");
 
@@ -135,19 +122,19 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
                 if (!string.IsNullOrEmpty(request.UserId))
                 {
                     // Adding existing user
-                    user = await _userRepository.GetByIdAsync(request.UserId);
+                    user = await userRepository.GetByIdAsync(request.UserId);
                     if (user == null)
                         return BadRequest("User not found");
                 }
                 else if (!string.IsNullOrEmpty(request.Email))
                 {
                     // Check if user with this email already exists
-                    user = await _userRepository.GetByEmailAsync(request.Email);
+                    user = await userRepository.GetByEmailAsync(request.Email);
                     
                     if (user == null && !string.IsNullOrEmpty(request.Password))
                     {
                         // Create new user
-                        (string passwordHash, string passwordSalt) = _passwordHasher.HashPassword(request.Password);
+                        (string passwordHash, string passwordSalt) = passwordHasher.HashPassword(request.Password);
                         
                         user = new User
                         {
@@ -159,7 +146,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
                             IsEmailVerified = false
                         };
                         
-                        await _userRepository.InsertOneAsync(user);
+                        await userRepository.InsertOneAsync(user);
                     }
                     else if (user == null)
                     {
@@ -172,7 +159,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
                 }
 
                 // Check if user is already in tenant
-                var existingTenantUser = await _tenantUserRepository.GetTenantUserAsync(user.Id, tenantId);
+                var existingTenantUser = await tenantUserRepository.GetTenantUserAsync(user.Id, tenantId);
                 if (existingTenantUser != null)
                 {
                     return BadRequest("User is already a member of this tenant");
@@ -191,7 +178,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
                     RequiresMfa = request.RequiresMfa
                 };
 
-                await _tenantUserRepository.InsertOneAsync(tenantUser);
+                await tenantUserRepository.InsertOneAsync(tenantUser);
 
                 var viewModel = new TenantUserViewModel
                 {
@@ -212,7 +199,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding user to tenant");
+                logger.LogError(ex, "Error adding user to tenant");
                 return StatusCode(500, new { error = "An error occurred while adding the user to the tenant" });
             }
         }
@@ -225,11 +212,11 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
 
             try
             {
-                var tenantId = _tenantAccessor.GetCurrentTenantId();
+                var tenantId = tenantAccessor.GetCurrentTenantId();
                 if (string.IsNullOrEmpty(tenantId))
                     return BadRequest("No tenant context available");
 
-                var tenantUser = await _tenantUserRepository.GetByIdAsync(id);
+                var tenantUser = await tenantUserRepository.GetByIdAsync(id);
                 if (tenantUser == null || tenantUser.TenantId != tenantId)
                     return NotFound();
 
@@ -250,11 +237,11 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
                     tenantUser.RequiresMfa = request.RequiresMfa.Value;
 
                 // Update the tenant user
-                var updated = await _tenantUserRepository.UpdateAsync(tenantUser);
+                var updated = await tenantUserRepository.UpdateAsync(tenantUser);
                 if (!updated)
                     return StatusCode(500, new { error = "Failed to update tenant user" });
 
-                var user = await _userRepository.GetByIdAsync(tenantUser.UserId);
+                var user = await userRepository.GetByIdAsync(tenantUser.UserId);
                 
                 var viewModel = new TenantUserViewModel
                 {
@@ -277,7 +264,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating tenant user {Id}", id);
+                logger.LogError(ex, "Error updating tenant user {Id}", id);
                 return StatusCode(500, new { error = "An error occurred while updating the tenant user" });
             }
         }
@@ -287,18 +274,18 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
         {
             try
             {
-                var tenantId = _tenantAccessor.GetCurrentTenantId();
+                var tenantId = tenantAccessor.GetCurrentTenantId();
                 if (string.IsNullOrEmpty(tenantId))
                     return BadRequest("No tenant context available");
 
-                var tenantUser = await _tenantUserRepository.GetByIdAsync(id);
+                var tenantUser = await tenantUserRepository.GetByIdAsync(id);
                 if (tenantUser == null || tenantUser.TenantId != tenantId)
                     return NotFound();
 
                 // Don't allow removing the last admin
                 if (tenantUser.Role == "TenantAdmin")
                 {
-                    var admins = await _tenantUserRepository.FindAsync(
+                    var admins = await tenantUserRepository.FindAsync(
                         tu => tu.TenantId == tenantId && tu.Role == "TenantAdmin" && tu.IsActive);
                     
                     var adminsList = admins.ToList();
@@ -306,7 +293,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
                         return BadRequest("Cannot remove the last tenant admin");
                 }
 
-                var deleted = await _tenantUserRepository.DeleteByIdAsync(id);
+                var deleted = await tenantUserRepository.DeleteByIdAsync(id);
                 if (!deleted)
                     return NotFound();
 
@@ -314,7 +301,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error removing user from tenant {Id}", id);
+                logger.LogError(ex, "Error removing user from tenant {Id}", id);
                 return StatusCode(500, new { error = "An error occurred while removing the user from the tenant" });
             }
         }

@@ -1,6 +1,3 @@
-using QFace.Sdk.RabbitMq.Messages;
-using QFace.Sdk.RabbitMq.Models;
-
 namespace QFace.Sdk.RabbitMq.Actors
 {
     internal class RabbitMqPublisherActor : BaseActor

@@ -1,5 +1,3 @@
-using QFace.Sdk.RabbitMq.Messages;
-
 namespace QFace.Sdk.RabbitMq.Services;
 
 public class RabbitMqPublisher : IRabbitMqPublisher

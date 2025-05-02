@@ -2,6 +2,7 @@
 
 global using System;
 global using System.Linq.Expressions;
+global using System.Reflection;
 global using System.Security.Claims;
 global using System.Text;
 global using System.Threading;
@@ -16,6 +17,7 @@ global using Microsoft.Extensions.Logging;
 global using Microsoft.IdentityModel.Tokens;
 global using MongoDB.Driver;
 global using QFace.Sdk.MongoDb.Models;
+global using QFace.Sdk.MongoDb.MultiTenant.Attributes;
 global using QFace.Sdk.MongoDb.MultiTenant.Core;
 global using QFace.Sdk.MongoDb.MultiTenant.Middleware;
 global using QFace.Sdk.MongoDb.MultiTenant.Models;

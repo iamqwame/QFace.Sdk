@@ -1,8 +1,3 @@
-using QFace.Sdk.RabbitMq.Actors;
-using QFace.Sdk.RabbitMq.Consumer;
-using QFace.Sdk.RabbitMq.Models;
-using QFace.Sdk.RabbitMq.Services;
-
 namespace QFace.Sdk.RabbitMq.Extension;
 
 public static class RabbitMqExtensions

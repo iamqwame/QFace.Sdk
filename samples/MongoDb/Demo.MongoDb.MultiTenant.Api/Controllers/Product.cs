@@ -1,11 +1,11 @@
-using MongoDB.Bson.Serialization.Attributes;
+using QFace.Sdk.MongoDb.MultiTenant.Attributes;
 
-namespace Demo.MongoDb.MultiTenant.Api;
+namespace Demo.MongoDb.MultiTenant.Api.Controllers;
 
 /// <summary>
 /// Product document (tenant-specific data)
 /// </summary>
-[BsonDiscriminator("products")] 
+[TenantCollection("products")] 
 public class Product : TenantBaseDocument
 {
     /// <summary>

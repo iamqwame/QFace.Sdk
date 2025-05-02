@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using QFace.Sdk.Logging;
 using QFace.Sdk.MongoDb;
 using QFace.Sdk.MongoDb.Repositories;
 using QFace.Sdk.MongoDb.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.AddQFaceLogging();
 
 // 1. Setup MongoDB
 builder.Services.AddMongoDb(builder.Configuration);

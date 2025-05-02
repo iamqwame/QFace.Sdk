@@ -12,6 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\src\QFace.Sdk.Logging\QFace.Sdk.Logging.csproj" />
         <ProjectReference Include="..\..\..\src\QFace.Sdk.MongoDb\QFace.Sdk.MongoDb.csproj" />
     </ItemGroup>
 

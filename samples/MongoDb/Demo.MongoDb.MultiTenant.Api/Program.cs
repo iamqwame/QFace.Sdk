@@ -1,15 +1,12 @@
 using Microsoft.OpenApi.Models;
 using QFace.Sdk.MongoDb.MultiTenant;
-using QFace.Sdk.MongoDb.MultiTenant.Middleware;
 using Demo.MongoDb.MultiTenant.Api;
-using Microsoft.Extensions.Logging;
+using QFace.Sdk.Logging;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Increase logging level to see more details
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.SetMinimumLevel(LogLevel.Debug);
+builder.Host.AddQFaceLogging();
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -49,15 +46,15 @@ builder.Services.AddSwaggerGen(c =>
 // Add core services
 builder.Services.AddSingleton<ITenantAccessor, TenantAccessor>();
 
+var assemblies = new[] { typeof(Program).Assembly };
 // Add Multi-Tenant MongoDB Support without automatic scanning
 builder.Services.AddMongoDbMultiTenancy(
     builder.Configuration,
     tenantManagementSectionName: "MongoDbManagement",
-    tenantDataSectionName: "MongoDbData"
+    tenantDataSectionName: "DefaultTenantDbData",
+    assembliesToScan: assemblies
 );
 
-// Explicitly register Product repository
-builder.Services.AddTenantAwareRepository<Product>("products");
 
 // Add Authentication
 builder.Services.AddTenantAuthentication(builder.Configuration);
@@ -99,7 +96,7 @@ app.UseAuthorization();
 app.MapGet("/", () => Results.Content(GetIndexHtml(), "text/html"));
 app.MapControllers();
 
-// Initialize sample data with improved error handling
+//Initialize sample data with improved error handling
 using (var scope = app.Services.CreateScope())
 {
     try 

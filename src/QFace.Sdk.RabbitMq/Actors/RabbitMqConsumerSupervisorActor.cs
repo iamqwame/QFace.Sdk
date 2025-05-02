@@ -1,6 +1,3 @@
-using QFace.Sdk.RabbitMq.Consumer;
-using QFace.Sdk.RabbitMq.Models;
-
 namespace QFace.Sdk.RabbitMq.Actors
 {
     public class RabbitMqConsumerSupervisorActor : ReceiveActor

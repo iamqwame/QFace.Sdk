@@ -1,40 +1,21 @@
 using System.Security.Claims;
+using QFace.Sdk.Extensions.Services;
 
 namespace Demo.MongoDb.MultiTenant.Api.Controllers
 {
     [ApiController]
     [Route("api/auth")]
-    public class AuthController : ControllerBase
+    public class AuthController(
+        IUserRepository userRepository,
+        ITenantUserRepository tenantUserRepository,
+        ITenantRepository tenantRepository,
+        IPasswordHasher passwordHasher,
+        ITokenService tokenService,
+        IRefreshTokenRepository refreshTokenRepository,
+        ITenantAccessor tenantAccessor,
+        ILogger<AuthController> logger)
+        : ControllerBase
     {
-        private readonly IUserRepository _userRepository;
-        private readonly ITenantUserRepository _tenantUserRepository;
-        private readonly ITenantRepository _tenantRepository;
-        private readonly IPasswordHasher _passwordHasher;
-        private readonly ITokenService _tokenService;
-        private readonly IRefreshTokenRepository _refreshTokenRepository;
-        private readonly ITenantAccessor _tenantAccessor;
-        private readonly ILogger<AuthController> _logger;
-
-        public AuthController(
-            IUserRepository userRepository,
-            ITenantUserRepository tenantUserRepository,
-            ITenantRepository tenantRepository,
-            IPasswordHasher passwordHasher,
-            ITokenService tokenService,
-            IRefreshTokenRepository refreshTokenRepository,
-            ITenantAccessor tenantAccessor,
-            ILogger<AuthController> logger)
-        {
-            _userRepository = userRepository;
-            _tenantUserRepository = tenantUserRepository;
-            _tenantRepository = tenantRepository;
-            _passwordHasher = passwordHasher;
-            _tokenService = tokenService;
-            _refreshTokenRepository = refreshTokenRepository;
-            _tenantAccessor = tenantAccessor;
-            _logger = logger;
-        }
-
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
@@ -45,22 +26,22 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
             try
             {
                 // Find user by email
-                var user = await _userRepository.GetByEmailAsync(request.Email);
+                var user = await userRepository.GetByEmailAsync(request.Email);
                 if (user == null)
                     return Unauthorized(AuthResult.Failed("Invalid email or password"));
 
                 // Verify password
-                if (!_passwordHasher.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt))
+                if (!passwordHasher.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt))
                     return Unauthorized(AuthResult.Failed("Invalid email or password"));
 
                 // Get user's tenants
-                var tenantUsers = await _tenantUserRepository.GetTenantsByUserIdAsync(user.Id);
+                var tenantUsers = await tenantUserRepository.GetTenantsByUserIdAsync(user.Id);
                 
                 // If tenantCode is specified, validate access to that tenant
                 string? targetTenantId = null;
                 if (!string.IsNullOrEmpty(request.TenantCode))
                 {
-                    var tenant = await _tenantRepository.GetByCodeAsync(request.TenantCode);
+                    var tenant = await tenantRepository.GetByCodeAsync(request.TenantCode);
                     if (tenant == null)
                         return BadRequest(AuthResult.Failed("Tenant not found"));
 
@@ -79,7 +60,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
 
                     // Record successful login
                     tenantAccess.RecordSuccessfulLogin();
-                    await _tenantUserRepository.UpdateAsync(tenantAccess);
+                    await tenantUserRepository.UpdateAsync(tenantAccess);
                 }
                 // If no tenant specified but user has tenants, use primary or first tenant
                 else if (tenantUsers.Any())
@@ -92,7 +73,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
                     return BadRequest(AuthResult.Failed("No available tenant"));
 
                 // Get the tenant for response
-                var targetTenant = await _tenantRepository.GetByIdAsync(targetTenantId);
+                var targetTenant = await tenantRepository.GetByIdAsync(targetTenantId);
                 if (targetTenant == null)
                     return BadRequest(AuthResult.Failed("Tenant not found"));
 
@@ -100,7 +81,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
                 var tenantUser = tenantUsers.First(tu => tu.TenantId == targetTenantId);
 
                 // Generate tokens using the specific method from ITokenService
-                var (token, expires) = _tokenService.GenerateAccessToken(
+                var (token, expires) = tokenService.GenerateAccessToken(
                     user.Id,
                     targetTenantId,
                     targetTenant.Code,
@@ -109,12 +90,12 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
                     tenantUser.Permissions
                 );
                 
-                var (refreshToken, refreshExpires) = _tokenService.GenerateRefreshToken();
+                var (refreshToken, refreshExpires) = tokenService.GenerateRefreshToken();
 
                 // Save refresh token
-                await _tenantAccessor.ExecuteWithTenantAsync(targetTenantId, async () =>
+                await tenantAccessor.ExecuteWithTenantAsync(targetTenantId, async () =>
                 {
-                    await _refreshTokenRepository.InsertOneAsync(new RefreshToken
+                    await refreshTokenRepository.InsertOneAsync(new RefreshToken
                     {
                         Token = refreshToken,
                         UserId = user.Id,
@@ -129,7 +110,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
                 var availableTenants = new List<TenantSummary>();
                 foreach (var tu in tenantUsers)
                 {
-                    var t = await _tenantRepository.GetByIdAsync(tu.TenantId);
+                    var t = await tenantRepository.GetByIdAsync(tu.TenantId);
                     if (t != null && t.IsActive && t.IsProvisioned)
                     {
                         availableTenants.Add(new TenantSummary
@@ -167,7 +148,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Login error");
+                logger.LogError(ex, "Login error");
                 return StatusCode(500, AuthResult.Failed("An error occurred during login"));
             }
         }
@@ -182,30 +163,30 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
             try
             {
                 // Validate refresh token
-                var refreshToken = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
+                var refreshToken = await refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
                 if (refreshToken == null || !refreshToken.IsActive)
                     return Unauthorized(AuthResult.Failed("Invalid refresh token"));
 
                 // Get user
-                var user = await _userRepository.GetByIdAsync(refreshToken.UserId);
+                var user = await userRepository.GetByIdAsync(refreshToken.UserId);
                 if (user == null)
                     return Unauthorized(AuthResult.Failed("User not found"));
 
                 // Set tenant context from the refresh token
-                _tenantAccessor.SetCurrentTenantId(refreshToken.TenantId);
+                tenantAccessor.SetCurrentTenantId(refreshToken.TenantId);
 
                 // Get tenant
-                var tenant = await _tenantRepository.GetByIdAsync(refreshToken.TenantId);
+                var tenant = await tenantRepository.GetByIdAsync(refreshToken.TenantId);
                 if (tenant == null)
                     return Unauthorized(AuthResult.Failed("Tenant not found"));
 
                 // Get tenant user for permissions
-                var tenantUser = await _tenantUserRepository.GetTenantUserAsync(user.Id, refreshToken.TenantId);
+                var tenantUser = await tenantUserRepository.GetTenantUserAsync(user.Id, refreshToken.TenantId);
                 if (tenantUser == null)
                     return Unauthorized(AuthResult.Failed("User does not have access to this tenant"));
 
                 // Generate new tokens
-                var (newAccessToken, expires) = _tokenService.GenerateAccessToken(
+                var (newAccessToken, expires) = tokenService.GenerateAccessToken(
                     user.Id,
                     refreshToken.TenantId,
                     tenant.Code,
@@ -214,17 +195,17 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
                     tenantUser.Permissions
                 );
                 
-                var (newRefreshToken, refreshExpires) = _tokenService.GenerateRefreshToken();
+                var (newRefreshToken, refreshExpires) = tokenService.GenerateRefreshToken();
 
                 // Revoke old refresh token
                 refreshToken.IsRevoked = true;
                 refreshToken.RevokedAt = DateTime.UtcNow;
                 refreshToken.RevocationReason = "Token refresh";
                 refreshToken.ReplacedByToken = newRefreshToken;
-                await _refreshTokenRepository.UpdateAsync(refreshToken);
+                await refreshTokenRepository.UpdateAsync(refreshToken);
 
                 // Save new refresh token
-                await _refreshTokenRepository.InsertOneAsync(new RefreshToken
+                await refreshTokenRepository.InsertOneAsync(new RefreshToken
                 {
                     Token = newRefreshToken,
                     UserId = user.Id,
@@ -236,11 +217,11 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
                 });
 
                 // Get all tenants for the user
-                var tenantUsers = await _tenantUserRepository.GetTenantsByUserIdAsync(user.Id);
+                var tenantUsers = await tenantUserRepository.GetTenantsByUserIdAsync(user.Id);
                 var availableTenants = new List<TenantSummary>();
                 foreach (var tu in tenantUsers)
                 {
-                    var t = await _tenantRepository.GetByIdAsync(tu.TenantId);
+                    var t = await tenantRepository.GetByIdAsync(tu.TenantId);
                     if (t != null && t.IsActive && t.IsProvisioned)
                     {
                         availableTenants.Add(new TenantSummary
@@ -278,7 +259,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Refresh token error");
+                logger.LogError(ex, "Refresh token error");
                 return StatusCode(500, AuthResult.Failed("An error occurred during token refresh"));
             }
         }
@@ -298,22 +279,22 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
                     return Unauthorized(AuthResult.Failed("User not authenticated"));
 
                 // Get user
-                var user = await _userRepository.GetByIdAsync(userId);
+                var user = await userRepository.GetByIdAsync(userId);
                 if (user == null)
                     return Unauthorized(AuthResult.Failed("User not found"));
 
                 // Check if user has access to this tenant
-                var tenantUser = await _tenantUserRepository.GetTenantUserAsync(userId, request.TenantId);
+                var tenantUser = await tenantUserRepository.GetTenantUserAsync(userId, request.TenantId);
                 if (tenantUser == null)
                     return Unauthorized(AuthResult.Failed("You don't have access to this tenant"));
 
                 // Get tenant
-                var tenant = await _tenantRepository.GetByIdAsync(request.TenantId);
+                var tenant = await tenantRepository.GetByIdAsync(request.TenantId);
                 if (tenant == null)
                     return BadRequest(AuthResult.Failed("Tenant not found"));
 
                 // Generate new tokens
-                var (newAccessToken, expires) = _tokenService.GenerateAccessToken(
+                var (newAccessToken, expires) = tokenService.GenerateAccessToken(
                     user.Id,
                     tenant.Id,
                     tenant.Code,
@@ -322,13 +303,13 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
                     tenantUser.Permissions
                 );
                 
-                var (newRefreshToken, refreshExpires) = _tokenService.GenerateRefreshToken();
+                var (newRefreshToken, refreshExpires) = tokenService.GenerateRefreshToken();
 
                 // Set tenant context for refresh token
-                _tenantAccessor.SetCurrentTenantId(tenant.Id);
+                tenantAccessor.SetCurrentTenantId(tenant.Id);
 
                 // Save new refresh token
-                await _refreshTokenRepository.InsertOneAsync(new RefreshToken
+                await refreshTokenRepository.InsertOneAsync(new RefreshToken
                 {
                     Token = newRefreshToken,
                     UserId = user.Id,
@@ -339,11 +320,11 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
                 });
 
                 // Get all tenants for the user
-                var tenantUsers = await _tenantUserRepository.GetTenantsByUserIdAsync(user.Id);
+                var tenantUsers = await tenantUserRepository.GetTenantsByUserIdAsync(user.Id);
                 var availableTenants = new List<TenantSummary>();
                 foreach (var tu in tenantUsers)
                 {
-                    var t = await _tenantRepository.GetByIdAsync(tu.TenantId);
+                    var t = await tenantRepository.GetByIdAsync(tu.TenantId);
                     if (t != null && t.IsActive && t.IsProvisioned)
                     {
                         availableTenants.Add(new TenantSummary
@@ -381,7 +362,7 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Switch tenant error");
+                logger.LogError(ex, "Switch tenant error");
                 return StatusCode(500, AuthResult.Failed("An error occurred during tenant switch"));
             }
         }
@@ -396,24 +377,24 @@ namespace Demo.MongoDb.MultiTenant.Api.Controllers
             try
             {
                 // Find and revoke the refresh token
-                var refreshToken = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
+                var refreshToken = await refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
                 if (refreshToken != null && refreshToken.IsActive)
                 {
                     // Set tenant context
-                    _tenantAccessor.SetCurrentTenantId(refreshToken.TenantId);
+                    tenantAccessor.SetCurrentTenantId(refreshToken.TenantId);
                     
                     // Update token status
                     refreshToken.IsRevoked = true;
                     refreshToken.RevokedAt = DateTime.UtcNow;
                     refreshToken.RevocationReason = "User logout";
-                    await _refreshTokenRepository.UpdateAsync(refreshToken);
+                    await refreshTokenRepository.UpdateAsync(refreshToken);
                 }
 
                 return Ok(new { message = "Logged out successfully" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Logout error");
+                logger.LogError(ex, "Logout error");
                 return StatusCode(500, new { error = "An error occurred during logout" });
             }
         }

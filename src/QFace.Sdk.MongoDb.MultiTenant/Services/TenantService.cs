@@ -1,3 +1,4 @@
+using QFace.Sdk.Extensions.Services;
 using QFace.Sdk.MongoDb.MultiTenant.Dtos;
 
 namespace QFace.Sdk.MongoDb.MultiTenant.Services;
