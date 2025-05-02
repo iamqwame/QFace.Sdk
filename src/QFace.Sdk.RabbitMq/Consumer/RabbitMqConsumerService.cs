@@ -1,5 +1,3 @@
-using QFace.Sdk.RabbitMq.Actors;
-
 namespace QFace.Sdk.RabbitMq.Consumer
 {
     internal class RabbitMqConsumerService : IHostedService

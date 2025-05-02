@@ -1,5 +1,4 @@
 using QFace.Sdk.ActorSystems;
-using QFace.Sdk.Extensions;
 using QFace.Sdk.SendMessage.Extensions;
 using QFace.Sdk.SendMessage.Services;
 

@@ -1,6 +1,3 @@
-using Akka.Actor;
-using Akka.DependencyInjection;
-
 namespace QFace.Sdk.ActorSystems;
 
 /// <summary>

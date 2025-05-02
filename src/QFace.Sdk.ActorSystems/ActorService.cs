@@ -1,5 +1,3 @@
-using Akka.Actor;
-
 namespace QFace.Sdk.ActorSystems.QFace.ActorSystem.Sdk;
 
 /// <summary>

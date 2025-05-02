@@ -1,5 +1,3 @@
-using QFace.Sdk.RabbitMq.Models;
-
 namespace QFace.Sdk.RabbitMq.Services;
 
 public class RabbitMqConnectionProvider : IDisposable

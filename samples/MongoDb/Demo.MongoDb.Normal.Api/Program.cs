@@ -1,20 +1,22 @@
 using Microsoft.AspNetCore.Mvc;
+using QFace.Sdk.Logging;
 using QFace.Sdk.MongoDb;
 using QFace.Sdk.MongoDb.Repositories;
 using QFace.Sdk.MongoDb.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.AddQFaceLogging();
+
 // 1. Setup MongoDB
 builder.Services.AddMongoDb(builder.Configuration);
 
-// 2. Add Repository for ProductDocument
-builder.Services.AddMongoRepository<ProductDocument>();
-
-// 3. Setup basic ASP.NET services
+// 2. Setup basic ASP.NET services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.ValidateMongoRepositories();
 
 var app = builder.Build();
 
@@ -69,8 +71,6 @@ app.MapDelete("/api/products/{id}", async (string id, IMongoRepository<ProductDo
 #endregion
 
 app.Run();
-
-
 
 public class ProductDocument : BaseDocument
 {

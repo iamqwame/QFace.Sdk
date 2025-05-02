@@ -1,113 +1,410 @@
 @baseUrl = http://localhost:5066
+@adminEmail = admin@example.com
+@adminPassword = Admin123!
+@acmeAdminEmail = admin@acme.com
+@acmeAdminPassword = Acme123!
+@globalTechAdminEmail = admin@globaltech.com
+@globalTechAdminPassword = Global123!
 
+### Store tokens from responses
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ODE0OTE4MDc0MDQ2NDZmZDRmNzgxN2MiLCJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwianRpIjoiYThiYzhjNjUtMjUyNS00ZWIwLTg2NTAtZGUzODBiNmI4N2NhIiwidGVuYW50X2lkIjoiNjgxNDkxODA3NDA0NjQ2ZmQ0Zjc4MTdkIiwidGVuYW50X2NvZGUiOiJnbG9iYWx0ZWNoIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiU3lzdGVtQWRtaW4iLCJwZXJtaXNzaW9uIjpbIm1hbmFnZV91c2VycyIsIm1hbmFnZV90ZW5hbnRzIiwiYWNjZXNzX3JlcG9ydHMiLCJhZG1pbl9zZXR0aW5ncyJdLCJleHAiOjE3NDYxNzk0MTksImlzcyI6Ik11bHRpVGVuYW50QXBwIiwiYXVkIjoiTXVsdGlUZW5hbnRBcHBVc2VycyJ9.XqWYY9lK9eWMhsx8SO0HqUHNnvC7vPwT7wSi7LRFxBM
+@refreshToken = 
+@userId = 
+@tenantId = 681491807404646fd4f7817d
 
-### 1. Create First Tenant - Acme Corporation
+### --------------------------
+### TENANT MANAGEMENT
+### --------------------------
+
+### Create Tenant - Acme Corporation
+# @name createAcmeTenant
 POST {{baseUrl}}/api/tenants
 Content-Type: application/json
 
 {
-  "Name": "Acme Corporation",
-  "Code": "acme",
-  "Description": "Technology solutions provider",
-  "AdminEmail": "admin@acme.com",
-  "AdminName": "John Doe"
+  "tenantInfo": {
+    "name": "Acme Corporation",
+    "code": "acme",
+    "description": "Technology solutions provider",
+    "tenantType": 1,
+    "contact": {
+      "adminName": "John Doe",
+      "adminEmail": "john@acme.com",
+      "companyName": "Acme Corp",
+      "companyWebsite": "https://acme.example.com"
+    },
+    "subscription": {
+      "tier": "Enterprise",
+      "maxUsers": 100,
+      "maxStorageMB": 10240
+    }
+  },
+  "adminInfo": {
+    "email": "{{acmeAdminEmail}}",
+    "fullName": "Acme Administrator",
+    "password": "{{acmeAdminPassword}}",
+    "sendWelcomeEmail": false
+  },
+  "configuration": {
+    "provisionImmediately": true,
+    "featureFlags": {
+      "advanced_reporting": true,
+      "api_access": true
+    }
+  }
 }
 
-### 2. Create Second Tenant - Beta Industries
+### Create Tenant - GlobalTech (if not already created in setup)
+# @name createGlobalTechTenant
 POST {{baseUrl}}/api/tenants
 Content-Type: application/json
 
 {
-  "Name": "Beta Industries",
-  "Code": "beta",
-  "Description": "Innovative manufacturing",
-  "AdminEmail": "admin@beta.com",
-  "AdminName": "Jane Smith"
+  "tenantInfo": {
+    "name": "GlobalTech",
+    "code": "globaltech",
+    "description": "Shared tenant sample",
+    "tenantType": 0,
+    "contact": {
+      "adminName": "Jane Smith",
+      "adminEmail": "jane@globaltech.com",
+      "companyName": "GlobalTech Inc",
+      "companyWebsite": "https://globaltech.example.com"
+    },
+    "subscription": {
+      "tier": "Standard",
+      "maxUsers": 25,
+      "maxStorageMB": 5120
+    }
+  },
+  "adminInfo": {
+    "email": "{{globalTechAdminEmail}}",
+    "fullName": "GlobalTech Administrator",
+    "password": "{{globalTechAdminPassword}}",
+    "sendWelcomeEmail": false
+  },
+  "configuration": {
+    "provisionImmediately": true,
+    "featureFlags": {
+      "shared_resources": true,
+      "basic_reporting": true
+    }
+  }
 }
 
-### 3. List All Tenants
+### Get All Tenants (requires admin authorization)
 GET {{baseUrl}}/api/tenants
+Authorization: Bearer {{accessToken}}
 
-### 4. Create Product for Acme Tenant
-POST {{baseUrl}}/api/products
+### Get Tenant by ID
+GET {{baseUrl}}/api/tenants/{{tenantId}}
+Authorization: Bearer {{accessToken}}
+
+### Get Tenant by Code
+GET {{baseUrl}}/api/tenants/by-code/acme
+Authorization: Bearer {{accessToken}}
+
+### Update Tenant
+PUT {{baseUrl}}/api/tenants/{{tenantId}}
 Content-Type: application/json
-X-Tenant-ID: 680d6a2579081050292bff5d
-X-Tenant-Code: acme
+Authorization: Bearer {{accessToken}}
 
 {
-  "Name": "Acme Gadget",
-  "Price": 49.99
+  "name": "Acme Corp Updated",
+  "description": "Updated description",
+  "code": "acme",
+  "contact": {
+    "adminName": "John Smith",
+    "adminEmail": "johnsmith@acme.com",
+    "adminPhone": "123-456-7890",
+    "companyName": "Acme Corporation",
+    "companyWebsite": "https://acme.example.com",
+    "address": {
+      "street": "123 Main St",
+      "city": "Anytown",
+      "state": "CA",
+      "postalCode": "12345",
+      "country": "USA"
+    }
+  },
+  "subscription": {
+    "tier": "Enterprise",
+    "expiryDate": "2026-05-01T00:00:00Z",
+    "isTrialAccount": false,
+    "maxUsers": 50,
+    "maxStorageMB": 5000
+  }
 }
 
-### 5. Create Another Product for Acme Tenant
-POST {{baseUrl}}/api/products
+### --------------------------
+### AUTHENTICATION
+### --------------------------
+
+### Login as System Admin
+# @name loginSystemAdmin
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
-X-Tenant-ID: 680d68df5d58c730dc244826
-X-Tenant-Code: acme
 
 {
-  "Name": "Acme Widget",
-  "Price": 29.99
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}",
+  "clientId": "test-client",
+  "deviceInfo": "HTTP Test Client"
 }
 
-### 6. Create Product for Beta Tenant
-POST {{baseUrl}}/api/products
+### Login as Acme Admin
+# @name loginAcme
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
-X-Tenant-ID: 680d69305d58c730dc24482a
-X-Tenant-Code: beta
 
 {
-  "Name": "Beta Innovator",
-  "Price": 79.99
+  "email": "{{acmeAdminEmail}}",
+  "password": "{{acmeAdminPassword}}",
+  "tenantCode": "acme",
+  "clientId": "test-client",
+  "deviceInfo": "HTTP Test Client"
 }
 
-### 7. Get Products for Acme Tenant
+### Login as GlobalTech Admin
+# @name loginGlobalTech
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{globalTechAdminEmail}}",
+  "password": "{{globalTechAdminPassword}}",
+  "tenantCode": "globaltech",
+  "clientId": "test-client",
+  "deviceInfo": "HTTP Test Client"
+}
+
+### Refresh Token
+# @name refreshToken
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Switch Tenant
+# @name switchTenant
+POST {{baseUrl}}/api/auth/switch-tenant
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "tenantId": "{{tenantId}}",
+  "clientId": "test-client",
+  "deviceInfo": "HTTP Test Client"
+}
+
+### Logout
+POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### --------------------------
+### PRODUCT MANAGEMENT (TENANT-SPECIFIC)
+### --------------------------
+
+### Get All Products for Current Tenant
 GET {{baseUrl}}/api/products
-X-Tenant-ID: 680d68df5d58c730dc244826
-X-Tenant-Code: acme
+Authorization: Bearer {{accessToken}}
 
-### 8. Get Products for Beta Tenant
+### Get Products by Category
+GET {{baseUrl}}/api/products?category=Widgets
+Authorization: Bearer {{accessToken}}
+
+### Create Product
+# @name createProduct
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "Name": "Premium Widget",
+  "Description": "High-quality widget for industrial use",
+  "Price": 99.99,
+  "StockQuantity": 50,
+  "SKU": "ACME-WID-003",
+  "Categories": ["Widgets", "Premium"]
+}
+
+### Store product ID from response
+@productId = 
+
+### Get Product by ID
+GET {{baseUrl}}/api/products/{{productId}}
+Authorization: Bearer {{accessToken}}
+
+### Update Product
+PUT {{baseUrl}}/api/products/{{productId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "Name": "Super Premium Widget",
+  "Description": "Updated description for high-quality widget",
+  "Price": 129.99,
+  "StockQuantity": 45,
+  "SKU": "ACME-WID-003",
+  "Categories": ["Widgets", "Premium", "Industrial"]
+}
+
+### Search Products
+GET {{baseUrl}}/api/products/search?query=premium&minPrice=50&maxPrice=200
+Authorization: Bearer {{accessToken}}
+
+### Create Multiple Products (Bulk)
+POST {{baseUrl}}/api/products/bulk
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+[
+  {
+    "Name": "Budget Widget",
+    "Description": "Affordable widget for everyday use",
+    "Price": 19.99,
+    "StockQuantity": 100,
+    "SKU": "ACME-WID-004",
+    "Categories": ["Widgets", "Budget"]
+  },
+  {
+    "Name": "Standard Widget",
+    "Description": "Standard widget with balanced features",
+    "Price": 49.99,
+    "StockQuantity": 75,
+    "SKU": "ACME-WID-005",
+    "Categories": ["Widgets", "Standard"]
+  }
+]
+
+### Delete Product
+DELETE {{baseUrl}}/api/products/{{productId}}
+Authorization: Bearer {{accessToken}}
+
+### --------------------------
+### TENANT USER MANAGEMENT
+### --------------------------
+
+### Get All Users for Current Tenant
+# @name getAllTenantUsers
+GET {{baseUrl}}/api/tenant-users
+Authorization: Bearer {{accessToken}}
+
+### Store tenant user ID from response
+@tenantUserId = 
+
+### Get Tenant User by ID
+GET {{baseUrl}}/api/tenant-users/{{tenantUserId}}
+Authorization: Bearer {{accessToken}}
+
+### Add New User to Tenant
+# @name addUserToTenant
+POST {{baseUrl}}/api/tenant-users
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "Email": "newuser@acme.com",
+  "FullName": "New User",
+  "Password": "NewUser123!",
+  "Role": "User",
+  "Permissions": ["ViewProducts", "EditProducts"],
+  "IsPrimaryTenant": false,
+  "RequiresMfa": false
+}
+
+### Store new tenant user ID from response
+@newTenantUserId = 
+
+### Update Tenant User
+PUT {{baseUrl}}/api/tenant-users/{{newTenantUserId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "Role": "Admin",
+  "Permissions": ["ViewProducts", "EditProducts", "DeleteProducts", "ManageUsers"],
+  "IsActive": true,
+  "IsPrimaryTenant": false,
+  "RequiresMfa": true
+}
+
+### Remove User from Tenant
+DELETE {{baseUrl}}/api/tenant-users/{{newTenantUserId}}
+Authorization: Bearer {{accessToken}}
+
+### --------------------------
+### SEED DATA
+### --------------------------
+
+### Seed Products for Acme Tenant
+POST {{baseUrl}}/api/seed/products/acme
+Authorization: Bearer {{accessToken}}
+
+### Seed Products for GlobalTech Tenant
+POST {{baseUrl}}/api/seed/products/globaltech
+Authorization: Bearer {{accessToken}}
+
+### --------------------------
+### ERROR CASES & EDGE TESTS
+### --------------------------
+
+### Try to Access Protected Endpoint Without Authentication
 GET {{baseUrl}}/api/products
-X-Tenant-ID: beta
-X-Tenant-Code: beta
 
-### 9. Update Product for Acme Tenant (Replace {PRODUCT_ID} with actual ID)
-PUT {{baseUrl}}/api/products/{PRODUCT_ID}
-Content-Type: application/json
-X-Tenant-ID: acme
-X-Tenant-Code: acme
-
-{
-  "Name": "Updated Acme Gadget",
-  "Price": 59.99
-}
-
-### 10. Delete Product for Acme Tenant (Replace {PRODUCT_ID} with actual ID)
-DELETE {{baseUrl}}/api/products/{PRODUCT_ID}
-X-Tenant-ID: acme
-X-Tenant-Code: acme
-
-### 11. Attempt to Access Product from Wrong Tenant (Replace {PRODUCT_ID} with an existing product ID)
-GET {{baseUrl}}/api/products/{PRODUCT_ID}
-X-Tenant-ID: beta
-X-Tenant-Code: beta
-
-### 12. Error Case - Create Product Without Tenant Context
+### Try to Create Product With Invalid Data
 POST {{baseUrl}}/api/products
 Content-Type: application/json
-
-{
-  "Name": "Unauthorized Product",
-  "Price": 99.99
-}
-
-### 13. Error Case - Invalid Product Creation
-POST {{baseUrl}}/api/products
-Content-Type: application/json
-X-Tenant-ID: acme
-X-Tenant-Code: acme
+Authorization: Bearer {{accessToken}}
 
 {
   "Name": "",
   "Price": -10
+}
+
+### Try to Login with Invalid Credentials
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@acme.com",
+  "password": "WrongPassword",
+  "tenantCode": "acme"
+}
+
+### Try to Create Tenant with Duplicate Code
+POST {{baseUrl}}/api/tenants
+Content-Type: application/json
+
+{
+  "tenantInfo": {
+    "name": "Acme Duplicate",
+    "code": "acme",
+    "description": "This should fail because code is duplicate",
+    "tenantType": 0
+  },
+  "adminInfo": {
+    "email": "admin@acmeduplicate.com",
+    "fullName": "Admin User",
+    "password": "Duplicate123!"
+  }
+}
+
+### Try to Delete Non-existent Tenant
+DELETE {{baseUrl}}/api/tenants/nonexistentid123
+Authorization: Bearer {{accessToken}}
+
+### Try to Refresh with Invalid Token
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "invalid-token-that-does-not-exist"
 }

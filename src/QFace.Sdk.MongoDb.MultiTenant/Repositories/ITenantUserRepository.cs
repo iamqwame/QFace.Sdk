@@ -3,7 +3,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Repositories;
 /// <summary>
 /// Interface for tenant user repository
 /// </summary>
-public interface ITenantUserRepository : IMongoRepository<TenantUserDocument>
+public interface ITenantUserRepository : IMongoRepository<TenantUser>
 {
     /// <summary>
     /// Gets all tenant associations for a user
@@ -12,7 +12,7 @@ public interface ITenantUserRepository : IMongoRepository<TenantUserDocument>
     /// <param name="includeInactive">Whether to include inactive associations</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The tenant associations</returns>
-    Task<IEnumerable<TenantUserDocument>> GetTenantsByUserIdAsync(
+    Task<IEnumerable<TenantUser>> GetTenantsByUserIdAsync(
         string userId, 
         bool includeInactive = false, 
         CancellationToken cancellationToken = default);
@@ -24,7 +24,7 @@ public interface ITenantUserRepository : IMongoRepository<TenantUserDocument>
     /// <param name="includeInactive">Whether to include inactive associations</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The user associations</returns>
-    Task<IEnumerable<TenantUserDocument>> GetUsersByTenantIdAsync(
+    Task<IEnumerable<TenantUser>> GetUsersByTenantIdAsync(
         string tenantId, 
         bool includeInactive = false, 
         CancellationToken cancellationToken = default);
@@ -36,7 +36,7 @@ public interface ITenantUserRepository : IMongoRepository<TenantUserDocument>
     /// <param name="tenantId">The tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The tenant-user association or null if not found</returns>
-    Task<TenantUserDocument?> GetTenantUserAsync(
+    Task<TenantUser?> GetTenantUserAsync(
         string userId, 
         string tenantId, 
         CancellationToken cancellationToken = default);

@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Http;
 
 namespace QFace.Sdk.Extensions;
 

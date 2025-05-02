@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{03DC69E4-0
 		docs\send-message.md = docs\send-message.md
 		docs\blob-storage.md = docs\blob-storage.md
 		docs\mongodb.md = docs\mongodb.md
+		docs\logging.md = docs\logging.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RabbitMq", "RabbitMq", "{9D3000CA-2F36-42CC-8FF0-8B7314542C7D}"
@@ -59,6 +60,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.MongoDb.Normal.Api", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.MongoDb.MultiTenant", "src\QFace.Sdk.MongoDb.MultiTenant\QFace.Sdk.MongoDb.MultiTenant.csproj", "{54D0E648-A9FD-4FC7-9D82-5167798938E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.WebApi.Template", "src\QFace.WebApi.Template\QFace.WebApi.Template.csproj", "{FF210128-D2AC-4FB8-8F58-3184D77A99BA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.Logging", "src\QFace.Sdk.Logging\QFace.Sdk.Logging.csproj", "{4ADF3619-28A4-4CA3-A8A8-275707500F14}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +87,8 @@ Global
 		{6AA05E7B-3ADF-4F18-B41B-B2C67BFE6CC1} = {42656D83-FE64-4547-B6E8-8447CA044085}
 		{983AEB79-6A73-4753-8944-A8F3D83C3CDA} = {42656D83-FE64-4547-B6E8-8447CA044085}
 		{54D0E648-A9FD-4FC7-9D82-5167798938E1} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
+		{FF210128-D2AC-4FB8-8F58-3184D77A99BA} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
+		{4ADF3619-28A4-4CA3-A8A8-275707500F14} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{5A2D54B9-AE62-41BC-B21D-1E37FB19FFBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -140,5 +147,13 @@ Global
 		{54D0E648-A9FD-4FC7-9D82-5167798938E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{54D0E648-A9FD-4FC7-9D82-5167798938E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{54D0E648-A9FD-4FC7-9D82-5167798938E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF210128-D2AC-4FB8-8F58-3184D77A99BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF210128-D2AC-4FB8-8F58-3184D77A99BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF210128-D2AC-4FB8-8F58-3184D77A99BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF210128-D2AC-4FB8-8F58-3184D77A99BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4ADF3619-28A4-4CA3-A8A8-275707500F14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4ADF3619-28A4-4CA3-A8A8-275707500F14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4ADF3619-28A4-4CA3-A8A8-275707500F14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4ADF3619-28A4-4CA3-A8A8-275707500F14}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

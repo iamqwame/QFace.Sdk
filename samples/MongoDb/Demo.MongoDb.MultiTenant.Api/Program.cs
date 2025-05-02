@@ -1,56 +1,74 @@
-using Microsoft.AspNetCore.Mvc;
-using QFace.Sdk.MongoDb;
-using QFace.Sdk.MongoDb.Config;
-using QFace.Sdk.MongoDb.Repositories;
-using QFace.Sdk.MongoDb.MultiTenant.Core;
-using QFace.Sdk.MongoDb.MultiTenant.Middleware;
-using QFace.Sdk.MongoDb.MultiTenant.Services;
-using QFace.Sdk.MongoDb.MultiTenant.Models;
-using QFace.Sdk.MongoDb.MultiTenant.Repositories;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.OpenApi.Models;
 using QFace.Sdk.MongoDb.MultiTenant;
+using Demo.MongoDb.MultiTenant.Api;
+using QFace.Sdk.Logging;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// 1. Logging Configuration
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
+// Increase logging level to see more details
+builder.Host.AddQFaceLogging();
 
-// 2. MongoDB setup
-builder.Services.AddMongoDb(builder.Configuration);
-
-// 3. Tenant Management setup
-builder.Services.AddSingleton<ITenantAccessor, TenantAccessor>();
-builder.Services.AddScoped<ITenantService, TenantService>();
-builder.Services.AddScoped<ITenantDatabaseManager, TenantDatabaseManager>();
-
-// 4. Mongo repositories
-builder.Services.AddTenantAwareRepository<ProductDocument>();
-builder.Services.AddMongoRepository<Tenant, TenantRepository>();
-builder.Services.AddMongoRepository<TenantUserDocument, TenantUserRepository>();
-
-// 5. Additional repository bindings
-builder.Services.AddScoped<ITenantRepository>(sp => 
-    sp.GetRequiredService<IMongoRepository<Tenant>>() as TenantRepository);
-builder.Services.AddScoped<ITenantUserRepository>(sp => 
-    sp.GetRequiredService<IMongoRepository<TenantUserDocument>>() as TenantUserRepository);
-
-// 6. ASP.NET Core services
+// Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// 7. Tenant resolution configuration
-var tenantResolutionOptions = new TenantResolutionOptions();
-builder.Configuration.GetSection("TenantResolution").Bind(tenantResolutionOptions);
-builder.Services.AddSingleton(tenantResolutionOptions);
+// Configure Swagger with JWT Authentication
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Multi-Tenant API", Version = "v1" });
+    
+    // Add JWT Authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "bearer"
+    });
+    
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// Add core services
+builder.Services.AddSingleton<ITenantAccessor, TenantAccessor>();
+
+var assemblies = new[] { typeof(Program).Assembly };
+// Add Multi-Tenant MongoDB Support without automatic scanning
+builder.Services.AddMongoDbMultiTenancy(
+    builder.Configuration,
+    tenantManagementSectionName: "MongoDbManagement",
+    tenantDataSectionName: "DefaultTenantDbData",
+    assembliesToScan: assemblies
+);
+
+
+// Add Authentication
+builder.Services.AddTenantAuthentication(builder.Configuration);
+
+// Add Authorization
+builder.Services.AddTenantAuthorization();
+
+// Register controllers
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(Program).Assembly);
 
 var app = builder.Build();
 
-// 8. Middleware configuration
-app.UseMiddleware<TenantResolutionMiddleware>();
-
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -58,259 +76,126 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Add tenant resolution middleware
+app.UseTenantResolution(options =>
+{
+    options.UseHeaderResolution = true;
+    options.UseRouteResolution = true;
+    options.UseQueryStringResolution = true;
+    options.UseAuthClaimResolution = true;
+    options.TenantExemptPaths.Add("/api/tenants");
+    options.TenantExemptPaths.Add("/api/auth");
+    options.ExcludedPaths.Add("/swagger");
+});
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Add a simple index page
+app.MapGet("/", () => Results.Content(GetIndexHtml(), "text/html"));
 app.MapControllers();
 
-#region Product Endpoints
-
-app.MapPost("/api/products", async (
-    [FromBody] ProductCreateRequest productRequest, 
-    ITenantAccessor tenantAccessor, 
-    IMongoRepository<ProductDocument> repo,
-    ILogger<Program> logger) =>
+//Initialize sample data with improved error handling
+using (var scope = app.Services.CreateScope())
 {
-    // Validate input
-    var validationContext = new ValidationContext(productRequest);
-    var validationResults = new List<ValidationResult>();
-    if (!Validator.TryValidateObject(productRequest, validationContext, validationResults, true))
+    try 
     {
-        return Results.BadRequest(validationResults);
-    }
-
-    // Get current tenant context
-    var currentTenantId = tenantAccessor.GetCurrentTenantId();
-    if (string.IsNullOrEmpty(currentTenantId))
-    {
-        return Results.BadRequest("No tenant context available");
-    }
-
-    // Create product document
-    var product = new ProductDocument
-    {
-        Name = productRequest.Name,
-        Price = productRequest.Price,
-        TenantId = currentTenantId
-    };
-
-    try
-    {
-        await repo.InsertOneAsync(product);
-        logger.LogInformation($"Product created for tenant {currentTenantId}: {product.Name}");
-        return Results.Created($"/api/products/{product.Id}", product);
+        await SetupHelper.InitializeSampleDataAsync(scope.ServiceProvider);
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Error creating product");
-        return Results.Problem("An error occurred while creating the product");
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while initializing sample data");
     }
-});
-
-app.MapGet("/api/products", async (
-    ITenantAccessor tenantAccessor, 
-    IMongoRepository<ProductDocument> repo,
-    ILogger<Program> logger) =>
-{
-    var currentTenantId = tenantAccessor.GetCurrentTenantId();
-    if (string.IsNullOrEmpty(currentTenantId))
-    {
-        return Results.BadRequest("No tenant context available");
-    }
-
-    try
-    {
-        var products = await repo.FindAsync(p => p.TenantId == currentTenantId);
-        return Results.Ok(products);
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Error retrieving products");
-        return Results.Problem("An error occurred while retrieving products");
-    }
-});
-
-app.MapGet("/api/products/{id}", async (
-    string id, 
-    ITenantAccessor tenantAccessor, 
-    IMongoRepository<ProductDocument> repo,
-    ILogger<Program> logger) =>
-{
-    var currentTenantId = tenantAccessor.GetCurrentTenantId();
-    if (string.IsNullOrEmpty(currentTenantId))
-    {
-        return Results.BadRequest("No tenant context available");
-    }
-
-    try
-    {
-        var product = await repo.FindOneAsync(p => p.Id == id && p.TenantId == currentTenantId);
-        return product is not null ? Results.Ok(product) : Results.NotFound();
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Error retrieving product");
-        return Results.Problem("An error occurred while retrieving the product");
-    }
-});
-
-app.MapPut("/api/products/{id}", async (
-    string id, 
-    [FromBody] ProductUpdateRequest updateRequest, 
-    ITenantAccessor tenantAccessor, 
-    IMongoRepository<ProductDocument> repo,
-    ILogger<Program> logger) =>
-{
-    var currentTenantId = tenantAccessor.GetCurrentTenantId();
-    if (string.IsNullOrEmpty(currentTenantId))
-    {
-        return Results.BadRequest("No tenant context available");
-    }
-
-    try
-    {
-        var existing = await repo.FindOneAsync(p => p.Id == id && p.TenantId == currentTenantId);
-        if (existing == null) return Results.NotFound();
-
-        existing.Name = updateRequest.Name;
-        existing.Price = updateRequest.Price;
-
-        var updated = await repo.UpdateAsync(existing);
-        return updated ? Results.Ok(existing) : Results.Problem("Update failed");
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Error updating product");
-        return Results.Problem("An error occurred while updating the product");
-    }
-});
-
-app.MapDelete("/api/products/{id}", async (
-    string id, 
-    ITenantAccessor tenantAccessor, 
-    IMongoRepository<ProductDocument> repo,
-    ILogger<Program> logger) =>
-{
-    var currentTenantId = tenantAccessor.GetCurrentTenantId();
-    if (string.IsNullOrEmpty(currentTenantId))
-    {
-        return Results.BadRequest("No tenant context available");
-    }
-
-    try
-    {
-        var deleted = await repo.DeleteByIdAsync(id);
-        return deleted ? Results.Ok() : Results.NotFound();
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Error deleting product");
-        return Results.Problem("An error occurred while deleting the product");
-    }
-});
-
-#endregion
-
-#region Tenant Endpoints
-
-app.MapGet("/api/tenants", async (ITenantService tenantService) =>
-{
-    var tenants = await tenantService.GetAllAsync();
-    return Results.Ok(tenants);
-});
-
-app.MapPost("/api/tenants", async (
-    [FromBody] TenantCreateRequest tenantRequest, 
-    ITenantService tenantService,
-    ILogger<Program> logger) =>
-{
-    // Validate input
-    var validationContext = new ValidationContext(tenantRequest);
-    var validationResults = new List<ValidationResult>();
-    if (!Validator.TryValidateObject(tenantRequest, validationContext, validationResults, true))
-    {
-        return Results.BadRequest(validationResults);
-    }
-
-    try
-    {
-        var tenant = new Tenant
-        {
-            Name = tenantRequest.Name,
-            Code = tenantRequest.Code,
-            Description = tenantRequest.Description ?? "",
-            IsProvisioned = true,
-            TenantType = TenantType.Shared,
-            Contact = new ContactInfo
-                {
-                    AdminName = tenantRequest.AdminName,
-                    AdminEmail = tenantRequest.AdminEmail
-                }
-        };
-
-        var tenantId = await tenantService.CreateAsync(tenant);
-        logger.LogInformation($"Tenant created: {tenant.Name} (ID: {tenantId})");
-        return Results.Created($"/api/tenants/{tenantId}", new { TenantId = tenantId });
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Error creating tenant");
-        return Results.Problem("An error occurred while creating the tenant");
-    }
-});
-
-#endregion
+}
 
 app.Run();
 
-#region Request Models
-
-public class ProductCreateRequest
+string GetIndexHtml()
 {
-    [Required]
-    [StringLength(100, MinimumLength = 2)]
-    public string Name { get; set; } = string.Empty;
+    return @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multi-Tenant Sample</title>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 30px; }
+        pre { background-color: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .endpoint { margin-bottom: 20px; }
+        .method { font-weight: bold; display: inline-block; width: 70px; }
+        .url { color: #0066cc; }
+        .description { margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Multi-Tenant Sample API</h1>
+    <p>This is a sample application demonstrating the QFace.Sdk.MongoDb.MultiTenant functionality.</p>
+    
+    <h2>Sample Data</h2>
+    <p>The application has been initialized with the following sample data:</p>
+    <ul>
+        <li><strong>System Admin:</strong> Email: admin@example.com, Password: Admin123!</li>
+        <li><strong>Tenant 1:</strong> Acme Corporation (Code: acme)
+            <ul>
+                <li>Admin: Email: admin@acme.com, Password: Acme123!</li>
+                <li>5 sample products</li>
+            </ul>
+        </li>
+        <li><strong>Tenant 2:</strong> GlobalTech (Code: globaltech)
+            <ul>
+                <li>Admin: Email: admin@globaltech.com, Password: Global123!</li>
+                <li>5 sample products</li>
+            </ul>
+        </li>
+    </ul>
+    
+    <h2>API Documentation</h2>
+    <p>You can explore the full API documentation at <a href='/swagger'>/swagger</a></p>
+    
+    <h2>Key Endpoints</h2>
+    
+    <div class='endpoint'>
+        <div><span class='method'>POST</span> <span class='url'>/api/auth/login</span></div>
+        <div class='description'>Log in to a tenant with email/password</div>
+        <pre>{
+  ""email"": ""admin@acme.com"",
+  ""password"": ""Acme123!"",
+  ""tenantCode"": ""acme""
+}</pre>
+    </div>
+    
+    <div class='endpoint'>
+        <div><span class='method'>GET</span> <span class='url'>/api/products</span></div>
+        <div class='description'>Get all products for the current tenant (requires authentication)</div>
+    </div>
+    
+    <div class='endpoint'>
+        <div><span class='method'>POST</span> <span class='url'>/api/tenants</span></div>
+        <div class='description'>Create a new tenant</div>
+    </div>
+    
+    <div class='endpoint'>
+        <div><span class='method'>GET</span> <span class='url'>/api/tenant-users</span></div>
+        <div class='description'>Get all users for the current tenant (requires admin authentication)</div>
+    </div>
+    
+    <h2>Testing with cURL</h2>
+    <p>Here's an example of how to authenticate and access tenant-specific data:</p>
+    <pre>
+# 1. Log in to get an access token
+curl -X POST ""http://localhost:5000/api/auth/login"" \\
+     -H ""Content-Type: application/json"" \\
+     -d '{ ""email"": ""admin@acme.com"", ""password"": ""Acme123!"", ""tenantCode"": ""acme"" }'
 
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero")]
-    public double Price { get; set; }
+# 2. Use the access token to get products
+curl -X GET ""http://localhost:5000/api/products"" \\
+     -H ""Authorization: Bearer YOUR_ACCESS_TOKEN""
+</pre>
+</body>
+</html>";
 }
-
-public class ProductUpdateRequest
-{
-    [Required]
-    [StringLength(100, MinimumLength = 2)]
-    public string Name { get; set; } = string.Empty;
-
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero")]
-    public double Price { get; set; }
-}
-
-public class TenantCreateRequest
-{
-    [Required]
-    [StringLength(100, MinimumLength = 2)]
-    public string Name { get; set; } = string.Empty;
-
-    [Required]
-    [StringLength(50, MinimumLength = 2)]
-    public string Code { get; set; } = string.Empty;
-
-    public string? Description { get; set; }
-
-    [Required]
-    [EmailAddress]
-    public string AdminEmail { get; set; } = string.Empty;
-
-    [Required]
-    [StringLength(100, MinimumLength = 2)]
-    public string AdminName { get; set; } = string.Empty;
-}
-
-#endregion
-
-#region Product Model
-
-public class ProductDocument : TenantBaseDocument
-{
-    public string Name { get; set; } = string.Empty;
-    public double Price { get; set; }
-}
-
-#endregion

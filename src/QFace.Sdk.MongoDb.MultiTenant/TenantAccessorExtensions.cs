@@ -1,89 +1,56 @@
 ﻿namespace QFace.Sdk.MongoDb.MultiTenant;
 
 /// <summary>
-/// Extension methods for tenant accessor
+/// Extension methods for tenant accessor that make it easier to work with tenant contexts
 /// </summary>
 public static class TenantAccessorExtensions
 {
     /// <summary>
-    /// Executes a function with a specific tenant context
+    /// Executes code as a specific tenant, then restores the original tenant context
     /// </summary>
-    /// <typeparam name="T">The return type</typeparam>
-    /// <param name="repository">The repository</param>
-    /// <param name="tenantId">The tenant ID to use</param>
-    /// <param name="func">The function to execute</param>
-    /// <returns>The result of the function</returns>
-    public static T WithTenant<T>(
-        this IMongoRepository<BaseDocument> repository,
-        string tenantId,
-        Func<IMongoRepository<BaseDocument>, T> func)
+    /// <param name="tenantAccessor">The tenant accessor</param>
+    /// <param name="tenantId">The tenant ID to use temporarily</param>
+    /// <param name="action">The action to execute as the tenant</param>
+    public static void AsTenant(this ITenantAccessor tenantAccessor, string tenantId, Action action)
     {
-        if (repository == null)
-            throw new ArgumentNullException(nameof(repository));
-                
-        if (func == null)
-            throw new ArgumentNullException(nameof(func));
-                
-        // Get the tenant accessor from the repository if it's a tenant-aware repository
-        ITenantAccessor? tenantAccessor = null;
-            
-        if (repository is TenantAwareRepository<TenantBaseDocument> tenantAwareRepo)
-        {
-            // Use reflection to get the tenant accessor field (not ideal, but works for extension method)
-            var field = typeof(TenantAwareRepository<TenantBaseDocument>)
-                .GetField("_tenantAccessor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    
-            tenantAccessor = field?.GetValue(tenantAwareRepo) as ITenantAccessor;
-        }
-            
-        if (tenantAccessor == null)
-        {
-            // If we can't get the tenant accessor, just call the function directly
-            return func(repository);
-        }
-            
-        // Execute with tenant using the accessor
-        return tenantAccessor.ExecuteWithTenant(tenantId, () => func(repository));
+        tenantAccessor.ExecuteWithTenant(tenantId, action);
     }
-        
+
     /// <summary>
-    /// Executes an async function with a specific tenant context
+    /// Executes code as a specific tenant with a return value, then restores the original tenant context
     /// </summary>
     /// <typeparam name="T">The return type</typeparam>
-    /// <param name="repository">The repository</param>
-    /// <param name="tenantId">The tenant ID to use</param>
-    /// <param name="func">The async function to execute</param>
-    /// <returns>A task with the result of the function</returns>
-    public static Task<T> WithTenantAsync<T>(
-        this IMongoRepository<BaseDocument> repository,
-        string tenantId,
-        Func<IMongoRepository<BaseDocument>, Task<T>> func)
+    /// <param name="tenantAccessor">The tenant accessor</param>
+    /// <param name="tenantId">The tenant ID to use temporarily</param>
+    /// <param name="func">The function to execute as the tenant</param>
+    /// <returns>The result of the function</returns>
+    public static T AsTenant<T>(this ITenantAccessor tenantAccessor, string tenantId, Func<T> func)
     {
-        if (repository == null)
-            throw new ArgumentNullException(nameof(repository));
-                
-        if (func == null)
-            throw new ArgumentNullException(nameof(func));
-                
-        // Get the tenant accessor from the repository if it's a tenant-aware repository
-        ITenantAccessor? tenantAccessor = null;
-            
-        if (repository is TenantAwareRepository<TenantBaseDocument> tenantAwareRepo)
-        {
-            // Use reflection to get the tenant accessor field
-            var field = typeof(TenantAwareRepository<TenantBaseDocument>)
-                .GetField("_tenantAccessor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    
-            tenantAccessor = field?.GetValue(tenantAwareRepo) as ITenantAccessor;
-        }
-            
-        if (tenantAccessor == null)
-        {
-            // If we can't get the tenant accessor, just call the function directly
-            return func(repository);
-        }
-            
-        // Execute with tenant using the accessor
-        return tenantAccessor.ExecuteWithTenantAsync(tenantId, () => func(repository));
+        return tenantAccessor.ExecuteWithTenant(tenantId, func);
+    }
+
+    /// <summary>
+    /// Executes async code as a specific tenant, then restores the original tenant context
+    /// </summary>
+    /// <param name="tenantAccessor">The tenant accessor</param>
+    /// <param name="tenantId">The tenant ID to use temporarily</param>
+    /// <param name="func">The async function to execute as the tenant</param>
+    /// <returns>A task representing the asynchronous operation</returns>
+    public static Task AsTenantAsync(this ITenantAccessor tenantAccessor, string tenantId, Func<Task> func)
+    {
+        return tenantAccessor.ExecuteWithTenantAsync(tenantId, func);
+    }
+
+    /// <summary>
+    /// Executes async code as a specific tenant with a return value, then restores the original tenant context
+    /// </summary>
+    /// <typeparam name="T">The return type</typeparam>
+    /// <param name="tenantAccessor">The tenant accessor</param>
+    /// <param name="tenantId">The tenant ID to use temporarily</param>
+    /// <param name="func">The async function to execute as the tenant</param>
+    /// <returns>A task with the result of the function</returns>
+    public static Task<T> AsTenantAsync<T>(this ITenantAccessor tenantAccessor, string tenantId, Func<Task<T>> func)
+    {
+        return tenantAccessor.ExecuteWithTenantAsync(tenantId, func);
     }
 }

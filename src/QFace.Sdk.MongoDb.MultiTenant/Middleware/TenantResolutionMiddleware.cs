@@ -250,25 +250,47 @@ public class TenantResolutionMiddleware
     {
         string? tenantId = null;
         string? tenantCode = null;
-            
-        if (context.User?.Identity?.IsAuthenticated == true)
+        
+        if (context.User.Identity?.IsAuthenticated == true)
         {
-            var tenantIdClaim = context.User.FindFirst("tenant_id");
-            if (tenantIdClaim != null)
+            // Try to get tenant ID from various possible claim names
+            foreach (var claimName in _options.TenantIdClaimNames)
             {
-                tenantId = tenantIdClaim.Value;
+                var claim = context.User.FindFirst(claimName);
+                if (claim != null && !string.IsNullOrEmpty(claim.Value))
+                {
+                    tenantId = claim.Value;
+                    _logger.LogDebug("Found tenant ID in claim '{ClaimName}': {TenantId}", claimName, tenantId);
+                    break;
+                }
             }
-                
-            var tenantCodeClaim = context.User.FindFirst("tenant_code");
-            if (tenantCodeClaim != null)
+        
+            // Try to get tenant code from various possible claim names
+            foreach (var claimName in _options.TenantCodeClaimNames)
             {
-                tenantCode = tenantCodeClaim.Value;
+                var claim = context.User.FindFirst(claimName);
+                if (claim != null && !string.IsNullOrEmpty(claim.Value))
+                {
+                    tenantCode = claim.Value;
+                    _logger.LogDebug("Found tenant code in claim '{ClaimName}': {TenantCode}", claimName, tenantCode);
+                    break;
+                }
             }
         }
-            
+    
+        if (!string.IsNullOrEmpty(tenantId) || !string.IsNullOrEmpty(tenantCode))
+        {
+            _logger.LogInformation("Resolved tenant from claims - ID: {TenantId}, Code: {TenantCode}", 
+                tenantId ?? "(not found)", tenantCode ?? "(not found)");
+        }
+        else
+        {
+            _logger.LogDebug("No tenant information found in claims");
+        }
+        
         return (tenantId, tenantCode);
     }
-        
+     
     /// <summary>
     /// Checks if tenant resolution should be skipped for the current request
     /// </summary>

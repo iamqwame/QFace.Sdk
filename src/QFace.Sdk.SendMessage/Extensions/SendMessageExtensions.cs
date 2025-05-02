@@ -1,6 +1,3 @@
-using Akka.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace QFace.Sdk.SendMessage.Extensions;
 
 /// <summary>

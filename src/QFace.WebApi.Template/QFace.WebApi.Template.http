@@ -1,0 +1,6 @@
+@QFace.WebApi.Template_HostAddress = http://localhost:5174
+
+GET {{QFace.WebApi.Template_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
