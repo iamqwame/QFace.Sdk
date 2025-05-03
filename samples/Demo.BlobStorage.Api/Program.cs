@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using QFace.Sdk.BlobStorage.Extensions;
 using QFace.Sdk.BlobStorage.Services;
 using Microsoft.OpenApi.Models;
@@ -115,7 +116,56 @@ app.MapDelete("/api/delete", async (
 .WithName("DeleteFile")
 .WithOpenApi();
 
+
+// Base64 Image Upload Endpoint
+app.MapPost("/api/upload-base64", async (
+        [FromBody] Base64UploadRequest request,
+        IFileUploadService fileUploadService,
+        ILogger<Program> logger) =>
+    {
+        try
+        {
+            if (request == null || string.IsNullOrEmpty(request.Base64Image))
+                return Results.BadRequest(new { Message = "No base64 image data provided" });
+
+            // Upload the base64 image
+            var fileUrl = await fileUploadService.UploadBase64ImageAsync(
+                request.Base64Image,
+                request.Folder ?? "uploads",
+                request.FileName,
+                request.ContentType);
+
+            return Results.Ok(new { FileUrl = fileUrl.Url, SaveUrl = fileUrl.SaveUrl });
+        }
+        catch (ArgumentException ex)
+        {
+            logger.LogError(ex, "Invalid base64 image data");
+            return Results.BadRequest(new { Message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Base64 image upload failed");
+            return Results.StatusCode(500);
+        }
+    })
+    .DisableAntiforgery()
+    .WithName("UploadBase64Image")
+    .WithOpenApi(operation => {
+        operation.Description = "Uploads a Base64 encoded image to blob storage";
+        return operation;
+    });
+
+
 app.Run();
 
 // Make the implicit Program class public for testing
 public partial class Program { }
+
+
+public class Base64UploadRequest
+{
+    public string Base64Image { get; set; }
+    public string Folder { get; set; }
+    public string FileName { get; set; }
+    public string ContentType { get; set; }
+}

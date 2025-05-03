@@ -383,3 +383,418 @@ builder.Services.AddLogging(logging => {
 - [Akka.NET Documentation](https://getakka.net/articles/intro/what-is-akka.html)
 - [Actor Model Explained](https://www.brianstorti.com/the-actor-model/)
 - [Reactive Programming Principles](https://www.reactivemanifesto.org/)
+
+
+
+
+## Coordinator Pattern
+
+The Coordinator pattern provides a structured approach to coordinating work among multiple worker actors. This pattern is built into the SDK to make it easy to implement distributed processing systems.
+
+### Overview
+
+The Coordinator pattern consists of three main components:
+
+1. **Coordinator Actor**: Central manager that distributes work and monitors workers
+2. **Worker Actors**: Process work items and report results back to the coordinator
+3. **Background Service**: Hosts the coordinator and provides integration with your application
+
+### Key Benefits
+
+- **Load Distribution**: Efficiently distribute work across multiple workers
+- **Health Monitoring**: Automatic health checks to ensure workers are responsive
+- **Fault Tolerance**: Handle failures gracefully and redistribute work as needed
+- **Scalability**: Easily scale workers up or down based on demand
+
+### Getting Started
+
+#### Step 1: Define Work Items
+
+Define your work items and result types:
+
+```csharp
+// Work item to be processed
+public class ProcessDocumentWork
+{
+    public string DocumentId { get; set; }
+    public string Content { get; set; }
+}
+
+// Result from processing
+public class DocumentProcessedResult
+{
+    public string DocumentId { get; set; }
+    public int WordCount { get; set; }
+    public DateTime ProcessedTime { get; set; } = DateTime.UtcNow;
+}
+```
+
+#### Step 2: Create Worker Actor
+
+Implement a worker actor by inheriting from `WorkerActor`:
+
+```csharp
+public class DocumentProcessingWorker : WorkerActor
+{
+    private readonly IDocumentService _documentService;
+    
+    public DocumentProcessingWorker(
+        ILogger<DocumentProcessingWorker> logger,
+        IDocumentService documentService) : base(logger)
+    {
+        _documentService = documentService;
+    }
+    
+    protected override void ConfigureHandlers()
+    {
+        // Define how to process work items
+        Receive<ProcessDocumentWork>(async work => 
+        {
+            _logger.LogInformation("Processing document: {DocumentId}", work.DocumentId);
+            
+            // Do the actual processing work
+            var wordCount = await _documentService.CountWordsAsync(work.Content);
+            
+            // Create result
+            var result = new DocumentProcessedResult
+            {
+                DocumentId = work.DocumentId,
+                WordCount = wordCount
+            };
+            
+            // Report completion (Guid is for tracking in coordinator)
+            CompleteWork(result, Guid.Parse(work.DocumentId));
+        });
+    }
+}
+```
+
+#### Step 3: Implement Coordinator Actor
+
+Create a coordinator by inheriting from `CoordinatorActor`:
+
+```csharp
+public class DocumentCoordinator : CoordinatorActor
+{
+    private readonly IDocumentRepository _documentRepository;
+    
+    public DocumentCoordinator(
+        ILogger<DocumentCoordinator> logger,
+        IDocumentRepository documentRepository) : base(logger)
+    {
+        _documentRepository = documentRepository;
+    }
+    
+    protected override void CreateWorkerActors()
+    {
+        // Workers are automatically created via the actor system configuration
+        // but you can create additional workers or specialized workers here if needed
+    }
+    
+    // Override work completed to store results
+    protected override void OnWorkCompleted(CoordinationMessages.WorkCompleted message)
+    {
+        base.OnWorkCompleted(message);
+        
+        if (message.Result is DocumentProcessedResult result)
+        {
+            // Store the result
+            _documentRepository.SaveProcessingResult(result);
+            
+            // Forward to anyone waiting for the result
+            Sender.Tell(result);
+        }
+    }
+}
+```
+
+#### Step 4: Create Background Service
+
+Create a background service by inheriting from `CoordinatorBackgroundService<T>`:
+
+```csharp
+public class DocumentProcessingService : CoordinatorBackgroundService<DocumentCoordinator>
+{
+    private readonly IDocumentRepository _documentRepository;
+    
+    public DocumentProcessingService(
+        ILogger<DocumentProcessingService> logger,
+        ActorSystem actorSystem,
+        IDocumentRepository documentRepository) : base(logger, actorSystem)
+    {
+        _documentRepository = documentRepository;
+    }
+    
+    protected override async Task StartProcessingAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Starting document processing service");
+        
+        // Create a timer to periodically check for new documents
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            try
+            {
+                // Get documents that need processing
+                var documents = await _documentRepository.GetPendingDocumentsAsync(limit: 20);
+                
+                foreach (var document in documents)
+                {
+                    // Create work item
+                    var workItem = new ProcessDocumentWork
+                    {
+                        DocumentId = document.Id,
+                        Content = document.Content
+                    };
+                    
+                    // Send to coordinator
+                    SendWork(workItem);
+                    
+                    // Mark as processing
+                    await _documentRepository.MarkAsProcessingAsync(document.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing documents");
+            }
+        }
+    }
+}
+```
+
+#### Step 5: Register the Service
+
+Register your coordinator service with a single line:
+
+```csharp
+// Register the coordinator service
+services.AddCoordinatorService<DocumentProcessingService, DocumentCoordinator, DocumentProcessingWorker>();
+```
+
+This registers all the necessary components:
+
+- Adds the actor system with lifecycle management
+- Configures the coordinator actor
+- Configures the worker actors with appropriate scaling
+- Registers the background service
+
+### Customization Options
+
+The coordinator framework is designed to be customizable:
+
+#### Custom Work Distribution
+
+Override the `OnDistributeWork` method to implement custom distribution strategies:
+
+```csharp
+protected override void OnDistributeWork(CoordinationMessages.DistributeWork message)
+{
+    // Custom work distribution strategy
+    // Example: Priority-based assignment instead of round-robin
+    
+    var workItem = message.WorkItem as PriorityWork;
+    var workerKey = SelectWorkerByPriority(workItem.Priority);
+    
+    // Send to selected worker
+    _workerActors[workerKey].Tell(workItem, Self);
+}
+```
+
+#### Custom Worker Creation
+
+Override the `CreateWorkerActors` method for specialized worker configurations:
+
+```csharp
+protected override void CreateWorkerActors()
+{
+    // Create different types of workers for different work items
+    
+    for (int i = 0; i < 3; i++)
+    {
+        var imageWorker = Context.ActorOf(
+            DependencyResolver.For(Context.System).Props<ImageProcessingWorker>(),
+            $"image-worker-{i}");
+            
+        _workerActors.Add($"image-worker-{i}", imageWorker);
+    }
+    
+    for (int i = 0; i < 5; i++)
+    {
+        var textWorker = Context.ActorOf(
+            DependencyResolver.For(Context.System).Props<TextProcessingWorker>(),
+            $"text-worker-{i}");
+            
+        _workerActors.Add($"text-worker-{i}", textWorker);
+    }
+}
+```
+
+#### Advanced Work Tracking
+
+Add work tracking by overriding the `StoreWorkContext` method:
+
+```csharp
+// Dictionary to store work contexts
+private readonly Dictionary<Guid, WorkContext> _workContexts = new();
+
+protected override void StoreWorkContext(Guid workId, WorkContext context)
+{
+    _workContexts[workId] = context;
+    
+    // Set up timeout for work items
+    Context.System.Scheduler.ScheduleTellOnce(
+        TimeSpan.FromMinutes(5),
+        Self,
+        new CheckWorkTimeout(workId),
+        Self);
+}
+
+// Custom timeout message
+public class CheckWorkTimeout
+{
+    public Guid WorkId { get; }
+    
+    public CheckWorkTimeout(Guid workId)
+    {
+        WorkId = workId;
+    }
+}
+
+// Add timeout handler in ConfigureHandlers
+protected override void ConfigureHandlers()
+{
+    Receive<CheckWorkTimeout>(message => {
+        if (_workContexts.TryGetValue(message.WorkId, out var context))
+        {
+            if (DateTime.UtcNow - context.Created > TimeSpan.FromMinutes(5))
+            {
+                _logger.LogWarning("Work item {WorkId} timed out", message.WorkId);
+                
+                // Redistribute or notify of timeout
+                RedistributeWork(message.WorkId);
+            }
+        }
+    });
+}
+```
+
+### Common Use Cases
+
+The Coordinator pattern is useful for:
+
+1. **Background Processing**: Process items from a queue (like documents, images, etc.)
+2. **Scheduled Tasks**: Run periodic tasks that need to be distributed
+3. **Resource-Intensive Operations**: Distribute CPU or memory-intensive tasks
+4. **Parallel Processing**: Break down large tasks into smaller parallel units
+5. **Event Processing**: Process events from external systems in an ordered manner
+
+### Health Monitoring
+
+The coordinator automatically performs health checks on workers. You can customize this by overriding the `OnCheckHealth` method:
+
+```csharp
+protected override void OnCheckHealth(CoordinationMessages.CheckHealth message)
+{
+    base.OnCheckHealth(message);
+    
+    // Add additional health metrics
+    foreach (var worker in _workerActors)
+    {
+        worker.Value.Tell(new CheckResourceUsage(), Self);
+    }
+}
+
+// Add a handler for resource usage responses
+public class ResourceUsage
+{
+    public string WorkerId { get; set; }
+    public double CpuUsage { get; set; }
+    public double MemoryUsage { get; set; }
+}
+
+protected override void ConfigureHandlers()
+{
+    Receive<ResourceUsage>(usage => {
+        _logger.LogInformation(
+            "Worker {WorkerId} resource usage - CPU: {CpuUsage}%, Memory: {MemoryUsage}MB",
+            usage.WorkerId, usage.CpuUsage, usage.MemoryUsage);
+            
+        // Restart workers with high resource usage
+        if (usage.CpuUsage > 90 || usage.MemoryUsage > 500)
+        {
+            _logger.LogWarning("Restarting worker {WorkerId} due to high resource usage", usage.WorkerId);
+            
+            var worker = _workerActors[usage.WorkerId];
+            worker.Tell(PoisonPill.Instance);
+            
+            // Create a new worker to replace it
+            var newWorker = Context.ActorOf(
+                DependencyResolver.For(Context.System).Props<WorkerActor>(),
+                $"{usage.WorkerId}-new");
+                
+            _workerActors[usage.WorkerId] = newWorker;
+        }
+    });
+}
+```
+
+### Best Practices
+
+1. **Right-Size Workers**: Find the optimal number of workers for your workload through testing
+2. **Stateless Workers**: Keep workers stateless to allow easy scaling and replacement
+3. **Worker Specialization**: Consider specialized workers for different types of work
+4. **Work Idempotency**: Ensure work can be safely retried in case of failures
+5. **Graceful Shutdown**: Allow in-progress work to complete during shutdown
+6. **Work Timeouts**: Implement timeouts for long-running work items
+7. **Monitoring**: Log key metrics to track system health and performance
+
+### Example: API Integration
+
+Here's how to expose the coordinator service via an API:
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class DocumentController : ControllerBase
+{
+    private readonly IActorService _actorService;
+    
+    public DocumentController(IActorService actorService)
+    {
+        _actorService = actorService;
+    }
+    
+    [HttpPost]
+    public IActionResult ProcessDocument([FromBody] DocumentRequest request)
+    {
+        // Create work item
+        var workItem = new ProcessDocumentWork
+        {
+            DocumentId = Guid.NewGuid().ToString(),
+            Content = request.Content
+        };
+        
+        // Send to coordinator
+        _actorService.Tell<DocumentCoordinator>(
+            new CoordinationMessages.DistributeWork(workItem));
+            
+        return Accepted(new { DocumentId = workItem.DocumentId });
+    }
+    
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetStatus(string id)
+    {
+        // Could check a repository or ask the coordinator for status
+        var status = await _documentRepository.GetProcessingStatusAsync(id);
+        return Ok(status);
+    }
+}
+```
+
+
+
+
+
+
