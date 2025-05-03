@@ -8,7 +8,7 @@ namespace QFace.Sdk.ActorSystems;
 public class ActorSystemHostedService : IHostedService
 {
     private readonly ILogger<ActorSystemHostedService> _logger;
-    private readonly Akka.Actor.ActorSystem _actorSystem;
+    private readonly ActorSystem _actorSystem;
     private readonly IHostApplicationLifetime _appLifetime;
 
     /// <summary>
@@ -16,7 +16,7 @@ public class ActorSystemHostedService : IHostedService
     /// </summary>
     public ActorSystemHostedService(
         ILogger<ActorSystemHostedService> logger,
-        Akka.Actor.ActorSystem actorSystem,
+        ActorSystem actorSystem,
         IHostApplicationLifetime appLifetime)
     {
         _logger = logger;

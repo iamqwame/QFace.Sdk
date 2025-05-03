@@ -45,4 +45,14 @@ public interface IFileUploadService
     /// <param name="s3Key">The storage key of the file</param>
     /// <returns>Full CDN URL for the file</returns>
     string GetCdnUrl(string s3Key);
+    
+    /// <summary>
+    /// Uploads a Base64 encoded image to blob storage
+    /// </summary>
+    /// <param name="base64Image">The Base64 encoded image string (with or without data URI prefix)</param>
+    /// <param name="folder">Optional folder path within the storage</param>
+    /// <param name="fileName">Optional file name (if not provided, a unique name will be generated)</param>
+    /// <param name="contentType">The content type of the image (e.g., "image/jpeg", "image/png")</param>
+    /// <returns>URL of the uploaded file</returns>
+    Task<FileUploadResponse> UploadBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null);
 }
