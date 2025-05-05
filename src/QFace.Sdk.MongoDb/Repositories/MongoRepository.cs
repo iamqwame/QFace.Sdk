@@ -28,16 +28,6 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
         _collection = database.GetCollection<TDocument>(collectionName);
         _logger = logger;
         CollectionName = collectionName;
-            
-        // Create indexes on initialization
-        try
-        {
-            CreateIndexesAsync().GetAwaiter().GetResult();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating indexes for collection {CollectionName}", collectionName);
-        }
     }
 
     /// <summary>
@@ -399,13 +389,14 @@ public class MongoRepository<TDocument> : IMongoRepository<TDocument> where TDoc
     public virtual Task CreateIndexesAsync(CancellationToken cancellationToken = default)
     {
         // Base implementation creates standard indexes
-        var indexes = new List<CreateIndexModel<TDocument>>();
-            
-        // Create text index on all fields
-        indexes.Add(new CreateIndexModel<TDocument>(
-            Builders<TDocument>.IndexKeys.Text("$**"), 
-            new CreateIndexOptions { Background = true, Name = "text_idx" }
-        ));
+        var indexes = new List<CreateIndexModel<TDocument>>
+        {
+            // Create text index on all fields
+            new(
+                Builders<TDocument>.IndexKeys.Text("$**"), 
+                new CreateIndexOptions { Background = true, Name = "text_idx" }
+            )
+        };
 
         return _collection.Indexes.CreateManyAsync(indexes, cancellationToken);
     }

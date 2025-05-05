@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>QFace.Sdk.MongoDb</PackageId>
-        <Version>1.0.0</Version>
+        <Version>1.0.1</Version>
         <Authors>IAmQwame</Authors>
         <Company>QFace</Company>
         <Description>A MongoDB client SDK that simplifies database operations with repository patterns, connection management, and data modeling.</Description>
