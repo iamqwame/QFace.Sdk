@@ -71,12 +71,12 @@ public class CollectionNamingOptions
     /// <summary>
     /// Collection naming strategy (Plural, CamelCase, PluralCamelCase, Raw)
     /// </summary>
-    public string Strategy { get; set; } = "Plural";
+    public string Strategy { get; set; } = "Raw";
     
     /// <summary>
     /// Whether to force all collections to lowercase
     /// </summary>
-    public bool ForceLowerCase { get; set; } = true;
+    public bool ForceLowerCase { get; set; } = false;
 }
 
 /// <summary>
