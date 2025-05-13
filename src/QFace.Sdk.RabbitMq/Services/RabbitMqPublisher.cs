@@ -5,6 +5,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
     private readonly ActorSystem _actorSystem;
     private readonly ILogger<RabbitMqPublisher> _logger;
     private IActorRef _publisherActorRef;
+    private readonly object _actorLock = new object();
 
     public RabbitMqPublisher(
         ActorSystem actorSystem,
@@ -19,18 +20,29 @@ public class RabbitMqPublisher : IRabbitMqPublisher
         try
         {
             // Ensure we have a reference to the publisher actor
-            if (_publisherActorRef == null)
+            if (_publisherActorRef == null || _publisherActorRef.IsNobody())
             {
-                try
+                lock (_actorLock)
                 {
-                    // Try to find existing actor
-                    _publisherActorRef = await _actorSystem.ActorSelection("/user/rabbitmq-publisher")
-                        .ResolveOne(TimeSpan.FromSeconds(1));
-                }
-                catch
-                {
-                    _logger.LogWarning("[RabbitMQ] Publisher actor not found. Make sure UseRabbitMqInApi/UseRabbitMqInConsumer has been called.");
-                    return false;
+                    if (_publisherActorRef == null || _publisherActorRef.IsNobody())
+                    {
+                        try
+                        {
+                            // Try to find existing actor
+                            _publisherActorRef = _actorSystem.ActorSelection("/user/rabbitmq-publisher")
+                                .ResolveOne(TimeSpan.FromSeconds(1))
+                                .GetAwaiter()
+                                .GetResult();
+                            
+                            _logger.LogDebug("[RabbitMQ] Found existing publisher actor");
+                        }
+                        catch
+                        {
+                            // Actor doesn't exist - this should not happen as it should be created during initialization
+                            _logger.LogError("[RabbitMQ] Publisher actor not found. Make sure UseRabbitMqInApi/UseRabbitMqInConsumer has been called.");
+                            return false;
+                        }
+                    }
                 }
             }
 
