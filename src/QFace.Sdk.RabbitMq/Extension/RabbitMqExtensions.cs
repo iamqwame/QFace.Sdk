@@ -206,26 +206,29 @@ public static class RabbitMqExtensions
         var actorSystem = app.ApplicationServices.GetRequiredService<ActorSystem>();
         var connectionProvider = app.ApplicationServices.GetRequiredService<RabbitMqConnectionProvider>();
         var logger = app.ApplicationServices.GetRequiredService<ILogger<RabbitMqPublisherActor>>();
+        var options = app.ApplicationServices.GetRequiredService<IOptions<RabbitMqOptions>>();
 
         try
         {
-            // Create publisher actor using the connection provider
-            var publisherActor = actorSystem.ActorOf(
-                Props.Create(() => new RabbitMqPublisherActor(
-                    logger,
-                    app.ApplicationServices.GetRequiredService<IOptions<RabbitMqOptions>>(),
-                    connectionProvider.Connection,
-                    connectionProvider.Channel
-                )),
-                "rabbitmq-publisher"
-            );
+            // Create props with error handling
+            var props = Props.Create(() => new RabbitMqPublisherActor(
+                logger,
+                options,
+                connectionProvider.Connection,
+                connectionProvider.Channel
+            ));
 
-            logger.LogInformation("[RabbitMQ] Successfully initialized publisher actor");
-        }
-        catch (InvalidActorNameException)
-        {
-            // Actor already exists
-            logger.LogInformation("[RabbitMQ] Publisher actor already exists");
+            // Try to create publisher actor
+            try
+            {
+                var publisherActor = actorSystem.ActorOf(props, "rabbitmq-publisher");
+                logger.LogInformation("[RabbitMQ] Successfully initialized publisher actor");
+            }
+            catch (InvalidActorNameException)
+            {
+                // Actor already exists
+                logger.LogInformation("[RabbitMQ] Publisher actor already exists");
+            }
         }
         catch (Exception ex)
         {
