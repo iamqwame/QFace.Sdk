@@ -1,6 +1,105 @@
-@Demo.ElasticSearch.Api_HostAddress = http://localhost:5107
+@Demo.ElasticSearch.Api_HostAddress = https://localhost:7001
 
-GET {{Demo.ElasticSearch.Api_HostAddress}}/weatherforecast/
+### Test OpenSearch Connection
+GET {{Demo.ElasticSearch.Api_HostAddress}}/api/products/health
 Accept: application/json
+
+### Create Sample Data
+POST {{Demo.ElasticSearch.Api_HostAddress}}/api/products/sample-data
+Content-Type: application/json
+
+### Get All Products
+GET {{Demo.ElasticSearch.Api_HostAddress}}/api/products?page=1&pageSize=10
+Accept: application/json
+
+### Search Products by Text
+POST {{Demo.ElasticSearch.Api_HostAddress}}/api/products/search
+Content-Type: application/json
+
+{
+  "searchText": "MacBook",
+  "page": 1,
+  "pageSize": 10
+}
+
+### Search Products by Brand
+POST {{Demo.ElasticSearch.Api_HostAddress}}/api/products/search
+Content-Type: application/json
+
+{
+  "brand": "Apple",
+  "onlyFeatured": true,
+  "sortBy": "PriceLowToHigh",
+  "page": 1,
+  "pageSize": 20
+}
+
+### Search Products with Price Filter
+POST {{Demo.ElasticSearch.Api_HostAddress}}/api/products/search
+Content-Type: application/json
+
+{
+  "minPrice": 500,
+  "maxPrice": 2000,
+  "inStockOnly": true,
+  "sortBy": "Rating",
+  "page": 1,
+  "pageSize": 10
+}
+
+### Create New Product
+POST {{Demo.ElasticSearch.Api_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Samsung Galaxy S24",
+  "description": "Latest Samsung Galaxy smartphone with AI features",
+  "price": 899.99,
+  "categoryId": "smartphones",
+  "brand": "Samsung",
+  "tags": ["smartphone", "samsung", "ai", "android"],
+  "stockQuantity": 30,
+  "sku": "SGS24-256-BK",
+  "featured": true,
+  "rating": 4.6,
+  "reviewCount": 45,
+  "details": {
+    "manufacturer": "Samsung",
+    "model": "Galaxy S24",
+    "sku": "SGS24-256-BK",
+    "specifications": {
+      "processor": "Snapdragon 8 Gen 3",
+      "storage": "256GB",
+      "camera": "50MP Triple",
+      "display": "6.2-inch Dynamic AMOLED"
+    }
+  }
+}
+
+### Get Specific Product
+# Replace {product-id} with an actual product ID from previous responses
+GET {{Demo.ElasticSearch.Api_HostAddress}}/api/products/{product-id}
+Accept: application/json
+
+### Update Product
+# Replace {product-id} with an actual product ID
+PUT {{Demo.ElasticSearch.Api_HostAddress}}/api/products/{product-id}
+Content-Type: application/json
+
+{
+  "id": "{product-id}",
+  "name": "Updated Product Name",
+  "description": "Updated description",
+  "price": 1099.99,
+  "categoryId": "smartphones",
+  "brand": "Samsung",
+  "tags": ["smartphone", "updated"],
+  "stockQuantity": 20,
+  "featured": false
+}
+
+### Delete Product (Soft Delete)
+# Replace {product-id} with an actual product ID
+DELETE {{Demo.ElasticSearch.Api_HostAddress}}/api/products/{product-id}
 
 ###

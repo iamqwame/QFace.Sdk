@@ -7,9 +7,9 @@
     public class ElasticsearchRepository<TDocument> : IElasticsearchRepository<TDocument> where TDocument : EsBaseDocument
     {
         /// <summary>
-        /// Elasticsearch client
+        /// OpenSearch client
         /// </summary>
-        protected readonly IElasticClient _client;
+        protected readonly IOpenSearchClient _client;
         
         /// <summary>
         /// Logger instance
@@ -22,10 +22,10 @@
         public string IndexName { get; }
 
         /// <summary>
-        /// Creates a new instance of the Elasticsearch repository
+        /// Creates a new instance of the OpenSearch repository
         /// </summary>
         public ElasticsearchRepository(
-            IElasticClient client,
+            IOpenSearchClient client,
             string indexName,
             ILogger<ElasticsearchRepository<TDocument>> logger)
         {

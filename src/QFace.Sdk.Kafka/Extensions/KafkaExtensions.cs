@@ -30,7 +30,7 @@ public static class KafkaExtensions
         // Add validation
         services.AddSingleton<IValidateOptions<KafkaConsumerConfig>, KafkaConsumerConfigValidator>();
         
-        // Register ITopLevelActors wrapper
+        // Register ITopLevelActors wrapper (needed for consumers)
         services.AddSingleton<ITopLevelActors, TopLevelActorsWrapper>();
 
         // Register the actor system if it's not already registered

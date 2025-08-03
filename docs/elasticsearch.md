@@ -1,6 +1,32 @@
-# QFace Elasticsearch SDK Documentation
+# QFace OpenSearch SDK Documentation
 
-The QFace Elasticsearch SDK provides a comprehensive solution for working with Elasticsearch in .NET applications. This document covers installation, configuration, and usage examples for both standard and advanced scenarios.
+The QFace OpenSearch SDK provides a comprehensive solution for working with OpenSearch and Elasticsearch in .NET applications. This document covers installation, configuration, and usage examples for both standard and advanced scenarios.
+
+**✨ Now supports both OpenSearch and Elasticsearch!** Perfect for DigitalOcean managed OpenSearch, AWS OpenSearch Service, and self-hosted deployments.
+
+## 🚀 **Version 2.0 - OpenSearch Compatible!**
+
+### ⬆️ **Migration from Version 1.x**
+
+If you're upgrading from the previous Elasticsearch-only version:
+
+```bash
+# Old package (v1.x)
+dotnet remove package QFace.Sdk.Elasticsearch
+
+# New package (v2.x)
+dotnet add package QFace.Sdk.OpenSearch
+```
+
+**✅ Your code remains the same!** The API is fully backward compatible.
+
+### 🎆 **What's New in 2.0**
+
+- ✅ **OpenSearch Native Support** - Uses OpenSearch.Client instead of deprecated NEST
+- ✅ **DigitalOcean Ready** - Optimized for managed OpenSearch services
+- ✅ **Backward Compatible** - All existing code works unchanged
+- ✅ **Modern Dependencies** - Latest OpenSearch client libraries
+- ✅ **Enhanced Security** - Better SSL and authentication handling
 
 ## Table of Contents
 
@@ -19,8 +45,10 @@ The QFace Elasticsearch SDK provides a comprehensive solution for working with E
 Install the package via NuGet:
 
 ```bash
-dotnet add package QFace.Sdk.Elasticsearch
+dotnet add package QFace.Sdk.OpenSearch
 ```
+
+**Note:** Package name changed from `QFace.Sdk.Elasticsearch` to `QFace.Sdk.OpenSearch` in version 2.0 for OpenSearch compatibility.
 
 Add the following namespaces to your files:
 
@@ -34,9 +62,43 @@ using QFace.Sdk.Elasticsearch.Options;
 
 ## Configuration
 
-### appsettings.json
+### Configuration for DigitalOcean OpenSearch
 
-Add the following configuration to your `appsettings.json` file:
+For DigitalOcean managed OpenSearch (like your setup):
+
+```json
+{
+  "Elasticsearch": {
+    "NodeUrls": "https://db-opensearch-do-user-7791352-0.e.db.ondigitalocean.com:25060",
+    "Username": "doadmin",
+    "Password": "AVNS_vzu4qwuXrT819br9zgl",
+    "DefaultIndexPrefix": "myapp",
+    "EnableSsl": true,
+    "ValidateSslCertificate": false,
+    "ConnectionTimeoutSeconds": 30,
+    "RequestTimeoutSeconds": 30,
+    "MaxRetries": 3,
+    "RetryTimeoutSeconds": 60,
+    "EnableDebugMode": false,
+    "Sniffing": {
+      "Enabled": false,
+      "IntervalSeconds": 60,
+      "SniffOnStartup": false,
+      "SniffOnConnectionFailure": false
+    },
+    "IndexNaming": {
+      "Strategy": "PrefixedLowerCase",
+      "UseTypeNameAsDefault": true,
+      "IncludeEnvironmentName": true,
+      "EnvironmentName": "prod"
+    }
+  }
+}
+```
+
+### Configuration for Local Development
+
+For local Elasticsearch or OpenSearch:
 
 ```json
 {
@@ -69,6 +131,24 @@ Add the following configuration to your `appsettings.json` file:
 }
 ```
 
+### Important Notes for OpenSearch
+
+⚠️ **Critical Settings for Managed OpenSearch (DigitalOcean, AWS):**
+
+1. **❌ Disable Sniffing**: `"Enabled": false` - Managed services don't support node discovery
+2. **✅ Enable SSL**: `"EnableSsl": true` - Always use HTTPS for production
+3. **⚠️ Certificate Validation**: `"ValidateSslCertificate": false` - May be required for managed services
+4. **🔐 Use Basic Auth**: Username/password authentication is most reliable
+5. **📋 Single Node**: Perfect configuration for managed services
+
+### Supported Platforms
+
+✅ **OpenSearch** (any version)  
+✅ **DigitalOcean Managed OpenSearch**  
+✅ **AWS OpenSearch Service**  
+✅ **Elasticsearch** (7.x and 8.x)  
+✅ **Self-hosted OpenSearch/Elasticsearch**  
+
 ### Index Naming Strategies
 
 Available strategies:
@@ -81,7 +161,7 @@ Available strategies:
 
 ### Basic Setup
 
-Register Elasticsearch services in your `Program.cs` or `Startup.cs`:
+Register OpenSearch services in your `Program.cs` or `Startup.cs`:
 
 ```csharp
 // Using configuration from appsettings.json
@@ -91,6 +171,24 @@ builder.Services.AddElasticsearch(builder.Configuration);
 builder.Services.AddElasticsearchRepository<Product>();
 builder.Services.AddElasticsearchRepository<Category>();
 builder.Services.AddElasticsearchRepository<Order>();
+```
+
+### DigitalOcean OpenSearch Setup
+
+```csharp
+// For DigitalOcean managed OpenSearch
+builder.Services.AddElasticsearch(
+    "https://db-opensearch-do-user-7791352-0.e.db.ondigitalocean.com:25060",
+    "myapp");
+
+// Configure authentication
+builder.Services.Configure<ElasticsearchOptions>(options => {
+    options.Username = "doadmin";
+    options.Password = "AVNS_vzu4qwuXrT819br9zgl";
+    options.EnableSsl = true;
+    options.ValidateSslCertificate = false;
+    options.Sniffing.Enabled = false;
+});
 ```
 
 ### Using Custom Connection
@@ -116,7 +214,7 @@ builder.Services.Configure<ElasticsearchOptions>(options => {
 });
 
 builder.Services.AddSingleton<IElasticsearchClientFactory, ElasticsearchClientFactory>();
-builder.Services.AddSingleton<IElasticClient>(sp =>
+builder.Services.AddSingleton<IOpenSearchClient>(sp =>
     sp.GetRequiredService<IElasticsearchClientFactory>().GetClient());
 builder.Services.AddSingleton<IIndexNamingService, IndexNamingService>();
 
@@ -421,7 +519,7 @@ Create custom repositories by extending `ElasticsearchRepository<T>`:
 public class ProductRepository : ElasticsearchRepository<Product>
 {
     public ProductRepository(
-        IElasticClient client,
+        IOpenSearchClient client,
         string indexName,
         ILogger<ProductRepository> logger)
         : base(client, indexName, logger)
@@ -901,11 +999,11 @@ Implement search with highlighting to emphasize matched terms:
 ```csharp
 public class SearchService
 {
-    private readonly IElasticClient _client;
+    private readonly IOpenSearchClient _client;
     private readonly string _indexName;
 
     public SearchService(
-        IElasticClient client,
+        IOpenSearchClient client,
         IIndexNamingService indexNamingService)
     {
         _client = client;
@@ -1051,7 +1149,7 @@ public class GeoLocation
 public class LocationRepository : ElasticsearchRepository<Location>
 {
     public LocationRepository(
-        IElasticClient client,
+        IOpenSearchClient client,
         string indexName,
         ILogger<LocationRepository> logger)
         : base(client, indexName, logger)
@@ -1194,12 +1292,12 @@ For better performance when dealing with large datasets:
 ```csharp
 public class BulkOperationsService
 {
-    private readonly IElasticClient _client;
+    private readonly IOpenSearchClient _client;
     private readonly IIndexNamingService _indexNamingService;
     private readonly ILogger<BulkOperationsService> _logger;
 
     public BulkOperationsService(
-        IElasticClient client,
+        IOpenSearchClient client,
         IIndexNamingService indexNamingService,
         ILogger<BulkOperationsService> logger)
     {
@@ -1671,6 +1769,66 @@ Techniques for optimizing Elasticsearch performance:
    ```
 
 ## Troubleshooting
+
+### OpenSearch-Specific Issues
+
+**1. DigitalOcean OpenSearch Connection Problems**
+
+```json
+// Correct configuration for DigitalOcean
+{
+  "Elasticsearch": {
+    "NodeUrls": "https://db-opensearch-do-user-7791352-0.e.db.ondigitalocean.com:25060",
+    "Username": "doadmin",
+    "Password": "AVNS_vzu4qwuXrT819br9zgl",
+    "EnableSsl": true,
+    "ValidateSslCertificate": false,  // ← Key for managed services
+    "Sniffing": {
+      "Enabled": false               // ← Must be disabled
+    }
+  }
+}
+```
+
+**2. SSL Certificate Errors**
+
+```csharp
+// If you get SSL certificate validation errors:
+"ValidateSslCertificate": false
+
+// For production, try to use proper certificates:
+"ValidateSslCertificate": true
+```
+
+**3. Authentication Failures**
+
+```bash
+# Verify credentials work with curl:
+curl -u "doadmin:AVNS_vzu4qwuXrT819br9zgl" \
+  "https://db-opensearch-do-user-7791352-0.e.db.ondigitalocean.com:25060"
+```
+
+**4. Connection Timeout Issues**
+
+```json
+{
+  "Elasticsearch": {
+    "ConnectionTimeoutSeconds": 60,  // Increase for slow networks
+    "RequestTimeoutSeconds": 60,     // Increase for large operations
+    "MaxRetries": 5                  // More retries for unstable connections
+  }
+}
+```
+
+**5. Debugging Connection Issues**
+
+```json
+{
+  "Elasticsearch": {
+    "EnableDebugMode": true  // Enable to see actual requests/responses
+  }
+}
+```
 
 ### Common Errors
 
@@ -2405,8 +2563,22 @@ public class ProductsController : ControllerBase
 }
 ```
 
-This completes the documentation for the QFace Elasticsearch SDK. The SDK provides a powerful and flexible solution for working with Elasticsearch in .NET applications, from simple CRUD operations to complex search scenarios with facets, filters, and aggregations.
+This completes the documentation for the QFace OpenSearch SDK. The SDK provides a powerful and flexible solution for working with both OpenSearch and Elasticsearch in .NET applications, from simple CRUD operations to complex search scenarios with facets, filters, and aggregations.
 
-By following the repository pattern, the SDK makes it easy to work with Elasticsearch in a familiar way for .NET developers, while still leveraging the full power of Elasticsearch's search capabilities.
+## 🎆 **OpenSearch 2.0 Benefits**
 
-For best results, make sure to design your document models with search in mind, use appropriate field mappings, and optimize your queries for performance. The examples in this documentation should provide a good starting point for building your own Elasticsearch-powered applications.
+By migrating to OpenSearch.Client, the SDK now offers:
+
+- ✅ **Future-Proof**: Built on actively maintained OpenSearch libraries
+- ✅ **Performance**: Better connection handling and resource management
+- ✅ **Compatibility**: Works with both OpenSearch and Elasticsearch
+- ✅ **DigitalOcean Optimized**: Perfect configuration for managed services
+- ✅ **Security**: Enhanced SSL and authentication support
+
+By following the repository pattern, the SDK makes it easy to work with OpenSearch/Elasticsearch in a familiar way for .NET developers, while still leveraging the full power of modern search capabilities.
+
+For best results, make sure to design your document models with search in mind, use appropriate field mappings, and optimize your queries for performance. The examples in this documentation should provide a good starting point for building your own OpenSearch-powered applications.
+
+---
+
+**QFace OpenSearch SDK v2.0** - Modern search capabilities with the reliability of the repository pattern. 🚀

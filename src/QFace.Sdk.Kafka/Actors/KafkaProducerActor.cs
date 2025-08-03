@@ -36,11 +36,11 @@ internal class KafkaProducerActor : BaseActor
             var producerConfig = new ProducerConfig
             {
                 BootstrapServers = _config.BootstrapServers,
-                Acks = Enum.Parse<Acks>(_config.Acks),
-                //Retries = _config.Retries,
+                Acks = Enum.Parse<Acks>(_config.Acks, true),
+                Retries = _config.Retries,
                 BatchSize = _config.BatchSize,
                 LingerMs = _config.LingerMs,
-                CompressionType = Enum.Parse<CompressionType>(_config.CompressionType),
+                CompressionType = Enum.Parse<CompressionType>(_config.CompressionType, true),
                 EnableIdempotence = true, // Prevent duplicate messages
                 MaxInFlight = 5
             };

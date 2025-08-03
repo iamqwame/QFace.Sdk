@@ -1,11 +1,11 @@
 namespace Demo.ElasticSearch.Api;
 public class ProductRepository : ElasticsearchRepository<Product>
 {
-    private readonly IElasticClient _client;
+    private readonly IOpenSearchClient _client;
     private readonly ILogger<ProductRepository> _logger;
 
     public ProductRepository(
-        IElasticClient client, 
+        IOpenSearchClient client, 
         string indexName, 
         ILogger<ProductRepository> logger)
         : base(client, indexName, logger)

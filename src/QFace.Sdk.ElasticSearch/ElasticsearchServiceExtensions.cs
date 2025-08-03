@@ -9,7 +9,7 @@ using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Nest;
+using OpenSearch.Client;
 
 /// <summary>
 /// Extension methods for registering Elasticsearch services
@@ -39,8 +39,8 @@ public static class ElasticsearchServiceExtensions
         services.AddSingleton<IElasticsearchClientFactory, ElasticsearchClientFactory>();
         services.AddSingleton<IIndexNamingService, IndexNamingService>();
 
-        // Register Elasticsearch client
-        services.AddSingleton<IElasticClient>(sp => 
+        // Register OpenSearch client
+        services.AddSingleton<IOpenSearchClient>(sp => 
             sp.GetRequiredService<IElasticsearchClientFactory>().GetClient());
 
         // Scan for repositories if assembliesToScan is provided
@@ -84,8 +84,8 @@ public static class ElasticsearchServiceExtensions
         services.AddSingleton<IElasticsearchClientFactory, ElasticsearchClientFactory>();
         services.AddSingleton<IIndexNamingService, IndexNamingService>();
 
-        // Register Elasticsearch client
-        services.AddSingleton<IElasticClient>(sp => 
+        // Register OpenSearch client
+        services.AddSingleton<IOpenSearchClient>(sp => 
             sp.GetRequiredService<IElasticsearchClientFactory>().GetClient());
 
         // Scan for repositories if assembliesToScan is provided
@@ -120,7 +120,7 @@ public static class ElasticsearchServiceExtensions
         {
             services.AddScoped<IElasticsearchRepository<TDocument>, TRepository>(sp =>
             {
-                var client = sp.GetRequiredService<IElasticClient>();
+                var client = sp.GetRequiredService<IOpenSearchClient>();
                 var namingService = sp.GetRequiredService<IIndexNamingService>();
                 var logger = sp.GetRequiredService<ILogger<TRepository>>();
 
@@ -136,7 +136,7 @@ public static class ElasticsearchServiceExtensions
         {
             services.AddScoped<IElasticsearchRepository<TDocument>, TRepository>(sp =>
             {
-                var client = sp.GetRequiredService<IElasticClient>();
+                var client = sp.GetRequiredService<IOpenSearchClient>();
                 var logger = sp.GetRequiredService<ILogger<TRepository>>();
 
                 return (TRepository)Activator.CreateInstance(
@@ -189,7 +189,7 @@ public static class ElasticsearchServiceExtensions
     {
         services.AddScoped<IElasticsearchRepository<TDocument>, TRepository>(sp =>
         {
-            var client = sp.GetRequiredService<IElasticClient>();
+            var client = sp.GetRequiredService<IOpenSearchClient>();
             var namingService = sp.GetRequiredService<IIndexNamingService>();
             var logger = sp.GetRequiredService<ILogger<TRepository>>();
 

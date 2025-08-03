@@ -57,7 +57,7 @@ public class KafkaProducerConfig
     public int Retries { get; set; } = 3;
     public int BatchSize { get; set; } = 16384;
     public int LingerMs { get; set; } = 5;
-    public string CompressionType { get; set; } = "none";
+    public string CompressionType { get; set; } = "None";
     
     /// <summary>
     /// Actor pool settings

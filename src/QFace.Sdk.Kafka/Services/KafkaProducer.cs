@@ -4,46 +4,61 @@ using QFace.Sdk.Kafka.Actors;
 namespace QFace.Sdk.Kafka.Services;
 
 /// <summary>
-/// Kafka producer service implementation that uses the actor system
+/// Kafka producer service implementation
 /// </summary>
 public class KafkaProducer : IKafkaProducer, IDisposable
 {
     private readonly ILogger<KafkaProducer> _logger;
-    private readonly ITopLevelActors _topLevelActors;
+    private readonly IOptions<KafkaProducerConfig> _config;
     private readonly ActorSystem _actorSystem;
+    private readonly IServiceProvider _serviceProvider;
     private IActorRef _producerActor;
+    private readonly object _actorLock = new object();
 
     public KafkaProducer(ILogger<KafkaProducer> logger, 
-        ITopLevelActors topLevelActors,
-        ActorSystem actorSystem)
+        IOptions<KafkaProducerConfig> config,
+        ActorSystem actorSystem,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
-        _topLevelActors = topLevelActors;
+        _config = config;
         _actorSystem = actorSystem;
-        
-        InitializeProducerActor();
+        _serviceProvider = serviceProvider;
     }
     
-    private void InitializeProducerActor()
+    private void EnsureProducerActor()
     {
-        try
+        if (_producerActor != null) return;
+        
+        lock (_actorLock)
         {
-            // Try to get existing actor first
-            _producerActor = _topLevelActors.GetActor<KafkaProducerActor>("_KafkaProducerActor");
-            _logger.LogDebug("[Kafka] Using existing producer actor");
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            // Actor doesn't exist, this is expected in some scenarios
-            _logger.LogDebug("[Kafka] Producer actor not found in TopLevelActors, will use direct actor reference");
+            if (_producerActor != null) return;
             
-            // Try to find the actor by name in the actor system
-            _producerActor = _actorSystem.ActorSelection("user/kafka-producer").ResolveOne(TimeSpan.FromSeconds(1)).Result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[Kafka] Failed to initialize producer actor reference");
-            throw;
+            try
+            {
+                // Get the proper logger for the actor from DI
+                var actorLogger = _serviceProvider.GetRequiredService<ILogger<KafkaProducerActor>>();
+                
+                // Create producer actor with correct logger type
+                var props = Props.Create(() => new KafkaProducerActor(
+                    actorLogger,
+                    _config
+                ));
+
+                _producerActor = _actorSystem.ActorOf(props, "kafka-producer");
+                _logger.LogInformation("[Kafka] Created producer actor successfully");
+            }
+            catch (InvalidActorNameException)
+            {
+                // Actor already exists, get reference to it
+                _producerActor = _actorSystem.ActorSelection("user/kafka-producer").ResolveOne(TimeSpan.FromSeconds(5)).Result;
+                _logger.LogInformation("[Kafka] Using existing producer actor");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Kafka] Failed to initialize producer actor");
+                throw;
+            }
         }
     }
 
@@ -52,6 +67,8 @@ public class KafkaProducer : IKafkaProducer, IDisposable
     {
         try
         {
+            EnsureProducerActor();
+            
             var produceMessage = new ProduceMessage(message, topic, key, partition);
             
             // Send message to producer actor and wait for result
@@ -69,6 +86,7 @@ public class KafkaProducer : IKafkaProducer, IDisposable
     public async Task<DeliveryResult<string, string>> ProduceAsync<T>(string topic, T message, 
         Func<T, string> keySelector)
     {
+        EnsureProducerActor();
         var key = keySelector?.Invoke(message);
         return await ProduceAsync(topic, message, key);
     }

@@ -1,19 +1,19 @@
 namespace QFace.Sdk.Elasticsearch.Services;
 
 /// <summary>
-/// Factory for creating Elasticsearch client instances
+/// Factory for creating OpenSearch/Elasticsearch client instances
 /// </summary>
 public class ElasticsearchClientFactory : IElasticsearchClientFactory
 {
     private readonly ElasticsearchOptions _options;
     private readonly ILogger<ElasticsearchClientFactory> _logger;
     private readonly object _lock = new object();
-    private IElasticClient _client;
+    private IOpenSearchClient _client;
 
     /// <summary>
-    /// Creates a new Elasticsearch client factory
+    /// Creates a new OpenSearch client factory
     /// </summary>
-    /// <param name="options">Elasticsearch options</param>
+    /// <param name="options">OpenSearch options</param>
     /// <param name="logger">Logger</param>
     public ElasticsearchClientFactory(
         IOptions<ElasticsearchOptions> options,
@@ -25,17 +25,17 @@ public class ElasticsearchClientFactory : IElasticsearchClientFactory
         // Validate options
         if (!_options.IsValid)
         {
-            var error = "Invalid Elasticsearch configuration. NodeUrls is required.";
+            var error = "Invalid OpenSearch configuration. NodeUrls is required.";
             _logger.LogError(error);
             throw new InvalidOperationException(error);
         }
     }
     
     /// <summary>
-    /// Gets an Elasticsearch client
+    /// Gets an OpenSearch client
     /// </summary>
-    /// <returns>Elasticsearch client</returns>
-    public IElasticClient GetClient()
+    /// <returns>OpenSearch client</returns>
+    public IOpenSearchClient GetClient()
     {
         if (_client == null)
         {
@@ -52,13 +52,13 @@ public class ElasticsearchClientFactory : IElasticsearchClientFactory
     }
     
     /// <summary>
-    /// Creates a new Elasticsearch client
+    /// Creates a new OpenSearch client
     /// </summary>
-    private IElasticClient CreateClient()
+    private IOpenSearchClient CreateClient()
     {
         try
         {
-            _logger.LogInformation("Creating Elasticsearch client with nodes: {NodeUrls}", 
+            _logger.LogInformation("Creating OpenSearch/Elasticsearch client with nodes: {NodeUrls}", 
                 MaskConnectionString(_options.NodeUrls));
             
             // Configure connection settings
@@ -74,7 +74,7 @@ public class ElasticsearchClientFactory : IElasticsearchClientFactory
             }
             else if (!string.IsNullOrEmpty(_options.ApiKey))
             {
-                // Use the id and api key format supported by Elasticsearch
+                // Use the id and api key format supported by OpenSearch/Elasticsearch
                 var apiKeyParts = _options.ApiKey.Split(':');
                 if (apiKeyParts.Length == 2)
                 {
@@ -125,30 +125,30 @@ public class ElasticsearchClientFactory : IElasticsearchClientFactory
                     .EnableDebugMode()
                     .OnRequestCompleted(details =>
                     {
-                        _logger.LogDebug("Elasticsearch Request: {Request}", details.DebugInformation);
+                        _logger.LogDebug("OpenSearch Request: {Request}", details.DebugInformation);
                     });
             }
             
             // Create client
-            var client = new ElasticClient(settings);
+            var client = new OpenSearchClient(settings);
             
             // Test connection
             var pingResponse = client.Ping();
             if (!pingResponse.IsValid)
             {
-                _logger.LogWarning("Elasticsearch ping failed: {Error}", 
+                _logger.LogWarning("OpenSearch ping failed: {Error}", 
                     pingResponse.DebugInformation);
             }
             else
             {
-                _logger.LogInformation("Successfully connected to Elasticsearch cluster");
+                _logger.LogInformation("Successfully connected to OpenSearch/Elasticsearch cluster");
             }
             
             return client;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating Elasticsearch client");
+            _logger.LogError(ex, "Error creating OpenSearch client");
             throw;
         }
     }

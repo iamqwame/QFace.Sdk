@@ -1,0 +1,129 @@
+@Demo.Kafka.Api_HostAddress = https://localhost:7109
+
+### Test Kafka Producer - Simple Event
+POST {{Demo.Kafka.Api_HostAddress}}/publish
+Content-Type: application/json
+
+{
+  "eventType": "user.created",
+  "data": {
+    "userId": "user123",
+    "username": "johnsmith",
+    "email": "john@example.com"
+  },
+  "metadata": {
+    "source": "user-service",
+    "version": "1.0"
+  }
+}
+
+### Test Kafka Producer - Order Event
+POST {{Demo.Kafka.Api_HostAddress}}/publish
+Content-Type: application/json
+
+{
+  "eventType": "order.created",
+  "data": {
+    "orderId": "order456",
+    "customerId": "customer789",
+    "totalAmount": 299.99,
+    "items": [
+      {
+        "productId": "prod1",
+        "productName": "Laptop",
+        "unitPrice": 299.99,
+        "quantity": 1
+      }
+    ]
+  },
+  "metadata": {
+    "source": "order-service",
+    "version": "1.0"
+  }
+}
+
+### Test Kafka Producer - System Metric
+POST {{Demo.Kafka.Api_HostAddress}}/publish
+Content-Type: application/json
+
+{
+  "eventType": "system.metric",
+  "data": {
+    "metricName": "cpu.usage",
+    "value": 75.5,
+    "unit": "percent",
+    "tags": {
+      "server": "web01",
+      "environment": "production"
+    }
+  },
+  "metadata": {
+    "source": "monitoring-service",
+    "version": "1.0"
+  }
+}
+
+### Test Batch Publishing
+POST {{Demo.Kafka.Api_HostAddress}}/publish-batch
+Content-Type: application/json
+
+[
+  {
+    "eventType": "user.created",
+    "data": {
+      "userId": "user001",
+      "username": "alice",
+      "email": "alice@example.com"
+    }
+  },
+  {
+    "eventType": "user.created", 
+    "data": {
+      "userId": "user002",
+      "username": "bob",
+      "email": "bob@example.com"
+    }
+  },
+  {
+    "eventType": "user.updated",
+    "data": {
+      "userId": "user003",
+      "username": "charlie",
+      "email": "charlie@example.com"
+    }
+  }
+]
+
+### Test Publishing to Custom Topic
+POST {{Demo.Kafka.Api_HostAddress}}/publish-to-topic
+Content-Type: application/json
+
+{
+  "topic": "analytics.events",
+  "key": "page.view",
+  "data": {
+    "userId": "user123",
+    "page": "/products",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "sessionId": "session456",
+    "userAgent": "Mozilla/5.0..."
+  }
+}
+
+### Test Publishing Alert Event
+POST {{Demo.Kafka.Api_HostAddress}}/publish-to-topic
+Content-Type: application/json
+
+{
+  "topic": "alerts.critical",
+  "key": "system.error",
+  "data": {
+    "alertId": "alert789",
+    "severity": "critical",
+    "message": "Database connection lost",
+    "service": "order-api",
+    "timestamp": "2024-01-15T10:35:00Z"
+  }
+}
+
+###

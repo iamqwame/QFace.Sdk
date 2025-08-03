@@ -35,15 +35,3 @@ public interface IIndexNamingService
     /// <returns>The index alias</returns>
     string GetIndexAlias<T>() where T : class;
 }
-
-/// <summary>
-/// Interface for factory that creates Elasticsearch client instances
-/// </summary>
-public interface IElasticsearchClientFactory
-{
-    /// <summary>
-    /// Gets an Elasticsearch client
-    /// </summary>
-    /// <returns>Elasticsearch client</returns>
-    IElasticClient GetClient();
-}
