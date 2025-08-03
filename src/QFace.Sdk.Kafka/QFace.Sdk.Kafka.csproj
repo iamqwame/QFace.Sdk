@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>QFace.Sdk.Kafka</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>IAmQwame</Authors>
+        <Company>QFace</Company>
+        <Description>A robust, actor-based integration with Apache Kafka for .NET applications that provides a simple, declarative approach to working with event streaming.</Description>
+        <PackageTags>kafka;messaging;streaming;events;actor;qface</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/iamqwame/qface-sdk</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/iamqwame/qface-sdk</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Confluent.Kafka" Version="2.3.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+    
+
+    <!-- Documentation files -->
+    <ItemGroup>
+        <None Include="$(SolutionDir)README.md" Pack="true" PackagePath="\" />
+        <None Include="$(SolutionDir)docs\kafka-streaming.md" Pack="true" PackagePath="content\docs\" />
+        <None Include="$(SolutionDir)docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\QFace.Sdk.ActorSystems\QFace.Sdk.ActorSystems.csproj" />
+    </ItemGroup>
+
+</Project>
