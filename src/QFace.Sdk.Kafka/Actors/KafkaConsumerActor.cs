@@ -1,10 +1,4 @@
-using Confluent.Kafka;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using QFace.Sdk.ActorSystems;
-using QFace.Sdk.Kafka.Consumer;
-using QFace.Sdk.Kafka.Messages;
-using QFace.Sdk.Kafka.Models;
 
 namespace QFace.Sdk.Kafka.Actors;
 
@@ -72,7 +66,7 @@ internal class KafkaConsumerActor : BaseActor
                 .SetPartitionsAssignedHandler((_, partitions) =>
                 {
                     _logger.LogInformation($"[Kafka] Partitions assigned: {string.Join(", ", partitions)}");
-                    _ = Task.Run(async () =>
+                    Task.Run(async () =>
                     {
                         if (_consumerInstance != null)
                         {
@@ -83,7 +77,7 @@ internal class KafkaConsumerActor : BaseActor
                 .SetPartitionsRevokedHandler((_, partitions) =>
                 {
                     _logger.LogInformation($"[Kafka] Partitions revoked: {string.Join(", ", partitions)}");
-                    _ = Task.Run(async () =>
+                    Task.Run(async () =>
                     {
                         if (_consumerInstance != null)
                         {
@@ -289,14 +283,15 @@ internal class KafkaConsumerActor : BaseActor
                 if (_processingConfig.CommitStrategy == OffsetCommitStrategy.AfterSuccessfulProcessing)
                 {
                     var offsetsToCommit = kafkaBatch.PartitionOffsets
-                        .Select(po => new TopicPartitionOffset(po.Key, po.Value));
+                        .Select(po => new TopicPartitionOffset(po.Key, po.Value))
+                        .ToList();
                     
                     lock (_consumerLock)
                     {
                         _consumer.Commit(offsetsToCommit);
                     }
                     
-                    _logger.LogDebug($"[Kafka] Committed offsets for {offsetsToCommit.Count()} partitions");
+                    _logger.LogDebug($"[Kafka] Committed offsets for {offsetsToCommit.Count} partitions");
                 }
             }
         }
