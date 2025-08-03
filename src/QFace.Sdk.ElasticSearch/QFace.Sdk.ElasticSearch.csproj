@@ -26,8 +26,8 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0" />
-        <PackageReference Include="Elasticsearch.Net" Version="7.17.5" />
-        <PackageReference Include="NEST" Version="7.17.5" />
+        <PackageReference Include="OpenSearch.Client" Version="1.6.0" />
+        <PackageReference Include="OpenSearch.Net" Version="1.6.0" />
     </ItemGroup>
 
     <!-- Documentation files -->

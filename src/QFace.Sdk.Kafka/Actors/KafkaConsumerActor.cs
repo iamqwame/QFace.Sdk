@@ -1,4 +1,11 @@
+using Confluent.Kafka;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using QFace.Sdk.ActorSystems;
+using QFace.Sdk.Kafka.Consumer;
+using QFace.Sdk.Kafka.Messages;
+using QFace.Sdk.Kafka.Models;
+using System.Linq;
 
 namespace QFace.Sdk.Kafka.Actors;
 
@@ -81,7 +88,9 @@ internal class KafkaConsumerActor : BaseActor
                     {
                         if (_consumerInstance != null)
                         {
-                            await _consumerInstance.PartitionsRevoked(partitions);
+                            // Convert TopicPartitionOffset to TopicPartition
+                            var topicPartitions = partitions.Select(p => p.TopicPartition).ToList();
+                            await _consumerInstance.PartitionsRevoked(topicPartitions);
                         }
                     });
                 })
