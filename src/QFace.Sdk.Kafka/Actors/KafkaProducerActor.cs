@@ -37,13 +37,17 @@ internal class KafkaProducerActor : BaseActor
             {
                 BootstrapServers = _config.BootstrapServers,
                 Acks = Enum.Parse<Acks>(_config.Acks, true),
-                Retries = _config.Retries,
                 BatchSize = _config.BatchSize,
                 LingerMs = _config.LingerMs,
                 CompressionType = Enum.Parse<CompressionType>(_config.CompressionType, true),
-                EnableIdempotence = true, // Prevent duplicate messages
-                MaxInFlight = 5
+                EnableIdempotence = true
             };
+            
+            // Set retries via string property (Kafka standard)
+            producerConfig.Set("retries", _config.Retries.ToString());
+            
+            // Enable auto topic creation by default
+            producerConfig.Set("allow.auto.create.topics", "true");
             
             // Apply extra properties
             foreach (var prop in _config.ExtraProperties)

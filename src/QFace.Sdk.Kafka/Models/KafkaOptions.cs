@@ -35,6 +35,11 @@ public class KafkaConsumerConfig
     public int MaxPollIntervalMs { get; set; } = 300000;
     
     /// <summary>
+    /// Auto topic creation settings
+    /// </summary>
+    public AutoCreateTopicConfig AutoCreateTopics { get; set; } = new();
+    
+    /// <summary>
     /// Error handling
     /// </summary>
     public int RetryCount { get; set; } = 3;
@@ -53,7 +58,7 @@ public class KafkaProducerConfig
     /// <summary>
     /// Producer behavior settings
     /// </summary>
-    public string Acks { get; set; } = "1"; // Wait for leader acknowledgment
+    public string Acks { get; set; } = "all"; // Use "all" for idempotence compatibility
     public int Retries { get; set; } = 3;
     public int BatchSize { get; set; } = 16384;
     public int LingerMs { get; set; } = 5;
@@ -64,6 +69,11 @@ public class KafkaProducerConfig
     /// </summary>
     public int ProducerInstances { get; set; } = 10;
     public int ProducerUpperBound { get; set; } = 100;
+    
+    /// <summary>
+    /// Auto topic creation settings
+    /// </summary>
+    public AutoCreateTopicConfig AutoCreateTopics { get; set; } = new();
 }
 
 public class MessageGroupConsumerLogicConfig
@@ -100,4 +110,14 @@ public enum OffsetCommitStrategy
     /// Developer controls offset commits manually via context
     /// </summary>
     Manual
+}
+
+/// <summary>
+/// Auto topic creation configuration
+/// </summary>
+public class AutoCreateTopicConfig
+{
+    public bool Enabled { get; set; } = true;
+    public int NumberOfPartitions { get; set; } = 3;
+    public short ReplicationFactor { get; set; } = 1;
 }

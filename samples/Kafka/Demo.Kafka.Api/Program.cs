@@ -110,6 +110,35 @@ app.MapPost("/publish-to-topic", async (
     }
 });
 
+app.MapPost("/admin/create-topic", async (
+    [FromQuery] string topicName,
+    [FromServices] IKafkaProducer producer,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        // Simple approach: just try to publish a test message
+        // This will create the topic if auto-creation is enabled
+        var testEvent = new EventSourceModel
+        {
+            EventType = "topic.test",
+            Data = new { message = "Topic creation test" }
+        };
+        
+        await producer.ProduceAsync(topicName ?? "demo.events", testEvent);
+        
+        return Results.Ok(new { 
+            message = $"Topic '{topicName ?? "demo.events"}' created/verified",
+            method = "auto-creation via producer"
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to create/verify topic");
+        return Results.Problem($"Topic creation failed: {ex.Message}");
+    }
+});
+
 app.Run();
 
 // Event Models

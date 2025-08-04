@@ -1,5 +1,9 @@
 @Demo.Kafka.Api_HostAddress = https://localhost:7109
 
+### Create Topic First (Simple Test)
+POST {{Demo.Kafka.Api_HostAddress}}/admin/create-topic?topicName=demo.events
+Content-Type: application/json
+
 ### Test Kafka Producer - Simple Event
 POST {{Demo.Kafka.Api_HostAddress}}/publish
 Content-Type: application/json

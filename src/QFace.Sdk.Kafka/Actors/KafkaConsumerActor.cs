@@ -66,6 +66,9 @@ internal class KafkaConsumerActor : BaseActor
             {
                 config.Set(prop.Key, prop.Value);
             }
+            
+            // Enable auto topic creation by default for consumers too
+            config.Set("allow.auto.create.topics", "true");
 
             _consumer = new ConsumerBuilder<string, string>(config)
                 .SetErrorHandler((_, e) => 
