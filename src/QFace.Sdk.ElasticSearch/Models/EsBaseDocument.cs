@@ -1,4 +1,6 @@
-﻿namespace QFace.Sdk.Elasticsearch.Models;
+﻿using OpenSearch.Client;
+
+namespace QFace.Sdk.Elasticsearch.Models;
 
 /// <summary>
 /// Base document class that all Elasticsearch documents should inherit from.

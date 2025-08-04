@@ -4,12 +4,12 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <PackageId>QFace.Sdk.OpenSearch</PackageId>
-        <Version>2.0.0</Version>
+        <PackageId>QFace.Sdk.Kafka</PackageId>
+        <Version>1.0.0</Version>
         <Authors>IAmQwame</Authors>
         <Company>QFace</Company>
-        <Description>An OpenSearch and Elasticsearch client SDK that simplifies search operations with repository patterns, connection management, and data modeling. Compatible with OpenSearch, DigitalOcean managed OpenSearch, and Elasticsearch.</Description>
-        <PackageTags>opensearch;elasticsearch;repository;search;qface;digitalocean</PackageTags>
+        <Description>A robust, actor-based integration with Apache Kafka for .NET applications that provides a simple, declarative approach to working with event streaming.</Description>
+        <PackageTags>kafka;messaging;streaming;events;actor;qface</PackageTags>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/iamqwame/qface-sdk</PackageProjectUrl>
@@ -19,22 +19,21 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Confluent.Kafka" Version="2.3.0" />
         <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0" />
-        <PackageReference Include="OpenSearch.Client" Version="1.6.0" />
-        <PackageReference Include="OpenSearch.Net" Version="1.6.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
+    
 
     <!-- Documentation files -->
     <ItemGroup>
         <None Include="$(SolutionDir)README.md" Pack="true" PackagePath="\" />
-        <None Include="$(SolutionDir)docs\elasticsearch.md" Pack="true" PackagePath="content\docs\" />
+        <None Include="$(SolutionDir)docs\kafka-streaming.md" Pack="true" PackagePath="content\docs\" />
         <None Include="$(SolutionDir)docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\QFace.Sdk.ActorSystems\QFace.Sdk.ActorSystems.csproj" />
     </ItemGroup>
 
 </Project>

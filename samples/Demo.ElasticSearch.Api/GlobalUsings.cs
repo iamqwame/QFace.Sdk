@@ -3,7 +3,7 @@
 global using System.Reflection;
 global using Demo.ElasticSearch.Api;
 global using Microsoft.AspNetCore.Mvc;
-global using Nest;
+global using OpenSearch.Client;
 global using QFace.Sdk.Elasticsearch;
 global using QFace.Sdk.Elasticsearch.Models;
 global using QFace.Sdk.Elasticsearch.Repositories;

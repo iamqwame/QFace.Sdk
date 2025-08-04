@@ -80,53 +80,112 @@ app.Run();
 // Base document models
 public class Product : EsBaseDocument
 {
+    [Text(Analyzer = "standard")]
     public string Name { get; set; }
+    
+    [Text(Analyzer = "standard")]
     public string Description { get; set; }
+    
+    [Number(NumberType.Double)]
     public decimal Price { get; set; }
+    
+    [Keyword]
     public string CategoryId { get; set; }
+    
+    [Keyword]
     public string Brand { get; set; }
+    
+    [Keyword]
     public List<string> Tags { get; set; } = new();
+    
+    [Number(NumberType.Integer)]
     public int StockQuantity { get; set; }
+    
+    [Keyword]
     public string SKU { get; set; }
+    
+    [Keyword]
     public string ImageUrl { get; set; }
+    
+    [Object]
     public ProductDetails Details { get; set; } = new();
+    
+    [Number(NumberType.Double)]
     public double Rating { get; set; }
+    
+    [Number(NumberType.Integer)]
     public int ReviewCount { get; set; }
+    
+    [Boolean]
     public bool Featured { get; set; }
+    
+    [Boolean]
     public bool OnSale { get; set; }
+    
+    [Number(NumberType.Double)]
     public decimal? SalePrice { get; set; }
 }
 
 public class ProductDetails
 {
+    [Keyword]
     public string Manufacturer { get; set; }
+    
+    [Keyword]
     public string Model { get; set; }
+    
+    [Keyword]
     public string SKU { get; set; }
+    
+    [Object]
     public Dictionary<string, string> Specifications { get; set; } = new();
 }
 
 public class Category : EsBaseDocument
 {
+    [Text(Analyzer = "standard")]
     public string Name { get; set; }
+    
+    [Text(Analyzer = "standard")]
     public string Description { get; set; }
+    
+    [Keyword]
     public string ParentCategoryId { get; set; }
+    
+    [Number(NumberType.Integer)]
     public int ProductCount { get; set; }
 }
 
 public class Order : EsBaseDocument
 {
+    [Keyword]
     public string CustomerId { get; set; }
+    
+    [Number(NumberType.Double)]
     public decimal TotalAmount { get; set; }
+    
+    [Date]
     public DateTime OrderDate { get; set; }
+    
+    [Keyword]
     public string Status { get; set; }
+    
+    [Nested]
     public List<OrderItem> Items { get; set; } = new();
 }
 
 public class OrderItem
 {
+    [Keyword]
     public string ProductId { get; set; }
+    
+    [Text]
     public string ProductName { get; set; }
+    
+    [Number(NumberType.Double)]
     public decimal UnitPrice { get; set; }
+    
+    [Number(NumberType.Integer)]
     public int Quantity { get; set; }
 }
 

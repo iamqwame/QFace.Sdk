@@ -1,3 +1,8 @@
+using System.Reflection;
+using Microsoft.Extensions.Options;
+using QFace.Sdk.Elasticsearch.Options;
+using QFace.Sdk.Elasticsearch.Models;
+
 namespace QFace.Sdk.Elasticsearch.Services;
 
 /// <summary>
