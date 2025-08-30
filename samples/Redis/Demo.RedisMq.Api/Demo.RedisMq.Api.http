@@ -1,0 +1,51 @@
+### Test Redis API endpoints
+
+### Send a message to demo_channel
+POST http://localhost:5000/publish
+Content-Type: application/json
+
+{
+  "content": "Hello Redis from API!"
+}
+
+### Send an important message
+POST http://localhost:5000/publish-important
+Content-Type: application/json
+
+{
+  "content": "This is an important message!"
+}
+
+### Send a normal message
+POST http://localhost:5000/publish-normal
+Content-Type: application/json
+
+{
+  "content": "This is a normal message"
+}
+
+### Send multiple messages
+POST http://localhost:5000/publish
+Content-Type: application/json
+
+{
+  "content": "Message 1"
+}
+
+###
+
+POST http://localhost:5000/publish
+Content-Type: application/json
+
+{
+  "content": "Message 2"
+}
+
+###
+
+POST http://localhost:5000/publish
+Content-Type: application/json
+
+{
+  "content": "Message 3"
+}
