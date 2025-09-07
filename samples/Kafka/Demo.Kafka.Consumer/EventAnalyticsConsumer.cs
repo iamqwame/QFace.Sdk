@@ -123,49 +123,49 @@ public class EventAnalyticsConsumer : KafkaConsumerBase
     private async Task ProcessAnalyticsEvent(EventSourceModel evt)
     {
         // Simulate analytics processing (store in data warehouse, update dashboards, etc.)
-        await Task.Delay(50);
+        await Task.Delay(5);
         _logger.LogDebug($"Analytics processed for event {evt.Id}");
     }
 
     private async Task ProcessUserCreated(EventSourceModel evt)
     {
         // Simulate user creation processing (send welcome email, create profile, etc.)
-        await Task.Delay(100);
+        await Task.Delay(10);
         _logger.LogDebug($"User creation processed for event {evt.Id}");
     }
 
     private async Task ProcessUserUpdated(EventSourceModel evt)
     {
         // Simulate user update processing (update cache, sync data, etc.)
-        await Task.Delay(75);
+        await Task.Delay(5);
         _logger.LogDebug($"User update processed for event {evt.Id}");
     }
 
     private async Task ProcessUserDeleted(EventSourceModel evt)
     {
         // Simulate user deletion processing (cleanup data, audit logs, etc.)
-        await Task.Delay(200);
+        await Task.Delay(15);
         _logger.LogDebug($"User deletion processed for event {evt.Id}");
     }
 
     private async Task ProcessSystemMetric(EventSourceModel evt)
     {
         // Simulate metric processing (store in time-series DB, check thresholds, etc.)
-        await Task.Delay(25);
+        await Task.Delay(2);
         _logger.LogDebug($"System metric processed for event {evt.Id}");
     }
 
     private async Task ProcessSystemAlert(EventSourceModel evt)
     {
         // Simulate alert processing (send notifications, create tickets, etc.)
-        await Task.Delay(150);
+        await Task.Delay(8);
         _logger.LogDebug($"System alert processed for event {evt.Id}");
     }
 
     private async Task ProcessCriticalAlert(EventSourceModel evt)
     {
         // Simulate critical alert processing (immediate notifications, escalations, etc.)
-        await Task.Delay(10);
+        await Task.Delay(1);
         _logger.LogDebug($"Critical alert processed for event {evt.Id}");
     }
 

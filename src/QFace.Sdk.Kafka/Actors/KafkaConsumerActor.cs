@@ -256,31 +256,36 @@ internal class KafkaConsumerActor : BaseActor
                 Messages = consumeResults.Select(MapToKafkaMessage).ToList(),
                 PartitionOffsets = consumeResults
                     .GroupBy(r => r.TopicPartition)
-                    .ToDictionary(g => g.Key, g => g.Max(r => r.Offset) + 1)
+                    .ToDictionary(g => g.Key, g => new Offset(g.Max(r => r.Offset.Value) + 1))
             };
 
             _context.CurrentBatch = kafkaBatch;
 
-            // Deserialize messages to the expected type
-            var messages = new List<object>();
+            // Deserialize messages and cast to the expected type
             var targetType = GetMessageType();
+            var listType = typeof(List<>).MakeGenericType(targetType);
+            var messages = (System.Collections.IList)Activator.CreateInstance(listType);
 
             foreach (var result in consumeResults)
             {
                 try
                 {
-                    var deserializedMessage = JsonConvert.DeserializeObject(result.Message.Value, targetType);
-                    messages.Add(deserializedMessage);
+                    // Deserialize as object first
+                    var deserializedObject = JsonConvert.DeserializeObject(result.Message.Value);
+                    
+                    // Cast to the expected type - if this fails, the user provided wrong type
+                    var typedMessage = Convert.ChangeType(deserializedObject, targetType);
+                    messages.Add(typedMessage);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"[Kafka] Failed to deserialize message from {result.TopicPartition}:{result.Offset}");
+                    _logger.LogError(ex, $"[Kafka] Failed to deserialize/cast message from {result.TopicPartition}:{result.Offset} to type {targetType.Name}");
                     // Could implement dead letter queue logic here
                 }
             }
 
             // Invoke the handler method
-            if (messages.Any())
+            if (messages.Count > 0)
             {
                 var methodParams = new object[] { messages };
                 await (Task)_metadata.HandlerMethod.Invoke(_consumerInstance, methodParams);
