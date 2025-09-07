@@ -2,8 +2,8 @@ namespace QFace.Sdk.Kafka.Models;
 
 public class KafkaConsumerConfig
 {
-    public string BootstrapServers { get; set; } = "localhost:9092";
-    public string GroupId { get; set; } = "default-group";
+    public string BootstrapServers { get; set; }
+    public string GroupId { get; set; } 
     
     /// <summary>
     /// Named groups of topics for logical organization
@@ -48,7 +48,7 @@ public class KafkaConsumerConfig
 
 public class KafkaProducerConfig
 {
-    public string BootstrapServers { get; set; } = "localhost:9092";
+    public string BootstrapServers { get; set; } = string.Empty;
     
     /// <summary>
     /// Additional Kafka producer properties

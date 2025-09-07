@@ -33,6 +33,8 @@ internal class KafkaProducerActor : BaseActor
     {
         try
         {
+            _logger.LogInformation("[Kafka] Initializing producer with BootstrapServers: {BootstrapServers}", _config.BootstrapServers);
+            
             var producerConfig = new ProducerConfig
             {
                 BootstrapServers = _config.BootstrapServers,

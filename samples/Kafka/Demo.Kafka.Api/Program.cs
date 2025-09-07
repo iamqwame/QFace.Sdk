@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using QFace.Sdk.ActorSystems;
 using QFace.Sdk.Kafka.Extensions;
 using QFace.Sdk.Kafka.Services;
+using QFace.Sdk.Kafka.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 

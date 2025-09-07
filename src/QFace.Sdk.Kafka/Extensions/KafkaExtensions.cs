@@ -29,6 +29,7 @@ public static class KafkaExtensions
 
         // Add validation
         services.AddSingleton<IValidateOptions<KafkaConsumerConfig>, KafkaConsumerConfigValidator>();
+        services.AddSingleton<IValidateOptions<KafkaProducerConfig>, KafkaProducerConfigValidator>();
         
         // Register ITopLevelActors wrapper (needed for consumers)
         services.AddSingleton<ITopLevelActors, TopLevelActorsWrapper>();
@@ -292,13 +293,24 @@ public static class KafkaExtensions
     public static IServiceProvider UseKafkaInConsumer(this IServiceProvider serviceProvider)
     {
         var actorSystem = serviceProvider.GetRequiredService<ActorSystem>();
-        var producerConfig = serviceProvider.GetRequiredService<IOptions<KafkaProducerConfig>>().Value;
+        var consumerConfig = serviceProvider.GetRequiredService<IOptions<KafkaConsumerConfig>>().Value;
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<KafkaProducerActor>();
         
+        // Try to get producer config, but don't fail if it's not available
+        KafkaProducerConfig? producerConfig = null;
         try
         {
-            InitializeConsumer(producerConfig);
+            producerConfig = serviceProvider.GetRequiredService<IOptions<KafkaProducerConfig>>().Value;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug("[Kafka] Producer config not available for consumer-only application: {Message}", ex.Message);
+        }
+        
+        try
+        {
+            InitializeConsumer(consumerConfig);
             
             // Check if the actor is already registered via TopLevelActors
             bool actorExists = false;
@@ -314,8 +326,8 @@ public static class KafkaExtensions
                 actorExists = false;
             }
 
-            // If the actor doesn't exist, create and register it
-            if (!actorExists)
+            // If the actor doesn't exist and we have producer config, create and register it
+            if (!actorExists && producerConfig != null)
             {
                 try
                 {
@@ -363,6 +375,10 @@ public static class KafkaExtensions
                     logger.LogError(ex, "[Kafka] Failed to create and register producer actor");
                 }
             }
+            else if (producerConfig == null)
+            {
+                logger.LogInformation("[Kafka] Skipping producer actor creation - no producer config available");
+            }
         }
         catch (Exception ex)
         {
@@ -372,7 +388,7 @@ public static class KafkaExtensions
         return serviceProvider;
     }
     
-    public static void InitializeConsumer(KafkaProducerConfig config)
+    public static void InitializeConsumer(KafkaConsumerConfig config)
     {
         try
         {
@@ -442,6 +458,41 @@ public class KafkaConsumerConfigValidator : IValidateOptions<KafkaConsumerConfig
         if (options.BatchTimeoutMs <= 0)
         {
             errors.Add("BatchTimeoutMs must be greater than 0");
+        }
+        
+        return errors.Any() 
+            ? ValidateOptionsResult.Fail(errors)
+            : ValidateOptionsResult.Success;
+    }
+}
+
+/// <summary>
+/// Validator for Kafka producer configuration
+/// </summary>
+public class KafkaProducerConfigValidator : IValidateOptions<KafkaProducerConfig>
+{
+    public ValidateOptionsResult Validate(string name, KafkaProducerConfig options)
+    {
+        var errors = new List<string>();
+        
+        if (string.IsNullOrWhiteSpace(options.BootstrapServers))
+        {
+            errors.Add("BootstrapServers is required for Kafka producer");
+        }
+        
+        if (options.ProducerInstances <= 0)
+        {
+            errors.Add("ProducerInstances must be greater than 0");
+        }
+        
+        if (options.ProducerUpperBound <= 0)
+        {
+            errors.Add("ProducerUpperBound must be greater than 0");
+        }
+        
+        if (options.ProducerInstances > options.ProducerUpperBound)
+        {
+            errors.Add("ProducerInstances cannot be greater than ProducerUpperBound");
         }
         
         return errors.Any() 
