@@ -270,11 +270,8 @@ internal class KafkaConsumerActor : BaseActor
             {
                 try
                 {
-                    // Deserialize as object first
-                    var deserializedObject = JsonConvert.DeserializeObject(result.Message.Value);
-                    
-                    // Cast to the expected type - if this fails, the user provided wrong type
-                    var typedMessage = Convert.ChangeType(deserializedObject, targetType);
+                    // Deserialize directly to the expected type
+                    var typedMessage = JsonConvert.DeserializeObject(result.Message.Value, targetType);
                     messages.Add(typedMessage);
                 }
                 catch (Exception ex)

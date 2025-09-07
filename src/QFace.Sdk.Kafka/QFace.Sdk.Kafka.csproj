@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>QFace.Sdk.Kafka</PackageId>
-        <Version>1.0.2</Version>
+        <Version>1.0.3</Version>
         <Authors>IAmQwame</Authors>
         <Company>QFace</Company>
         <Description>A robust, actor-based integration with Apache Kafka for .NET applications that provides a simple, declarative approach to working with event streaming.</Description>
