@@ -49,7 +49,15 @@ app.MapPost("/publish", async (
     try
     {
         
-       bool success = await publisher.PublishAsync(message, "demo_exchange");
+        var emailMessage = new 
+        {
+            MessageType = "simple_email",
+            ToEmail = "email",
+            Subject = "Login Notification",
+            Body = $"Hello , you have successfully logged into your UMaT account."
+        };
+
+       bool success = await publisher.PublishAsync(emailMessage, "umat.core.notify.prod_exchange");
         return Results.Ok(new { success, message = "Message published successfully" });
     }
     catch (Exception ex)

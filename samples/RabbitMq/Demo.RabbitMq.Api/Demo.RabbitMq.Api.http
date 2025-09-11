@@ -1,6 +1,31 @@
 @Demo.RabbitMq.Api_HostAddress = http://localhost:5277
 
-GET {{Demo.RabbitMq.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Test RabbitMQ Message Publishing
+POST {{Demo.RabbitMq.Api_HostAddress}}/publish
+Content-Type: application/json
 
-###
+{
+  "content": "Hello from RabbitMQ test!",
+  "id": "{{$guid}}",
+  "timestamp": "{{$datetime iso8601}}"
+}
+
+### Test with Important Message
+POST {{Demo.RabbitMq.Api_HostAddress}}/publish
+Content-Type: application/json
+
+{
+  "content": "This is an important message for testing",
+  "id": "{{$guid}}",
+  "timestamp": "{{$datetime iso8601}}"
+}
+
+### Test with Normal Message
+POST {{Demo.RabbitMq.Api_HostAddress}}/publish
+Content-Type: application/json
+
+{
+  "content": "This is a normal message for testing",
+  "id": "{{$guid}}",
+  "timestamp": "{{$datetime iso8601}}"
+}
