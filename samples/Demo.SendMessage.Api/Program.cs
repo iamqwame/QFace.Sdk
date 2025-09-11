@@ -120,6 +120,117 @@ app.MapPost("/api/sms/bulk", async (BulkSmsRequest request, IMessageService mess
     return Results.Ok(new { message = "Bulk SMS sending in progress" });
 });
 
+// ---------------- UMAT ADMISSION ----------------
+
+// Send UMaT application acknowledgment email
+app.MapPost("/api/email/application-acknowledgment", async (UMatApplicationAcknowledgmentRequest request, IMessageService messageService) =>
+{
+    if (request == null || string.IsNullOrEmpty(request.ApplicantEmail) || string.IsNullOrEmpty(request.ApplicantName) ||
+        string.IsNullOrEmpty(request.ApplicationReference) || string.IsNullOrEmpty(request.ProgrammeApplied))
+    {
+        return Results.BadRequest(new { error = "Required fields: ApplicantEmail, ApplicantName, ApplicationReference, ProgrammeApplied" });
+    }
+
+    // Read the UMaT application acknowledgment template
+    var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "umat-application-acknowledgment-template.html");
+    if (!File.Exists(templatePath))
+    {
+        return Results.Problem("Application acknowledgment email template not found");
+    }
+
+    var template = await File.ReadAllTextAsync(templatePath);
+
+    // Prepare replacements with default values for optional fields
+    var replacements = new Dictionary<string, string>
+    {
+        { "ApplicantName", request.ApplicantName },
+        { "ApplicantEmail", request.ApplicantEmail },
+        { "ApplicantPhone", request.ApplicantPhone ?? "Not provided" },
+        { "ApplicationReference", request.ApplicationReference },
+        { "ProgrammeApplied", request.ProgrammeApplied },
+        { "ApplicationType", request.ApplicationType ?? "Undergraduate" },
+        { "SubmissionDate", request.SubmissionDate ?? DateTime.Now.ToString("MMMM dd, yyyy") },
+        { "ApplicationPortalLink", request.ApplicationPortalLink ?? "https://admissions.umat.edu.gh/portal" },
+        { "RequirementsLink", request.RequirementsLink ?? "https://umat.edu.gh/admissions/requirements" },
+        { "AdmissionsPhone", "+233 (0) 312 2004" },
+        { "AdmissionsEmail", "admissions@umat.edu.gh" },
+        { "WhatsAppNumber", "+233 50 123 4567" },
+        { "FacebookLink", "https://facebook.com/UMatGhana" },
+        { "TwitterLink", "https://twitter.com/UMatGhana" },
+        { "LinkedInLink", "https://linkedin.com/school/umat-ghana" },
+        { "WebsiteLink", "https://umat.edu.gh" },
+        { "CurrentYear", DateTime.Now.Year.ToString() }
+    };
+
+    await messageService.SendEmailWithTemplateAsync(
+        new List<string> { request.ApplicantEmail },
+        $"📋 Application Received - UMaT Reference: {request.ApplicationReference}",
+        template,
+        replacements
+    );
+
+    return Results.Ok(new { 
+        message = "Application acknowledgment email sent successfully",
+        applicationReference = request.ApplicationReference,
+        applicantName = request.ApplicantName
+    });
+});
+
+// Send UMaT admission confirmation email
+app.MapPost("/api/email/admission", async (UMatAdmissionRequest request, IMessageService messageService) =>
+{
+    if (request == null || string.IsNullOrEmpty(request.StudentEmail) || string.IsNullOrEmpty(request.StudentName) ||
+        string.IsNullOrEmpty(request.StudentId) || string.IsNullOrEmpty(request.Programme))
+    {
+        return Results.BadRequest(new { error = "Required fields: StudentEmail, StudentName, StudentId, Programme" });
+    }
+
+    // Read the UMaT admission template
+    var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "umat-admission-template.html");
+    if (!File.Exists(templatePath))
+    {
+        return Results.Problem("Admission email template not found");
+    }
+
+    var template = await File.ReadAllTextAsync(templatePath);
+
+    // Prepare replacements with default values for optional fields
+    var replacements = new Dictionary<string, string>
+    {
+        { "StudentName", request.StudentName },
+        { "StudentId", request.StudentId },
+        { "Programme", request.Programme },
+        { "Department", request.Department ?? "To be assigned" },
+        { "AcademicYear", request.AcademicYear ?? DateTime.Now.Year + "/" + (DateTime.Now.Year + 1) },
+        { "AdmissionDate", request.AdmissionDate ?? DateTime.Now.ToString("MMMM dd, yyyy") },
+        { "RegistrationDeadline", request.RegistrationDeadline ?? DateTime.Now.AddDays(30).ToString("MMMM dd, yyyy") },
+        { "OrientationDate", request.OrientationDate ?? DateTime.Now.AddDays(45).ToString("MMMM dd, yyyy") },
+        { "StudentPortalLink", request.StudentPortalLink ?? "https://portal.umat.edu.gh" },
+        { "AdmissionsPhone", "+233 (0) 312 2004" },
+        { "AdmissionsEmail", "admissions@umat.edu.gh" },
+        { "StudentAffairsPhone", "+233 (0) 312 2010" },
+        { "StudentAffairsEmail", "studentaffairs@umat.edu.gh" },
+        { "FacebookLink", "https://facebook.com/UMatGhana" },
+        { "TwitterLink", "https://twitter.com/UMatGhana" },
+        { "LinkedInLink", "https://linkedin.com/school/umat-ghana" },
+        { "WebsiteLink", "https://umat.edu.gh" },
+        { "CurrentYear", DateTime.Now.Year.ToString() }
+    };
+
+    await messageService.SendEmailWithTemplateAsync(
+        new List<string> { request.StudentEmail },
+        $"🎉 Admission Confirmed - Welcome to UMaT, {request.StudentName}!",
+        template,
+        replacements
+    );
+
+    return Results.Ok(new { 
+        message = "UMaT admission confirmation email sent successfully",
+        studentId = request.StudentId,
+        studentName = request.StudentName
+    });
+});
+
 // ---------------- BOTH ----------------
 
 // Send both email and SMS
@@ -186,8 +297,39 @@ public class CombinedMessageRequest
     public string PhoneNumber { get; set; }
     public string Subject { get; set; }
     public string Message { get; set; }
+}
+
+public class UMatApplicationAcknowledgmentRequest
+{
+    // Required fields
+    public string ApplicantEmail { get; set; }
+    public string ApplicantName { get; set; }
+    public string ApplicationReference { get; set; }
+    public string ProgrammeApplied { get; set; }
     
+    // Optional fields with defaults
+    public string ApplicantPhone { get; set; }
+    public string ApplicationType { get; set; }
+    public string SubmissionDate { get; set; }
+    public string ApplicationPortalLink { get; set; }
+    public string RequirementsLink { get; set; }
+}
+
+public class UMatAdmissionRequest
+{
+    // Required fields
+    public string StudentEmail { get; set; }
+    public string StudentName { get; set; }
+    public string StudentId { get; set; }
+    public string Programme { get; set; }
     
+    // Optional fields with defaults
+    public string Department { get; set; }
+    public string AcademicYear { get; set; }
+    public string AdmissionDate { get; set; }
+    public string RegistrationDeadline { get; set; }
+    public string OrientationDate { get; set; }
+    public string StudentPortalLink { get; set; }
 }
 
 

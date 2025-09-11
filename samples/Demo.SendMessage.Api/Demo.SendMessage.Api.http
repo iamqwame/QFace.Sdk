@@ -4,3 +4,102 @@ GET {{Demo.SendMessage.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+# Send Simple Email
+POST {{Demo.SendMessage.Api_HostAddress}}/api/email/simple
+Content-Type: application/json
+
+{
+  "toEmail": "test@example.com",
+  "subject": "Test Simple Email",
+  "body": "This is a test email body."
+}
+
+###
+
+# Send UMaT Application Acknowledgment Email
+POST {{Demo.SendMessage.Api_HostAddress}}/api/email/application-acknowledgment
+Content-Type: application/json
+
+{
+  "applicantEmail": "kwame.asante@example.com",
+  "applicantName": "Kwame Asante",
+  "applicationReference": "UMAT-APP-2024-001234",
+  "programmeApplied": "BSc. Mining Engineering",
+  "applicantPhone": "+233 24 123 4567",
+  "applicationType": "Undergraduate",
+  "submissionDate": "December 10, 2024",
+  "applicationPortalLink": "https://admissions.umat.edu.gh/portal/track?ref=UMAT-APP-2024-001234",
+  "requirementsLink": "https://umat.edu.gh/admissions/mining-engineering-requirements"
+}
+
+###
+
+# Send UMaT Application Acknowledgment Email (Minimal - with defaults)
+POST {{Demo.SendMessage.Api_HostAddress}}/api/email/application-acknowledgment
+Content-Type: application/json
+
+{
+  "applicantEmail": "ama.osei@example.com",
+  "applicantName": "Ama Osei",
+  "applicationReference": "UMAT-APP-2024-005678",
+  "programmeApplied": "BSc. Geological Engineering"
+}
+
+###
+
+# Send UMaT Admission Email
+POST {{Demo.SendMessage.Api_HostAddress}}/api/email/admission
+Content-Type: application/json
+
+{
+  "studentEmail": "kwame.asante@student.umat.edu.gh",
+  "studentName": "Kwame Asante",
+  "studentId": "UMAT2024001234",
+  "programme": "BSc. Mining Engineering",
+  "department": "Department of Mining Engineering",
+  "academicYear": "2024/2025",
+  "admissionDate": "December 15, 2024",
+  "registrationDeadline": "January 15, 2025",
+  "orientationDate": "February 1, 2025",
+  "studentPortalLink": "https://portal.umat.edu.gh/student"
+}
+
+###
+
+# Send UMaT Admission Email (Minimal - with defaults)
+POST {{Demo.SendMessage.Api_HostAddress}}/api/email/admission
+Content-Type: application/json
+
+{
+  "studentEmail": "ama.osei@student.umat.edu.gh",
+  "studentName": "Ama Osei",
+  "studentId": "UMAT2024005678",
+  "programme": "BSc. Geological Engineering"
+}
+
+###
+
+# Send SMS
+POST {{Demo.SendMessage.Api_HostAddress}}/api/sms/send
+Content-Type: application/json
+
+{
+  "phoneNumber": "0543459509",
+  "message": "Hello from UMaT! Your admission has been confirmed. Check your email for details."
+}
+
+###
+
+# Send Combined Message (Email + SMS)
+POST {{Demo.SendMessage.Api_HostAddress}}/api/message/both
+Content-Type: application/json
+
+{
+  "email": "student@umat.edu.gh",
+  "phoneNumber": "0543459509",
+  "subject": "Welcome to UMaT",
+  "message": "Congratulations! Your admission to UMaT has been confirmed. Welcome to the university family!"
+}
+
+###

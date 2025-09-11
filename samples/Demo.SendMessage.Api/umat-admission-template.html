@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UMaT Admission Confirmation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f5f5;
+        }
+        
+        .email-container {
+            max-width: 650px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0F9488, #115e59);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" fill="rgba(255,255,255,0.1)"><path d="M1200 120L0 16.48V0h1200v120z"/></svg>');
+            background-size: cover;
+        }
+        
+        .university-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .university-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 8px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header .tagline {
+            font-size: 14px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .success-badge {
+            background: linear-gradient(45deg, #0F9488, #14B8A6);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 600;
+            margin-bottom: 25px;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(15, 148, 136, 0.3);
+        }
+        
+        .admission-details {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 4px solid #0F9488;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #0F9488;
+            min-width: 140px;
+            margin-right: 10px;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .next-steps {
+            background: linear-gradient(135deg, #e6fffa, #ccfbf1);
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 4px solid #0F9488;
+        }
+        
+        .next-steps h3 {
+            color: #0F9488;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .steps-list {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+        
+        .steps-list li {
+            counter-increment: step-counter;
+            margin-bottom: 12px;
+            position: relative;
+            padding-left: 35px;
+        }
+        
+        .steps-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #0F9488;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .cta-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .cta-button {
+            background: linear-gradient(135deg, #0F9488, #14B8A6);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(15, 148, 136, 0.3);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(15, 148, 136, 0.4);
+        }
+        
+        .contact-info {
+            background-color: #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .contact-info h4 {
+            color: #0F9488;
+            margin-bottom: 10px;
+        }
+        
+        .contact-details {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, #0F9488, #115e59);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .footer .university-name {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .footer .address {
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+        
+        .social-links {
+            margin-top: 15px;
+        }
+        
+        .social-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+        
+        .social-links a:hover {
+            opacity: 1;
+        }
+        
+        @media (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 5px;
+            }
+            
+            .content {
+                padding: 25px 20px;
+            }
+            
+            .header {
+                padding: 25px 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .detail-label {
+                min-width: auto;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="university-logo">
+                <img src="https://apply.umat.edu.gh/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75" alt="UMaT Logo" />
+            </div>
+            <h1>University of Mines and Technology</h1>
+            <div class="tagline">Excellence in Mining, Engineering & Technology Education</div>
+        </div>
+        
+        <div class="content">
+            <div class="success-badge">
+                🎉 Admission Confirmed!
+            </div>
+            
+            <h2 style="color: #0F9488; margin-bottom: 20px;">Congratulations, {{StudentName}}!</h2>
+            
+            <p style="font-size: 16px; margin-bottom: 20px;">
+                We are delighted to inform you that your application for admission to the University of Mines and Technology (UMaT) has been <strong>successfully processed and confirmed</strong>.
+            </p>
+            
+            <div class="admission-details">
+                <h3 style="color: #0F9488; margin-bottom: 20px;">📋 Your Admission Details</h3>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Student ID:</div>
+                    <div class="detail-value">{{StudentId}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Programme:</div>
+                    <div class="detail-value">{{Programme}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Department:</div>
+                    <div class="detail-value">{{Department}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Academic Year:</div>
+                    <div class="detail-value">{{AcademicYear}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Admission Date:</div>
+                    <div class="detail-value">{{AdmissionDate}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Registration Deadline:</div>
+                    <div class="detail-value"><strong style="color: #dc3545;">{{RegistrationDeadline}}</strong></div>
+                </div>
+            </div>
+            
+            <div class="next-steps">
+                <h3>📝 Next Steps - Important Actions Required</h3>
+                <ol class="steps-list">
+                    <li><strong>Complete Online Registration:</strong> Visit the student portal to complete your registration process</li>
+                    <li><strong>Pay Admission Fees:</strong> Settle all required fees before the deadline</li>
+                    <li><strong>Submit Required Documents:</strong> Upload all necessary academic and personal documents</li>
+                    <li><strong>Medical Examination:</strong> Complete the mandatory medical examination at the university clinic</li>
+                    <li><strong>Orientation Programme:</strong> Attend the new student orientation on {{OrientationDate}}</li>
+                </ol>
+            </div>
+            
+            <div class="cta-section">
+                <a href="{{StudentPortalLink}}" class="cta-button">
+                    🚀 Access Student Portal
+                </a>
+                <p style="margin-top: 15px; font-size: 14px; color: #6c757d;">
+                    Use your Student ID and the password sent via SMS
+                </p>
+            </div>
+            
+            <p style="font-size: 16px; margin: 25px 0;">
+                Welcome to the UMaT family! We are excited to have you join our community of future engineers, technologists, and mining professionals. Your journey towards academic excellence and professional success begins here.
+            </p>
+            
+            <div class="contact-info">
+                <h4>📞 Need Help?</h4>
+                <div class="contact-details">
+                    <strong>Admissions Office:</strong> {{AdmissionsPhone}} | {{AdmissionsEmail}}<br>
+                    <strong>Student Affairs:</strong> {{StudentAffairsPhone}} | {{StudentAffairsEmail}}<br>
+                    <strong>Office Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="university-name">University of Mines and Technology (UMaT)</div>
+            <div class="address">
+                P.O. Box 237, Tarkwa, Ghana<br>
+                Tel: +233 (0) 312 2004 | Email: info@umat.edu.gh
+            </div>
+            <div class="social-links">
+                <a href="{{FacebookLink}}">Facebook</a>
+                <a href="{{TwitterLink}}">Twitter</a>
+                <a href="{{LinkedInLink}}">LinkedIn</a>
+                <a href="{{WebsiteLink}}">Website</a>
+            </div>
+            <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">
+                &copy; {{CurrentYear}} University of Mines and Technology. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

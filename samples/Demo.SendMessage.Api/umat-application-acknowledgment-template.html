@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UMaT Application Received</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f5f5;
+        }
+        
+        .email-container {
+            max-width: 650px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0F9488, #115e59);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" fill="rgba(255,255,255,0.1)"><path d="M1200 120L0 16.48V0h1200v120z"/></svg>');
+            background-size: cover;
+        }
+        
+        .university-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .university-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 8px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header .tagline {
+            font-size: 14px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .acknowledgment-badge {
+            background: linear-gradient(45deg, #0F9488, #14B8A6);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 600;
+            margin-bottom: 25px;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(15, 148, 136, 0.3);
+        }
+        
+        .application-details {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 4px solid #0F9488;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #0F9488;
+            min-width: 140px;
+            margin-right: 10px;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .timeline-section {
+            background: linear-gradient(135deg, #e6fffa, #ccfbf1);
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 4px solid #0F9488;
+        }
+        
+        .timeline-section h3 {
+            color: #0F9488;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .timeline-steps {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+        
+        .timeline-steps li {
+            counter-increment: step-counter;
+            margin-bottom: 15px;
+            position: relative;
+            padding-left: 40px;
+            padding-bottom: 15px;
+            border-left: 2px solid #0F9488;
+        }
+        
+        .timeline-steps li:last-child {
+            border-left: 2px solid transparent;
+        }
+        
+        .timeline-steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: -12px;
+            top: 0;
+            background: #0F9488;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .timeline-steps .current::before {
+            background: #28a745;
+            box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.2);
+        }
+        
+        .timeline-steps .current {
+            font-weight: 600;
+            color: #155724;
+        }
+        
+        .info-section {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .info-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .info-list {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+        
+        .info-list li {
+            margin-bottom: 8px;
+            color: #856404;
+        }
+        
+        .cta-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .cta-button {
+            background: linear-gradient(135deg, #0F9488, #14B8A6);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(15, 148, 136, 0.3);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(15, 148, 136, 0.4);
+        }
+        
+        .cta-button.secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+        }
+        
+        .contact-info {
+            background-color: #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .contact-info h4 {
+            color: #0F9488;
+            margin-bottom: 10px;
+        }
+        
+        .contact-details {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, #0F9488, #115e59);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .footer .university-name {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .footer .address {
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+        
+        .social-links {
+            margin-top: 15px;
+        }
+        
+        .social-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+        
+        .social-links a:hover {
+            opacity: 1;
+        }
+        
+        .tracking-number {
+            background: #fff;
+            border: 2px dashed #0F9488;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .tracking-number strong {
+            color: #0F9488;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+        
+        @media (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 5px;
+            }
+            
+            .content {
+                padding: 25px 20px;
+            }
+            
+            .header {
+                padding: 25px 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .detail-label {
+                min-width: auto;
+                margin-bottom: 5px;
+            }
+            
+            .timeline-steps li {
+                padding-left: 35px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="university-logo">
+                <img src="https://apply.umat.edu.gh/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75" alt="UMaT Logo" />
+            </div>
+            <h1>University of Mines and Technology</h1>
+            <div class="tagline">Excellence in Mining, Engineering & Technology Education</div>
+        </div>
+        
+        <div class="content">
+            <div class="acknowledgment-badge">
+                📋 Application Received
+            </div>
+            
+            <h2 style="color: #0F9488; margin-bottom: 20px;">Dear {{ApplicantName}},</h2>
+            
+            <p style="font-size: 16px; margin-bottom: 20px;">
+                Thank you for your interest in the University of Mines and Technology (UMaT). We have successfully received your admission application and all required documents.
+            </p>
+            
+            <div class="tracking-number">
+                <p><strong>Your Application Reference Number:</strong></p>
+                <strong>{{ApplicationReference}}</strong>
+                <p style="margin-top: 10px; font-size: 12px; color: #6c757d;">Please save this number for future reference</p>
+            </div>
+            
+            <div class="application-details">
+                <h3 style="color: #0F9488; margin-bottom: 20px;">📄 Application Summary</h3>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Applicant Name:</div>
+                    <div class="detail-value">{{ApplicantName}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Email Address:</div>
+                    <div class="detail-value">{{ApplicantEmail}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Phone Number:</div>
+                    <div class="detail-value">{{ApplicantPhone}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Programme Applied:</div>
+                    <div class="detail-value">{{ProgrammeApplied}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Application Type:</div>
+                    <div class="detail-value">{{ApplicationType}}</div>
+                </div>
+                
+                <div class="detail-row">
+                    <div class="detail-label">Submission Date:</div>
+                    <div class="detail-value">{{SubmissionDate}}</div>
+                </div>
+            </div>
+            
+            <div class="timeline-section">
+                <h3>🔄 What Happens Next - Application Timeline</h3>
+                <ol class="timeline-steps">
+                    <li class="current"><strong>Application Received</strong><br>
+                        Your application and documents have been successfully submitted and are now in our system.
+                    </li>
+                    <li><strong>Initial Review</strong><br>
+                        Our admissions team will review your application for completeness and eligibility.
+                    </li>
+                    <li><strong>Document Verification</strong><br>
+                        All submitted documents will be verified and authenticated.
+                    </li>
+                    <li><strong>Academic Assessment</strong><br>
+                        Your academic qualifications will be evaluated against programme requirements.
+                    </li>
+                    <li><strong>Admission Decision</strong><br>
+                        You will receive notification of the admission decision via email and SMS.
+                    </li>
+                </ol>
+            </div>
+            
+            <div class="info-section">
+                <h3>📌 Important Information</h3>
+                <ul class="info-list">
+                    <li><strong>Processing Time:</strong> Allow adequate time for complete processing</li>
+                    <li><strong>Status Updates:</strong> Check your email regularly for updates on your application</li>
+                    <li><strong>Missing Documents:</strong> We will contact you immediately if any documents are missing</li>
+                    <li><strong>Application Portal:</strong> Track your application status online using your reference number</li>
+                    <li><strong>Contact Support:</strong> Reach out to us if you have any questions or concerns</li>
+                </ul>
+            </div>
+            
+            <div class="cta-section">
+                <a href="{{ApplicationPortalLink}}" class="cta-button">
+                    🖥️ Track Application Status
+                </a>
+                <a href="{{RequirementsLink}}" class="cta-button secondary">
+                    📋 View Requirements
+                </a>
+            </div>
+            
+            <p style="font-size: 16px; margin: 25px 0; text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <strong>💡 Pro Tip:</strong> Save this email and your reference number <strong style="color: #0F9488;">{{ApplicationReference}}</strong> for easy access to your application information.
+            </p>
+            
+            <p style="font-size: 16px; margin: 25px 0;">
+                We appreciate your interest in joining the UMaT community and look forward to reviewing your application. If you have any questions during the review process, please don't hesitate to contact our admissions office.
+            </p>
+            
+            <p style="font-size: 16px; margin-bottom: 30px;">
+                Best regards,<br>
+                <strong>UMaT Admissions Office</strong><br>
+                University of Mines and Technology
+            </p>
+            
+            <div class="contact-info">
+                <h4>📞 Need Assistance?</h4>
+                <div class="contact-details">
+                    <strong>Admissions Hotline:</strong> {{AdmissionsPhone}}<br>
+                    <strong>Email:</strong> {{AdmissionsEmail}}<br>
+                    <strong>WhatsApp:</strong> {{WhatsAppNumber}}<br>
+                    <strong>Office Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM<br>
+                    <strong>Location:</strong> Admissions Office, Administration Block, UMaT Campus
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="university-name">University of Mines and Technology (UMaT)</div>
+            <div class="address">
+                P.O. Box 237, Tarkwa, Ghana<br>
+                Tel: +233 (0) 312 2004 | Email: info@umat.edu.gh
+            </div>
+            <div class="social-links">
+                <a href="{{FacebookLink}}">Facebook</a>
+                <a href="{{TwitterLink}}">Twitter</a>
+                <a href="{{LinkedInLink}}">LinkedIn</a>
+                <a href="{{WebsiteLink}}">Website</a>
+            </div>
+            <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">
+                &copy; {{CurrentYear}} University of Mines and Technology. All rights reserved.<br>
+                This is an automated message. Please do not reply directly to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
