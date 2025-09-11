@@ -75,9 +75,13 @@ public class RestSmsProvider: ISmsProvider
             var parsed = JsonSerializer.Deserialize<SmsApiResponse>(responseContent);
 
             // Check if handshake was successful first
-            if (parsed?.Handshake?.Label != "HSHK_OK")
+            var handshakeLabel = parsed?.Handshake?.Label;
+            _logger.LogInformation("🔍 Handshake debug - Label: '{Label}', IsHSHK_OK: {IsMatch}", 
+                handshakeLabel, handshakeLabel == "HSHK_OK");
+            
+            if (handshakeLabel != "HSHK_OK")
             {
-                _logger.LogWarning("⚠️ SMS API handshake failed. Label: {Label}", parsed?.Handshake?.Label ?? "Unknown");
+                _logger.LogWarning("⚠️ SMS API handshake failed. Label: {Label}", handshakeLabel ?? "Unknown");
                 return (false, responseContent);
             }
 
