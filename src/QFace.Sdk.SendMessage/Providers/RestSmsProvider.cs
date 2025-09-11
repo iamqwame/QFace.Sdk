@@ -59,6 +59,9 @@ public class RestSmsProvider: ISmsProvider
         var response = await _httpClient.SendAsync(requestMessage);
         var responseContent = await response.Content.ReadAsStringAsync();
 
+        // Always log the raw API response for debugging
+        _logger.LogInformation("📡 SMS API Response: {ResponseContent}", responseContent);
+
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("⚠️ HTTP request failed. Status: {StatusCode}. Response: {ResponseContent}",
@@ -71,15 +74,37 @@ public class RestSmsProvider: ISmsProvider
         {
             var parsed = JsonSerializer.Deserialize<SmsApiResponse>(responseContent);
 
-            if (parsed?.Data?.Delivery == true)
+            // Check if handshake was successful first
+            if (parsed?.Handshake?.Label != "HSHK_OK")
             {
-                _logger.LogInformation("✅ SMS delivery confirmed! Batch: {BatchId}", parsed.Data.Batch);
-                return (true, responseContent);
+                _logger.LogWarning("⚠️ SMS API handshake failed. Label: {Label}", parsed?.Handshake?.Label ?? "Unknown");
+                return (false, responseContent);
+            }
+
+            // Check delivery status based on destination status codes
+            var firstDestination = parsed?.Data?.Destinations?.FirstOrDefault();
+            if (firstDestination?.Status != null)
+            {
+                var statusId = firstDestination.Status.Id;
+                var statusLabel = firstDestination.Status.Label;
+
+                // Success status codes: DS_SUBMIT_ENROUTE (2105) indicates message is successfully queued
+                if (statusId == 2105 || statusLabel == "DS_SUBMIT_ENROUTE")
+                {
+                    _logger.LogInformation("✅ SMS successfully queued for delivery! Batch: {BatchId}, Status: {Status}", 
+                        parsed.Data.Batch, statusLabel);
+                    return (true, responseContent);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ SMS delivery failed. Status ID: {StatusId}, Label: {StatusLabel}", 
+                        statusId, statusLabel);
+                    return (false, responseContent);
+                }
             }
             else
             {
-                _logger.LogWarning("⚠️ SMS delivery failed. Reason: {FirstReason}", 
-                    parsed?.Data?.Destinations?.FirstOrDefault()?.Status?.Label ?? "Unknown");
+                _logger.LogWarning("⚠️ SMS delivery status unknown. No destination status found.");
                 return (false, responseContent);
             }
         }
