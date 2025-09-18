@@ -8,6 +8,11 @@ public class BlobStorageOptions
     public string Provider { get; set; } = "DigitalOcean";
 
     /// <summary>
+    /// The URL expiration time in minutes
+    /// </summary>
+    public int UrlExpirationMinutes { get; set; }
+
+    /// <summary>
     /// The service URL endpoint
     /// </summary>
     public string ServiceURL { get; set; }
