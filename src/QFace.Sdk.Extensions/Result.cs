@@ -1,5 +1,4 @@
 namespace QFace.Sdk.Extensions;
-
 public class Result
 {
     protected internal Result(bool isSuccess, Error? error = null, string message = "", string? code = null)

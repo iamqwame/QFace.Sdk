@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>QFace.Sdk.SendMessage</PackageId>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Authors>IAmQwame</Authors>
     <Company>QFace</Company>
     <Description>A library for sending various types of messages (email, SMS, etc.) in .NET applications.</Description>

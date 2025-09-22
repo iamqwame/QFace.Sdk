@@ -11,6 +11,7 @@ public class EmailConfig
     public string SmtpPassword { get; set; }
     public string FromEmail { get; set; }
     public string FromName { get; set; }
+    public bool IsLocalHost { get; set; } = false;
 }
 
 /// <summary>

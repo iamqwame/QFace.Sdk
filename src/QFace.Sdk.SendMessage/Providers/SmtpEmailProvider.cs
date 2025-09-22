@@ -13,6 +13,11 @@ public class SmtpEmailProvider : IEmailProvider
 
     public string ProviderName => "SMTP";
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="options"></param>
+    /// <param name="logger"></param>
     public SmtpEmailProvider(IOptions<MessageConfig> options, ILogger<SmtpEmailProvider> logger)
     {
         _logger = logger;
@@ -24,14 +29,24 @@ public class SmtpEmailProvider : IEmailProvider
     {
         try
         {
-            _isConfigured = !string.IsNullOrEmpty(_config.SmtpServer) && 
-                            !string.IsNullOrEmpty(_config.SmtpUser) && 
-                            !string.IsNullOrEmpty(_config.SmtpPassword) &&
-                            !string.IsNullOrEmpty(_config.FromEmail);
+            // For localhost (MailPit), only require SmtpServer and FromEmail
+            if (_config.IsLocalHost)
+            {
+                _isConfigured = !string.IsNullOrEmpty(_config.SmtpServer) &&
+                                !string.IsNullOrEmpty(_config.FromEmail);
+            }
+            else
+            {
+                _isConfigured = !string.IsNullOrEmpty(_config.SmtpServer) &&
+                                !string.IsNullOrEmpty(_config.SmtpUser) &&
+                                !string.IsNullOrEmpty(_config.SmtpPassword) &&
+                                !string.IsNullOrEmpty(_config.FromEmail);
+            }
 
             if (_isConfigured)
             {
-                _logger.LogInformation("📧 SMTP provider configured: {Server}:{Port}", _config.SmtpServer, _config.SmtpPort);
+                var mode = _config.IsLocalHost ? "localhost" : "production";
+                _logger.LogInformation("📧 SMTP provider configured for {Mode}: {Server}:{Port}", mode, _config.SmtpServer, _config.SmtpPort);
             }
             else
             {
@@ -71,8 +86,19 @@ public class SmtpEmailProvider : IEmailProvider
             using var smtp = new SmtpClient();
 
             _logger.LogInformation("📤 Connecting to SMTP server {SmtpServer}:{SmtpPort}...", _config.SmtpServer, _config.SmtpPort);
-            await smtp.ConnectAsync(_config.SmtpServer, _config.SmtpPort, SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(_config.SmtpUser, _config.SmtpPassword);
+
+            if (_config.IsLocalHost)
+            {
+                // For localhost (MailPit), connect without TLS
+                await smtp.ConnectAsync(_config.SmtpServer, _config.SmtpPort, SecureSocketOptions.None);
+                // Skip authentication for localhost
+            }
+            else
+            {
+                // For production SMTP servers
+                await smtp.ConnectAsync(_config.SmtpServer, _config.SmtpPort, SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(_config.SmtpUser, _config.SmtpPassword);
+            }
 
             _logger.LogInformation("📩 Sending email to {ToEmail} | Subject: {Subject}", toEmail, subject);
             await smtp.SendAsync(email);
