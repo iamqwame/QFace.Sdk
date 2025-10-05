@@ -108,17 +108,21 @@ public static class ElasticsearchServiceExtensions
     /// <typeparam name="TRepository">The repository type</typeparam>
     /// <param name="services">The service collection</param>
     /// <param name="indexName">Optional explicit index name</param>
+    /// <param name="lifetime">Service lifetime (default: Scoped). Use Singleton for actor system compatibility.</param>
     /// <returns>The service collection</returns>
     public static IServiceCollection AddElasticsearchRepository<TDocument, TRepository>(
         this IServiceCollection services,
-        string indexName = null)
+        string indexName = null,
+        ServiceLifetime lifetime = ServiceLifetime.Scoped)
         where TDocument : EsBaseDocument
         where TRepository : class, IElasticsearchRepository<TDocument>
     {
-        // Register repository with either custom index name or auto-generated name
+        // Factory function to create repository instance
+        Func<IServiceProvider, TRepository> factory;
+
         if (string.IsNullOrEmpty(indexName))
         {
-            services.AddScoped<IElasticsearchRepository<TDocument>, TRepository>(sp =>
+            factory = sp =>
             {
                 var client = sp.GetRequiredService<IOpenSearchClient>();
                 var namingService = sp.GetRequiredService<IIndexNamingService>();
@@ -130,11 +134,11 @@ public static class ElasticsearchServiceExtensions
                     client,
                     resolvedName,
                     logger);
-            });
+            };
         }
         else
         {
-            services.AddScoped<IElasticsearchRepository<TDocument>, TRepository>(sp =>
+            factory = sp =>
             {
                 var client = sp.GetRequiredService<IOpenSearchClient>();
                 var logger = sp.GetRequiredService<ILogger<TRepository>>();
@@ -144,12 +148,22 @@ public static class ElasticsearchServiceExtensions
                     client,
                     indexName,
                     logger);
-            });
+            };
         }
 
-        // Register repository interface directly
-        services.AddScoped<TRepository>(sp => 
-            (TRepository)sp.GetRequiredService<IElasticsearchRepository<TDocument>>());
+        // Register with specified lifetime
+        var descriptor = new ServiceDescriptor(
+            typeof(IElasticsearchRepository<TDocument>),
+            factory,
+            lifetime);
+        services.Add(descriptor);
+
+        // Register repository type directly with same lifetime
+        var concreteDescriptor = new ServiceDescriptor(
+            typeof(TRepository),
+            sp => (TRepository)sp.GetRequiredService<IElasticsearchRepository<TDocument>>(),
+            lifetime);
+        services.Add(concreteDescriptor);
 
         return services;
     }
@@ -160,13 +174,15 @@ public static class ElasticsearchServiceExtensions
     /// <typeparam name="TDocument">The document type</typeparam>
     /// <param name="services">The service collection</param>
     /// <param name="indexName">Optional explicit index name</param>
+    /// <param name="lifetime">Service lifetime (default: Scoped). Use Singleton for actor system compatibility.</param>
     /// <returns>The service collection</returns>
     public static IServiceCollection AddElasticsearchRepository<TDocument>(
         this IServiceCollection services,
-        string indexName = null)
+        string indexName = null,
+        ServiceLifetime lifetime = ServiceLifetime.Scoped)
         where TDocument : EsBaseDocument
     {
-        return services.AddElasticsearchRepository<TDocument, ElasticsearchRepository<TDocument>>(indexName);
+        return services.AddElasticsearchRepository<TDocument, ElasticsearchRepository<TDocument>>(indexName, lifetime);
     }
 
     #endregion

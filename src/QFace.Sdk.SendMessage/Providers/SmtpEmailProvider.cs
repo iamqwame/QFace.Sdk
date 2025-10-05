@@ -62,6 +62,13 @@ public class SmtpEmailProvider : IEmailProvider
         }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="toEmail"></param>
+    /// <param name="subject"></param>
+    /// <param name="body"></param>
+    /// <returns></returns>
     public async Task<bool> SendEmailAsync(List<string> toEmail, string subject, string body)
     {
         if (!_isConfigured)

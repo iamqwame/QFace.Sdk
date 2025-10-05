@@ -1,3 +1,51 @@
+"CustomerName": "Test Customer",
+"CustomerPhone": "0247761922",
+"ReferenceNumber": "901355427",
+"TellerId": "test",
+"TellerName": "Test Teller",
+"BankBranch": "Main Branch",
+"Notes": "First-time applicant",
+"FormReferenceId": "901355427",
+"FormPinCode": "TP5CUX8TNZ",
+"Category": "Application Forms Fees",
+"BankTransactionId": "TEST-20251005135542",
+"ReferenceApplicationTypeId": "15",
+"PaymentItemCategory": "Application Forms Fees",
+"PaymentItemTags": [
+"undergraduate"
+],
+"IpAddress": "127.0.0.1",
+"Id": "e3d77acb5fc748ceb76710ab",
+"CreatedDate": "2025-10-05T13:55:42.755858Z",
+"CreatedBy": "",
+"LastModifiedDate": "2025-10-05T13:55:42.755858Z",
+"LastModifiedBy": "",
+"IsActive": true
+}
+dbug: QFace.Sdk.RabbitMq.Actors.RabbitMqConsumerActor[0]
+[RabbitMQ] Creating instance of consumer type 'UMaTAdmission.General.Consumers.AdmissionConsumer'
+fail: QFace.Sdk.RabbitMq.Actors.RabbitMqConsumerActor[0]
+[RabbitMQ] Error creating or invoking consumer 'AdmissionConsumer'
+System.InvalidOperationException: Unable to resolve service for type 'UMaTAdmission.Providers.Shared.Repositories.ApplicantRepository' while attempting to activate 'UMaTAdmission.General.Consumers.AdmissionConsumer'.
+at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)
+at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)
+at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)
+at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)
+at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)
+at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)
+at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
+at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)
+at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)
+at QFace.Sdk.RabbitMq.Actors.RabbitMqConsumerActor.HandleConsumeMessage(ConsumeMessage message)
+fail: QFace.Sdk.RabbitMq.Actors.RabbitMqConsumerActor[0]
+[RabbitMQ] Error processing message from queue 'umat.admissions.payment.queue': {
+"TransactionId": "506adce0-7fd3-4e00-b406-0bb0fa6e86c2",
+"PaymentItemId": "68c89d0691741d30eeafa280",
+"PaymentItemName": "Undergraduate Admission Form (Ghanaian)",
+"PaymentItemDescription": "UG Admission \u2013 Ghanaian",
+"OriginalItemId": 15,
 # QFace OpenSearch SDK Documentation
 
 The QFace OpenSearch SDK provides a comprehensive solution for working with OpenSearch and Elasticsearch in .NET applications. This document covers installation, configuration, and usage examples for both standard and advanced scenarios.
