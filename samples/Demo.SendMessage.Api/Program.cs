@@ -1,6 +1,7 @@
 using QFace.Sdk.ActorSystems;
 using QFace.Sdk.SendMessage.Extensions;
 using QFace.Sdk.SendMessage.Services;
+using QFace.Sdk.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,18 +12,21 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMessagingServices(builder.Configuration, config => {
     config.SystemName = "MessagingDemo";
 });
-builder.Services.AddLogging(logging => {
-    logging.AddConsole();
-    logging.SetMinimumLevel(LogLevel.Information);
-});
+// Configure QFace logging with Graylog
+builder.Host.AddQFaceLogging();
 
 var app = builder.Build();
+
+// Log application startup
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("QFace Messaging Demo API starting up...");
 
 // Swagger UI
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Messaging Demo API v1"));
+    logger.LogInformation("Swagger UI enabled for development environment");
 }
 
 app.UseHttpsRedirection();
@@ -34,20 +38,32 @@ app.MapControllers();
 // ---------------- EMAIL ----------------
 
 // Send simple email
-app.MapPost("/api/email/simple", async (SimpleEmailRequest request, IMessageService messageService) =>
+app.MapPost("/api/email/simple", async (SimpleEmailRequest request, IMessageService messageService, ILogger<Program> logger) =>
 {
+    logger.LogInformation("Received simple email request for {Email}", request?.ToEmail);
+    
     if (request == null || string.IsNullOrEmpty(request.ToEmail) || string.IsNullOrEmpty(request.Subject))
     {
+        logger.LogWarning("Invalid simple email request parameters");
         return Results.BadRequest(new { error = "Invalid request parameters" });
     }
 
-    await messageService.SendEmailAsync(
-        new List<string> { request.ToEmail },
-        request.Subject,
-        request.Body ?? "Empty email body"
-    );
+    try
+    {
+        await messageService.SendEmailAsync(
+            new List<string> { request.ToEmail },
+            request.Subject,
+            request.Body ?? "Empty email body"
+        );
 
-    return Results.Ok(new { message = "Email sending in progress" });
+        logger.LogInformation("Simple email sent successfully to {Email}", request.ToEmail);
+        return Results.Ok(new { message = "Email sending in progress" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to send simple email to {Email}", request.ToEmail);
+        return Results.Problem("Failed to send email");
+    }
 });
 
 // Send templated email
@@ -89,19 +105,31 @@ app.MapPost("/api/email/bulk", async (BulkEmailRequest request, IMessageService 
 // ---------------- SMS ----------------
 
 // Send single SMS
-app.MapPost("/api/sms/send", async (SmsRequest request, IMessageService messageService) =>
+app.MapPost("/api/sms/send", async (SmsRequest request, IMessageService messageService, ILogger<Program> logger) =>
 {
+    logger.LogInformation("Received SMS request for {PhoneNumber}", request?.PhoneNumber);
+    
     if (request == null || string.IsNullOrEmpty(request.PhoneNumber) || string.IsNullOrEmpty(request.Message))
     {
+        logger.LogWarning("Invalid SMS request parameters");
         return Results.BadRequest(new { error = "Invalid request parameters" });
     }
 
-    await messageService.SendSmsAsync(
-        new List<string> { request.PhoneNumber },
-        request.Message
-    );
+    try
+    {
+        await messageService.SendSmsAsync(
+            new List<string> { request.PhoneNumber },
+            request.Message
+        );
 
-    return Results.Ok(new { message = "SMS sending in progress" });
+        logger.LogInformation("SMS sent successfully to {PhoneNumber}", request.PhoneNumber);
+        return Results.Ok(new { message = "SMS sending in progress" });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to send SMS to {PhoneNumber}", request.PhoneNumber);
+        return Results.Problem("Failed to send SMS");
+    }
 });
 
 // Send bulk SMS

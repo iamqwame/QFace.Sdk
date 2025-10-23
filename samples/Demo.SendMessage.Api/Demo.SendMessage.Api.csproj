@@ -13,6 +13,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\QFace.Sdk.Extensions\QFace.Sdk.Extensions.csproj" />
+      <ProjectReference Include="..\..\src\QFace.Sdk.Logging\QFace.Sdk.Logging.csproj" />
       <ProjectReference Include="..\..\src\QFace.Sdk.SendMessage\QFace.Sdk.SendMessage.csproj" />
     </ItemGroup>
 

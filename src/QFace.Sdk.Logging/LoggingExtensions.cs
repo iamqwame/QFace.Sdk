@@ -6,6 +6,9 @@ using Serilog.Sinks.Graylog.Core.Transport;
 
 namespace QFace.Sdk.Logging;
 
+/// <summary>
+/// 
+/// </summary>
 public static class LoggingExtensions
     {
         /// <summary>
@@ -54,7 +57,7 @@ public static class LoggingExtensions
                         Port = opts.Port,
                         Facility = opts.Facility,
                         Host = Environment.MachineName,
-                        TransportType = TransportType.Udp,
+                        TransportType = TransportType.Http,
                         MinimumLogEventLevel = opts.MinimumLevel,
                     });
             }
