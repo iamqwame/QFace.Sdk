@@ -14,7 +14,7 @@ public interface IFileUploadService
     /// <param name="folder">Optional folder path within the storage</param>
     /// <param name="fileName">Optional file name (if not provided, a unique name will be generated)</param>
     /// <returns>URL of the uploaded file</returns>
-    Task<FileUploadResponse> UploadFileAsync(IFormFile file, string folder, string fileName = null);
+    Task<FileUploadResponse> UploadFileAsync(IFormFile file, string folder, string fileName = null, bool isPublic = false);
         
     /// <summary>
     /// Deletes a file from blob storage
@@ -54,5 +54,5 @@ public interface IFileUploadService
     /// <param name="fileName">Optional file name (if not provided, a unique name will be generated)</param>
     /// <param name="contentType">The content type of the image (e.g., "image/jpeg", "image/png")</param>
     /// <returns>URL of the uploaded file</returns>
-    Task<FileUploadResponse> UploadBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null);
+    Task<FileUploadResponse> UploadBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null, bool isPublic = false);
 }

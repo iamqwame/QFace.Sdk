@@ -84,6 +84,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.RedisMq.Consumer", "sa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.RedisMq.Api", "samples\Redis\Demo.RedisMq.Api\Demo.RedisMq.Api.csproj", "{55ECA3B6-2E79-4CC9-A12A-2E21C12FF575}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.ActorSystems.Api", "samples\Demo.ActorSystems.Api\Demo.ActorSystems.Api.csproj", "{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -119,6 +121,7 @@ Global
 		{EE45EA75-127B-436F-AF9D-37C8F0EAC85D} = {108FEDD7-76A7-4275-968C-97F3FF941B47}
 		{D2C55536-37A4-4A5B-AA43-6A094B4C30C5} = {EE45EA75-127B-436F-AF9D-37C8F0EAC85D}
 		{55ECA3B6-2E79-4CC9-A12A-2E21C12FF575} = {EE45EA75-127B-436F-AF9D-37C8F0EAC85D}
+		{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589} = {108FEDD7-76A7-4275-968C-97F3FF941B47}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{5A2D54B9-AE62-41BC-B21D-1E37FB19FFBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -217,5 +220,9 @@ Global
 		{55ECA3B6-2E79-4CC9-A12A-2E21C12FF575}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55ECA3B6-2E79-4CC9-A12A-2E21C12FF575}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{55ECA3B6-2E79-4CC9-A12A-2E21C12FF575}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

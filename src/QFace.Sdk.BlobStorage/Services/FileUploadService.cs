@@ -38,7 +38,7 @@ public class FileUploadService : IFileUploadService
             _options.ServiceURL, _bucketName, _region, _cdnBaseDomain);
     }
 
-    public async Task<FileUploadResponse> UploadFileAsync(IFormFile file, string folder, string fileName = null)
+    public async Task<FileUploadResponse> UploadFileAsync(IFormFile file, string folder, string fileName = null, bool isPublic = false)
     {
         if (file == null || file.Length == 0)
         {
@@ -69,7 +69,7 @@ public class FileUploadService : IFileUploadService
                 BucketName = _bucketName,
                 Key = s3Key,
                 ContentType = file.ContentType,
-                CannedACL = S3CannedACL.Private // Or PublicRead if files should be publicly accessible
+                CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private
             };
 
             await transferUtility.UploadAsync(uploadRequest);
@@ -262,7 +262,7 @@ public class FileUploadService : IFileUploadService
         /// <param name="fileName">Optional file name (if not provided, a unique name will be generated)</param>
         /// <param name="contentType">The content type of the image (e.g., "image/jpeg", "image/png")</param>
         /// <returns>URL of the uploaded file</returns>
-        public async Task<FileUploadResponse> UploadBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null)
+        public async Task<FileUploadResponse> UploadBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null, bool isPublic = false)
         {
             if (string.IsNullOrEmpty(base64Image))
             {
@@ -340,7 +340,7 @@ public class FileUploadService : IFileUploadService
                     BucketName = _bucketName,
                     Key = s3Key,
                     ContentType = contentType,
-                    CannedACL = S3CannedACL.Private // Or PublicRead if files should be publicly accessible
+                    CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private
                 };
 
                 await transferUtility.UploadAsync(uploadRequest);

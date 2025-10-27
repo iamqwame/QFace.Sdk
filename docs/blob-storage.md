@@ -1,19 +1,20 @@
-# QFace.Sdk.SendMessage
+# QFace.Sdk.BlobStorage
 
-This package provides a convenient way to send messages (currently focused on email) in .NET applications using an actor-based approach for improved scalability and resilience.
+This package provides a convenient way to upload, manage, and serve files using AWS S3-compatible storage (including DigitalOcean Spaces) with CDN support.
 
 ## Features
 
-- Send emails to single or multiple recipients
-- Support for plain text or HTML emails
-- Template-based emails with placeholder replacements
-- Actor-based processing for non-blocking operations
-- Graceful fallback to direct sending if actor system is unavailable
+- Upload files from IFormFile or Base64 encoded images
+- Support for both public and private file access
+- CDN URL generation for optimal performance
+- Pre-signed URL generation for private files
+- File validation and size limits
+- Automatic file deletion capabilities
 
 ## Installation
 
 ```shell
-dotnet add package QFace.Sdk.SendMessage
+dotnet add package QFace.Sdk.BlobStorage
 ```
 
 ## Configuration
@@ -22,13 +23,15 @@ Add the following configuration to your `appsettings.json`:
 
 ```json
 {
-  "EmailSettings": {
-    "SmtpServer": "smtp.example.com",
-    "SmtpPort": 587,
-    "SmtpUser": "your-username",
-    "SmtpPassword": "your-password",
-    "FromEmail": "noreply@example.com",
-    "FromName": "Your Application"
+  "BlobStorage": {
+    "ServiceURL": "https://nyc3.digitaloceanspaces.com",
+    "Region": "nyc3",
+    "Bucket": {
+      "Name": "your-bucket-name",
+      "CdnBaseDomain": "cdn.digitaloceanspaces.com"
+    },
+    "AccessKey": "your-access-key",
+    "SecretKey": "your-secret-key"
   }
 }
 ```
@@ -39,109 +42,205 @@ Add the following configuration to your `appsettings.json`:
 
 ```csharp
 // In Program.cs or Startup.cs
-builder.Services.AddEmailServices();
-
-// After building the app
-app.Services.UseEmailServices();
+builder.Services.AddBlobStorageServices(builder.Configuration);
 ```
 
 ### Basic Usage
 
+#### Private File Upload (Default)
+
 ```csharp
-// Inject IServiceProvider into your controllers or services
-public class NotificationController : ControllerBase
+public class FileController : ControllerBase
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IFileUploadService _fileUploadService;
 
-    public NotificationController(IServiceProvider serviceProvider)
+    public FileController(IFileUploadService fileUploadService)
     {
-        _serviceProvider = serviceProvider;
+        _fileUploadService = fileUploadService;
     }
 
-    [HttpPost("notify")]
-    public IActionResult SendNotification(string email, string subject, string message)
+    [HttpPost("upload")]
+    public async Task<IActionResult> UploadFile(IFormFile file, string folder = "documents")
     {
-        // Create a simple email command
-        var command = SendEmailCommand.Create(email, subject, message);
-
-        // Send the email (handled by the actor system)
-        _serviceProvider.SendEmail(command);
-
-        return Ok();
-    }
-
-    [HttpPost("welcome")]
-    public IActionResult SendWelcomeEmail(string email, string name)
-    {
-        // Create a templated email command
-        var template = "<h1>Welcome, {{Name}}!</h1><p>Thank you for joining our service.</p>";
-        var replacements = new Dictionary<string, string> { { "Name", name } };
-
-        var command = SendEmailCommand.CreateWithTemplate(
-            email,
-            "Welcome to Our Service",
-            template,
-            replacements
-        );
-
-        // Send the email (handled by the actor system)
-        _serviceProvider.SendEmail(command);
-
-        return Ok();
+        // Upload as private file (default behavior)
+        var result = await _fileUploadService.UploadFileAsync(file, folder);
+        
+        return Ok(new { 
+            CdnUrl = result.SaveUrl,      // CDN URL (requires pre-signed URL for access)
+            PreSignedUrl = result.Url     // Pre-signed URL for temporary access
+        });
     }
 }
 ```
 
-## Advanced Use Cases
-
-### Multiple Recipients
+#### Public File Upload
 
 ```csharp
-// Send to multiple recipients
-var recipients = new List<string> { "user1@example.com", "user2@example.com" };
-var command = SendEmailCommand.Create(
-    recipients,
-    "Important Announcement",
-    "<p>This is an important announcement.</p>"
-);
-_serviceProvider.SendEmail(command);
-```
-
-### Direct Use of EmailService
-
-```csharp
-// Inject IEmailService directly if you need more control
-public class EmailController : ControllerBase
+[HttpPost("upload-profile-picture")]
+public async Task<IActionResult> UploadProfilePicture(IFormFile file, string userId)
 {
-    private readonly IEmailService _emailService;
-
-    public EmailController(IEmailService emailService)
-    {
-        _emailService = emailService;
-    }
-
-    [HttpPost("critical-notification")]
-    public async Task<IActionResult> SendCriticalNotification(string email, string message)
-    {
-        // Directly use the email service for synchronous processing
-        var result = await _emailService.SendEmailAsync(
-            new List<string> { email },
-            "CRITICAL NOTIFICATION",
-            $"<p>{message}</p>"
-        );
-
-        return result ? Ok() : StatusCode(500, "Failed to send email");
-    }
+    // Upload as public file - accessible directly via CDN URL
+    var result = await _fileUploadService.UploadFileAsync(
+        file, 
+        $"profiles/{userId}", 
+        "avatar.jpg", 
+        isPublic: true);
+    
+    return Ok(new { 
+        ProfilePictureUrl = result.SaveUrl  // Directly accessible CDN URL
+    });
 }
 ```
 
-### Custom Actor System Configuration
+### Base64 Image Upload
 
 ```csharp
-// Configure your actor system with custom settings
-builder.Services.AddEmailServices(config =>
+[HttpPost("upload-base64")]
+public async Task<IActionResult> UploadBase64Image([FromBody] Base64UploadRequest request)
 {
-    config.SystemName = "MyCustomEmailSystem";
-    config.ConfigureLogging = true;
-});
+    // Private upload (default)
+    var privateResult = await _fileUploadService.UploadBase64ImageAsync(
+        request.Base64Image, 
+        "images", 
+        request.FileName);
+    
+    // Public upload
+    var publicResult = await _fileUploadService.UploadBase64ImageAsync(
+        request.Base64Image, 
+        "public/images", 
+        request.FileName, 
+        contentType: "image/jpeg",
+        isPublic: true);
+    
+    return Ok(new { 
+        PrivateUrl = privateResult.SaveUrl,
+        PublicUrl = publicResult.SaveUrl 
+    });
+}
 ```
+
+## Public vs Private Files
+
+### When to Use Public Files (`isPublic: true`)
+
+- **Profile pictures** - Need to be accessible without authentication
+- **Public assets** - Logos, banners, shared media
+- **Public documents** - Terms of service, privacy policy
+- **Product images** - E-commerce product photos
+
+### When to Use Private Files (`isPublic: false` - Default)
+
+- **Personal documents** - User-uploaded sensitive files
+- **Private media** - Personal photos, confidential documents
+- **Temporary files** - Processing files, backups
+- **Admin-only content** - Internal documents, reports
+
+## File Access Patterns
+
+### Public Files
+```csharp
+// Upload as public
+var result = await _fileUploadService.UploadFileAsync(file, "public", isPublic: true);
+
+// Access directly via CDN URL - no authentication needed
+var imageUrl = result.SaveUrl; // https://bucket.region.cdn.digitaloceanspaces.com/public/image.jpg
+```
+
+### Private Files
+```csharp
+// Upload as private (default)
+var result = await _fileUploadService.UploadFileAsync(file, "private");
+
+// Access via pre-signed URL (temporary, expires)
+var temporaryUrl = result.Url; // Pre-signed URL valid for 15 minutes by default
+
+// Or generate new pre-signed URL
+var newUrl = await _fileUploadService.GetPreSignedUrlAsync(result.SaveUrl, expirationMinutes: 60);
+```
+
+## File Management
+
+### Delete Files
+
+```csharp
+[HttpDelete("delete")]
+public async Task<IActionResult> DeleteFile(string fileUrl)
+{
+    await _fileUploadService.DeleteFileAsync(fileUrl);
+    return Ok();
+}
+```
+
+### File Validation
+
+```csharp
+[HttpPost("upload-validated")]
+public async Task<IActionResult> UploadValidatedFile(IFormFile file)
+{
+    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
+    var maxSize = 10 * 1024 * 1024; // 10MB
+    
+    if (!_fileUploadService.IsValidFile(file, allowedExtensions, maxSize))
+    {
+        return BadRequest("Invalid file type or size");
+    }
+    
+    var result = await _fileUploadService.UploadFileAsync(file, "validated");
+    return Ok(result);
+}
+```
+
+## Advanced Configuration
+
+### Custom CDN Settings
+
+```json
+{
+  "BlobStorage": {
+    "ServiceURL": "https://nyc3.digitaloceanspaces.com",
+    "Region": "nyc3",
+    "Bucket": {
+      "Name": "my-app-storage",
+      "CdnBaseDomain": "cdn.digitaloceanspaces.com"
+    }
+  }
+}
+```
+
+### Error Handling
+
+```csharp
+try
+{
+    var result = await _fileUploadService.UploadFileAsync(file, "uploads", isPublic: true);
+    return Ok(result);
+}
+catch (ArgumentException ex)
+{
+    return BadRequest($"Invalid file: {ex.Message}");
+}
+catch (Exception ex)
+{
+    _logger.LogError(ex, "File upload failed");
+    return StatusCode(500, "Upload failed");
+}
+```
+
+## Best Practices
+
+1. **Use appropriate ACL settings**: Public for assets that need direct access, private for sensitive content
+2. **Validate file types and sizes** before upload
+3. **Use descriptive folder structures** for organization
+4. **Handle errors gracefully** with proper logging
+5. **Consider CDN caching** for public assets
+6. **Clean up unused files** to manage storage costs
+
+## Migration from Private to Public
+
+If you need to change a file's access level after upload, you would need to:
+
+1. Re-upload the file with the correct `isPublic` setting
+2. Update your database records with the new URL
+3. Delete the old file if no longer needed
+
+Note: AWS S3 doesn't support changing ACL after upload, so re-uploading is required.

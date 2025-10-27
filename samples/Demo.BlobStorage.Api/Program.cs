@@ -72,6 +72,48 @@ app.MapPost("/api/upload", async (
 .WithName("UploadFile")
 .WithOpenApi();
 
+// Public File Upload Endpoint (e.g., for profile pictures)
+app.MapPost("/api/upload-public", async (
+    IFormFile file, 
+    IFileUploadService fileUploadService, 
+    ILogger<Program> logger,
+    string? folder = null, 
+    string? fileName = null) =>
+{
+    try
+    {
+        if (file == null || file.Length == 0)
+            return Results.BadRequest(new { Message = "No file uploaded" });
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+        var maxFileSize = 5 * 1024 * 1024; // 5MB
+
+        if (!fileUploadService.IsValidFile(file, allowedExtensions, maxFileSize))
+            return Results.BadRequest(new { Message = "Invalid file type or size" });
+
+        // Upload as public file
+        var result = await fileUploadService.UploadFileAsync(
+            file, 
+            folder ?? "public/uploads", 
+            fileName,
+            isPublic: true);
+
+        return Results.Ok(new { 
+            Message = "File uploaded as public",
+            CdnUrl = result.SaveUrl,  // This is now publicly accessible
+            PreSignedUrl = result.Url  // Still generated but not needed for public files
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Public file upload failed");
+        return Results.StatusCode(500);
+    }
+})
+.DisableAntiforgery()
+.WithName("UploadPublicFile")
+.WithOpenApi();
+
 // Get Pre-Signed URL Endpoint
 app.MapGet("/api/presigned-url", async (
     string fileKey, 

@@ -1,0 +1,74 @@
+### QFace Actor Systems Demo API Tests
+
+@baseUrl = http://localhost:5090
+@contentType = application/json
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Actor System Status
+GET {{baseUrl}}/actor-system/status
+
+### Get Test Controller Status
+GET {{baseUrl}}/api/test/status
+
+### Test TestActor (String messages)
+POST {{baseUrl}}/api/test/test-actor
+Content-Type: {{contentType}}
+
+{
+  "message": "Hello TestActor!"
+}
+
+### Test UserActor (User messages)
+POST {{baseUrl}}/api/test/user-actor
+Content-Type: {{contentType}}
+
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com"
+}
+
+### Test MultiPurposeActor - String
+POST {{baseUrl}}/api/test/multi-purpose/string
+Content-Type: {{contentType}}
+
+{
+  "message": "Hello MultiPurpose Actor!"
+}
+
+### Test MultiPurposeActor - User
+POST {{baseUrl}}/api/test/multi-purpose/user
+Content-Type: {{contentType}}
+
+{
+  "name": "Jane Smith",
+  "email": "jane.smith@example.com"
+}
+
+### Test MultiPurposeActor - Email
+POST {{baseUrl}}/api/test/multi-purpose/email
+Content-Type: {{contentType}}
+
+{
+  "toEmail": "test@example.com",
+  "subject": "Test Email",
+  "body": "This is a test email message"
+}
+
+### Test MultiPurposeActor - Number
+POST {{baseUrl}}/api/test/multi-purpose/number
+Content-Type: {{contentType}}
+
+{
+  "number": 42
+}
+
+### Test MultiPurposeActor - Command
+POST {{baseUrl}}/api/test/multi-purpose/command
+Content-Type: {{contentType}}
+
+{
+  "command": "PROCESS_DATA",
+  "data": "some important data to process"
+}
