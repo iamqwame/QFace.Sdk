@@ -29,7 +29,11 @@ Update `appsettings.json` with your blob storage credentials:
 
 ## Endpoints
 
-### File Upload
+This demo showcases **all six upload methods** available in QFace.Sdk.BlobStorage:
+
+### Explicit Private Uploads (Recommended)
+
+#### Private File Upload
 `POST /api/upload`
 - Uploads files as private (requires pre-signed URL for access)
 - Uses dedicated `UploadPrivateFileAsync()` method
@@ -53,7 +57,9 @@ curl -X POST -F "file=@/path/to/image.jpg" \
 }
 ```
 
-### Public File Upload
+### Explicit Public Uploads (Recommended)
+
+#### Public File Upload
 `POST /api/upload-public`
 - Uploads files as public (accessible directly via CDN URL)
 - Uses dedicated `UploadPublicFileAsync()` method
@@ -77,7 +83,62 @@ curl -X POST -F "file=@/path/to/profile.jpg" \
 }
 ```
 
-### Base64 Image Upload
+### Legacy Methods (Backward Compatibility)
+
+#### Legacy Private File Upload
+`POST /api/upload-legacy`
+- Demonstrates original `UploadFileAsync()` method
+- Private by default (same as explicit private)
+- Supports more file types (PDF, DOC, DOCX)
+- Returns CDN URL and pre-signed URL
+
+#### Example
+```bash
+curl -X POST -F "file=@/path/to/document.pdf" \
+     -F "folder=legacy-docs" \
+     -F "fileName=report" \
+     http://localhost:5000/api/upload-legacy
+```
+
+#### Response
+```json
+{
+  "message": "File uploaded using legacy method (private by default)",
+  "method": "UploadFileAsync() - Legacy",
+  "cdnUrl": "https://bucket.region.cdn.digitaloceanspaces.com/legacy-docs/report.pdf",
+  "preSignedUrl": "https://bucket.region.digitaloceanspaces.com/legacy-docs/report.pdf?..."
+}
+```
+
+#### Legacy Private Base64 Upload
+`POST /api/upload-legacy-base64`
+- Demonstrates original `UploadBase64ImageAsync()` method
+- Private by default (same as explicit private)
+- Returns CDN URL and pre-signed URL
+
+#### Example
+```bash
+curl -X POST -H "Content-Type: application/json" \
+     -d '{
+       "base64Image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...",
+       "folder": "legacy/images",
+       "fileName": "legacy-image",
+       "contentType": "image/jpeg"
+     }' \
+     http://localhost:5000/api/upload-legacy-base64
+```
+
+#### Response
+```json
+{
+  "message": "Base64 image uploaded using legacy method (private by default)",
+  "method": "UploadBase64ImageAsync() - Legacy",
+  "cdnUrl": "https://bucket.region.cdn.digitaloceanspaces.com/legacy/images/legacy-image.jpg",
+  "preSignedUrl": "https://bucket.region.digitaloceanspaces.com/legacy/images/legacy-image.jpg?..."
+}
+```
+
+#### Private Base64 Image Upload
 `POST /api/upload-base64`
 - Uploads Base64 encoded images as private files
 - Uses dedicated `UploadPrivateBase64ImageAsync()` method
@@ -105,7 +166,7 @@ curl -X POST -H "Content-Type: application/json" \
 }
 ```
 
-### Public Base64 Image Upload
+#### Public Base64 Image Upload
 `POST /api/upload-public-base64`
 - Uploads Base64 encoded images as public files
 - Uses dedicated `UploadPublicBase64ImageAsync()` method
@@ -133,6 +194,47 @@ curl -X POST -H "Content-Type: application/json" \
 }
 ```
 
+### API Methods Summary
+`GET /api/methods`
+- Returns a complete overview of all available upload methods
+- Shows which endpoint demonstrates each method
+- Provides usage recommendations
+
+#### Example
+```bash
+curl http://localhost:5000/api/methods
+```
+
+#### Response
+```json
+{
+  "title": "QFace.Sdk.BlobStorage - Complete API Methods",
+  "description": "This demo showcases all available upload methods",
+  "methods": [
+    {
+      "method": "UploadFileAsync()",
+      "endpoint": "POST /api/upload-legacy",
+      "type": "Legacy",
+      "access": "Private (default)",
+      "description": "Original method - private by default"
+    },
+    {
+      "method": "UploadPublicFileAsync()",
+      "endpoint": "POST /api/upload-public",
+      "type": "Explicit",
+      "access": "Public",
+      "description": "Explicit public file upload (direct CDN access)"
+    }
+  ],
+  "usage": {
+    "recommendation": "Use explicit methods (UploadPrivate* and UploadPublic*) for clarity",
+    "legacy": "Legacy methods still work for backward compatibility",
+    "publicFiles": "Profile pictures, logos, public assets - use UploadPublic* methods",
+    "privateFiles": "Documents, personal data, sensitive content - use UploadPrivate* methods"
+  }
+}
+```
+
 ### Get Pre-Signed URL
 `GET /api/presigned-url`
 - Generates temporary access URL for a file
@@ -156,8 +258,10 @@ curl -X DELETE "http://localhost:5000/api/delete?fileUrl=https://your-cdn-url/pa
 - Minimal API design
 - Swagger UI for API exploration
 - Flexible blob storage configuration
-- **Public and private file uploads** - Choose access level per file
+- **Complete API demonstration** - All 6 upload methods showcased
+- **Explicit public and private uploads** - Choose access level per file
 - **Direct CDN access** for public files (no pre-signed URLs needed)
+- **Legacy method support** - Backward compatibility maintained
 - Robust error handling
 - Supports multiple storage providers
 - Base64 image upload support

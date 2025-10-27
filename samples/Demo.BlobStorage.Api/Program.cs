@@ -238,12 +238,166 @@ app.MapPost("/api/upload-public-base64", async (
         }
     })
     .DisableAntiforgery()
-    .WithName("UploadPublicBase64Image")
+.WithName("UploadPublicBase64Image")
+.WithOpenApi(operation => {
+    operation.Description = "Uploads a Base64 encoded image as a public file (accessible directly via CDN URL)";
+    return operation;
+});
+
+// Legacy Private File Upload Endpoint (for backward compatibility demonstration)
+app.MapPost("/api/upload-legacy", async (
+    IFormFile file, 
+    IFileUploadService fileUploadService, 
+    ILogger<Program> logger,
+    string? folder = null, 
+    string? fileName = null) =>
+{
+    try
+    {
+        if (file == null || file.Length == 0)
+            return Results.BadRequest(new { Message = "No file uploaded" });
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx" };
+        var maxFileSize = 10 * 1024 * 1024; // 10MB
+
+        if (!fileUploadService.IsValidFile(file, allowedExtensions, maxFileSize))
+            return Results.BadRequest(new { Message = "Invalid file type or size" });
+
+        // Upload using legacy method (private by default)
+        var result = await fileUploadService.UploadFileAsync(
+            file, 
+            folder ?? "legacy/uploads", 
+            fileName);
+
+        return Results.Ok(new { 
+            Message = "File uploaded using legacy method (private by default)",
+            Method = "UploadFileAsync() - Legacy",
+            CdnUrl = result.SaveUrl,  // CDN URL (requires pre-signed URL for access)
+            PreSignedUrl = result.Url  // Pre-signed URL for temporary access
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Legacy file upload failed");
+        return Results.StatusCode(500);
+    }
+})
+.DisableAntiforgery()
+.WithName("UploadLegacyFile")
+.WithOpenApi(operation => {
+    operation.Description = "Demonstrates legacy UploadFileAsync() method (private by default)";
+    return operation;
+});
+
+// Legacy Private Base64 Upload Endpoint (for backward compatibility demonstration)
+app.MapPost("/api/upload-legacy-base64", async (
+        [FromBody] Base64UploadRequest request,
+        IFileUploadService fileUploadService,
+        ILogger<Program> logger) =>
+    {
+        try
+        {
+            if (request == null || string.IsNullOrEmpty(request.Base64Image))
+                return Results.BadRequest(new { Message = "No base64 image data provided" });
+
+            // Upload using legacy method (private by default)
+            var result = await fileUploadService.UploadBase64ImageAsync(
+                request.Base64Image,
+                request.Folder ?? "legacy/images",
+                request.FileName,
+                request.ContentType);
+
+            return Results.Ok(new { 
+                Message = "Base64 image uploaded using legacy method (private by default)",
+                Method = "UploadBase64ImageAsync() - Legacy",
+                CdnUrl = result.SaveUrl,  // CDN URL (requires pre-signed URL for access)
+                PreSignedUrl = result.Url  // Pre-signed URL for temporary access
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            logger.LogError(ex, "Invalid base64 image data");
+            return Results.BadRequest(new { Message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Legacy base64 image upload failed");
+            return Results.StatusCode(500);
+        }
+    })
+    .DisableAntiforgery()
+    .WithName("UploadLegacyBase64Image")
     .WithOpenApi(operation => {
-        operation.Description = "Uploads a Base64 encoded image as a public file (accessible directly via CDN URL)";
+        operation.Description = "Demonstrates legacy UploadBase64ImageAsync() method (private by default)";
         return operation;
     });
 
+// API Methods Summary Endpoint
+app.MapGet("/api/methods", () =>
+{
+    return Results.Ok(new
+    {
+        Title = "QFace.Sdk.BlobStorage - Complete API Methods",
+        Description = "This demo showcases all available upload methods",
+        Methods = new[]
+        {
+            new { 
+                Method = "UploadFileAsync()", 
+                Endpoint = "POST /api/upload-legacy", 
+                Type = "Legacy", 
+                Access = "Private (default)", 
+                Description = "Original method - private by default" 
+            },
+            new { 
+                Method = "UploadBase64ImageAsync()", 
+                Endpoint = "POST /api/upload-legacy-base64", 
+                Type = "Legacy", 
+                Access = "Private (default)", 
+                Description = "Original Base64 method - private by default" 
+            },
+            new { 
+                Method = "UploadPrivateFileAsync()", 
+                Endpoint = "POST /api/upload", 
+                Type = "Explicit", 
+                Access = "Private", 
+                Description = "Explicit private file upload" 
+            },
+            new { 
+                Method = "UploadPrivateBase64ImageAsync()", 
+                Endpoint = "POST /api/upload-base64", 
+                Type = "Explicit", 
+                Access = "Private", 
+                Description = "Explicit private Base64 upload" 
+            },
+            new { 
+                Method = "UploadPublicFileAsync()", 
+                Endpoint = "POST /api/upload-public", 
+                Type = "Explicit", 
+                Access = "Public", 
+                Description = "Explicit public file upload (direct CDN access)" 
+            },
+            new { 
+                Method = "UploadPublicBase64ImageAsync()", 
+                Endpoint = "POST /api/upload-public-base64", 
+                Type = "Explicit", 
+                Access = "Public", 
+                Description = "Explicit public Base64 upload (direct CDN access)" 
+            }
+        },
+        Usage = new
+        {
+            Recommendation = "Use explicit methods (UploadPrivate* and UploadPublic*) for clarity",
+            Legacy = "Legacy methods still work for backward compatibility",
+            PublicFiles = "Profile pictures, logos, public assets - use UploadPublic* methods",
+            PrivateFiles = "Documents, personal data, sensitive content - use UploadPrivate* methods"
+        }
+    });
+})
+.WithName("GetApiMethods")
+.WithOpenApi(operation => {
+    operation.Description = "Returns a summary of all available upload methods";
+    return operation;
+});
 
 app.Run();
 
