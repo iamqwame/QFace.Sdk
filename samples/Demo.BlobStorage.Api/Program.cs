@@ -54,13 +54,17 @@ app.MapPost("/api/upload", async (
         if (!fileUploadService.IsValidFile(file, allowedExtensions, maxFileSize))
             return Results.BadRequest(new { Message = "Invalid file type or size" });
 
-        // Upload the file
-        var fileUrl = await fileUploadService.UploadFileAsync(
+        // Upload as private file using dedicated method
+        var result = await fileUploadService.UploadPrivateFileAsync(
             file, 
             folder ?? "uploads", 
             fileName);
 
-        return Results.Ok(new { FileUrl = fileUrl.Url });
+        return Results.Ok(new { 
+            Message = "File uploaded as private",
+            CdnUrl = result.SaveUrl,  // CDN URL (requires pre-signed URL for access)
+            PreSignedUrl = result.Url  // Pre-signed URL for temporary access
+        });
     }
     catch (Exception ex)
     {
@@ -92,16 +96,14 @@ app.MapPost("/api/upload-public", async (
             return Results.BadRequest(new { Message = "Invalid file type or size" });
 
         // Upload as public file
-        var result = await fileUploadService.UploadFileAsync(
+        var result = await fileUploadService.UploadPublicFileAsync(
             file, 
             folder ?? "public/uploads", 
-            fileName,
-            isPublic: true);
+            fileName);
 
         return Results.Ok(new { 
             Message = "File uploaded as public",
-            CdnUrl = result.SaveUrl,  // This is now publicly accessible
-            PreSignedUrl = result.Url  // Still generated but not needed for public files
+            CdnUrl = result.SaveUrl  // This is now publicly accessible - no pre-signed URL needed!
         });
     }
     catch (Exception ex)
@@ -170,14 +172,18 @@ app.MapPost("/api/upload-base64", async (
             if (request == null || string.IsNullOrEmpty(request.Base64Image))
                 return Results.BadRequest(new { Message = "No base64 image data provided" });
 
-            // Upload the base64 image
-            var fileUrl = await fileUploadService.UploadBase64ImageAsync(
+            // Upload the base64 image as private
+            var result = await fileUploadService.UploadPrivateBase64ImageAsync(
                 request.Base64Image,
                 request.Folder ?? "uploads",
                 request.FileName,
                 request.ContentType);
 
-            return Results.Ok(new { FileUrl = fileUrl.Url, SaveUrl = fileUrl.SaveUrl });
+            return Results.Ok(new { 
+                Message = "Base64 image uploaded as private",
+                CdnUrl = result.SaveUrl,  // CDN URL (requires pre-signed URL for access)
+                PreSignedUrl = result.Url  // Pre-signed URL for temporary access
+            });
         }
         catch (ArgumentException ex)
         {
@@ -194,6 +200,47 @@ app.MapPost("/api/upload-base64", async (
     .WithName("UploadBase64Image")
     .WithOpenApi(operation => {
         operation.Description = "Uploads a Base64 encoded image to blob storage";
+        return operation;
+    });
+
+// Public Base64 Image Upload Endpoint
+app.MapPost("/api/upload-public-base64", async (
+        [FromBody] Base64UploadRequest request,
+        IFileUploadService fileUploadService,
+        ILogger<Program> logger) =>
+    {
+        try
+        {
+            if (request == null || string.IsNullOrEmpty(request.Base64Image))
+                return Results.BadRequest(new { Message = "No base64 image data provided" });
+
+            // Upload as public base64 image
+            var result = await fileUploadService.UploadPublicBase64ImageAsync(
+                request.Base64Image,
+                request.Folder ?? "public/images",
+                request.FileName,
+                request.ContentType);
+
+            return Results.Ok(new { 
+                Message = "Base64 image uploaded as public",
+                CdnUrl = result.SaveUrl  // Directly accessible CDN URL
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            logger.LogError(ex, "Invalid base64 image data");
+            return Results.BadRequest(new { Message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Public base64 image upload failed");
+            return Results.StatusCode(500);
+        }
+    })
+    .DisableAntiforgery()
+    .WithName("UploadPublicBase64Image")
+    .WithOpenApi(operation => {
+        operation.Description = "Uploads a Base64 encoded image as a public file (accessible directly via CDN URL)";
         return operation;
     });
 

@@ -400,7 +400,36 @@ public class FileUploadService : IFileUploadService
             _logger.LogInformation("Determined file extension for content type {ContentType}: {Extension}", contentType, extension);
             return extension;
         }
-    
-    
-    
+
+    /// <summary>
+    /// Uploads a file to blob storage as a public file (accessible directly via CDN URL)
+    /// </summary>
+    public async Task<FileUploadResponse> UploadPublicFileAsync(IFormFile file, string folder, string fileName = null)
+    {
+        return await UploadFileAsync(file, folder, fileName, isPublic: true);
+    }
+
+    /// <summary>
+    /// Uploads a Base64 encoded image to blob storage as a public file (accessible directly via CDN URL)
+    /// </summary>
+    public async Task<FileUploadResponse> UploadPublicBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null)
+    {
+        return await UploadBase64ImageAsync(base64Image, folder, fileName, contentType, isPublic: true);
+    }
+
+    /// <summary>
+    /// Uploads a file to blob storage as a private file (requires pre-signed URL for access)
+    /// </summary>
+    public async Task<FileUploadResponse> UploadPrivateFileAsync(IFormFile file, string folder, string fileName = null)
+    {
+        return await UploadFileAsync(file, folder, fileName, isPublic: false);
+    }
+
+    /// <summary>
+    /// Uploads a Base64 encoded image to blob storage as a private file (requires pre-signed URL for access)
+    /// </summary>
+    public async Task<FileUploadResponse> UploadPrivateBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null)
+    {
+        return await UploadBase64ImageAsync(base64Image, folder, fileName, contentType, isPublic: false);
+    }
 }

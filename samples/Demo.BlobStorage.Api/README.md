@@ -31,9 +31,10 @@ Update `appsettings.json` with your blob storage credentials:
 
 ### File Upload
 `POST /api/upload`
-- Supports file upload with optional folder and filename
+- Uploads files as private (requires pre-signed URL for access)
+- Uses dedicated `UploadPrivateFileAsync()` method
 - Validates file type and size
-- Returns uploaded file URL (private files require pre-signed URLs for access)
+- Returns CDN URL and pre-signed URL
 
 #### Example
 ```bash
@@ -43,12 +44,22 @@ curl -X POST -F "file=@/path/to/image.jpg" \
      http://localhost:5000/api/upload
 ```
 
+#### Response
+```json
+{
+  "message": "File uploaded as private",
+  "cdnUrl": "https://bucket.region.cdn.digitaloceanspaces.com/user-uploads/profile.jpg",
+  "preSignedUrl": "https://bucket.region.digitaloceanspaces.com/user-uploads/profile.jpg?..."
+}
+```
+
 ### Public File Upload
 `POST /api/upload-public`
 - Uploads files as public (accessible directly via CDN URL)
+- Uses dedicated `UploadPublicFileAsync()` method
 - Perfect for profile pictures, public assets, shared media
 - No pre-signed URL needed for access
-- Returns both CDN URL and pre-signed URL (for compatibility)
+- Returns only CDN URL (no pre-signed URL)
 
 #### Example
 ```bash
@@ -62,16 +73,16 @@ curl -X POST -F "file=@/path/to/profile.jpg" \
 ```json
 {
   "message": "File uploaded as public",
-  "cdnUrl": "https://bucket.region.cdn.digitaloceanspaces.com/profiles/avatar.jpg",
-  "preSignedUrl": "https://bucket.region.digitaloceanspaces.com/profiles/avatar.jpg?..."
+  "cdnUrl": "https://bucket.region.cdn.digitaloceanspaces.com/profiles/avatar.jpg"
 }
 ```
 
 ### Base64 Image Upload
 `POST /api/upload-base64`
-- Uploads Base64 encoded images
-- Supports both public and private uploads
+- Uploads Base64 encoded images as private files
+- Uses dedicated `UploadPrivateBase64ImageAsync()` method
 - Automatic content type detection
+- Returns CDN URL and pre-signed URL
 
 #### Example
 ```bash
@@ -83,6 +94,43 @@ curl -X POST -H "Content-Type: application/json" \
        "contentType": "image/jpeg"
      }' \
      http://localhost:5000/api/upload-base64
+```
+
+#### Response
+```json
+{
+  "message": "Base64 image uploaded as private",
+  "cdnUrl": "https://bucket.region.cdn.digitaloceanspaces.com/images/uploaded-image.jpg",
+  "preSignedUrl": "https://bucket.region.digitaloceanspaces.com/images/uploaded-image.jpg?..."
+}
+```
+
+### Public Base64 Image Upload
+`POST /api/upload-public-base64`
+- Uploads Base64 encoded images as public files
+- Uses dedicated `UploadPublicBase64ImageAsync()` method
+- Accessible directly via CDN URL
+- Perfect for profile pictures, logos, public assets
+- Returns only CDN URL (no pre-signed URL)
+
+#### Example
+```bash
+curl -X POST -H "Content-Type: application/json" \
+     -d '{
+       "base64Image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...",
+       "folder": "public/images",
+       "fileName": "logo",
+       "contentType": "image/jpeg"
+     }' \
+     http://localhost:5000/api/upload-public-base64
+```
+
+#### Response
+```json
+{
+  "message": "Base64 image uploaded as public",
+  "cdnUrl": "https://bucket.region.cdn.digitaloceanspaces.com/public/images/logo.jpg"
+}
 ```
 
 ### Get Pre-Signed URL

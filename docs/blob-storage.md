@@ -47,7 +47,7 @@ builder.Services.AddBlobStorageServices(builder.Configuration);
 
 ### Basic Usage
 
-#### Private File Upload (Default)
+#### Private File Upload (Dedicated Method)
 
 ```csharp
 public class FileController : ControllerBase
@@ -62,8 +62,8 @@ public class FileController : ControllerBase
     [HttpPost("upload")]
     public async Task<IActionResult> UploadFile(IFormFile file, string folder = "documents")
     {
-        // Upload as private file (default behavior)
-        var result = await _fileUploadService.UploadFileAsync(file, folder);
+        // Upload as private file using dedicated method
+        var result = await _fileUploadService.UploadPrivateFileAsync(file, folder);
         
         return Ok(new { 
             CdnUrl = result.SaveUrl,      // CDN URL (requires pre-signed URL for access)
@@ -80,11 +80,10 @@ public class FileController : ControllerBase
 public async Task<IActionResult> UploadProfilePicture(IFormFile file, string userId)
 {
     // Upload as public file - accessible directly via CDN URL
-    var result = await _fileUploadService.UploadFileAsync(
+    var result = await _fileUploadService.UploadPublicFileAsync(
         file, 
         $"profiles/{userId}", 
-        "avatar.jpg", 
-        isPublic: true);
+        "avatar.jpg");
     
     return Ok(new { 
         ProfilePictureUrl = result.SaveUrl  // Directly accessible CDN URL
@@ -98,19 +97,18 @@ public async Task<IActionResult> UploadProfilePicture(IFormFile file, string use
 [HttpPost("upload-base64")]
 public async Task<IActionResult> UploadBase64Image([FromBody] Base64UploadRequest request)
 {
-    // Private upload (default)
-    var privateResult = await _fileUploadService.UploadBase64ImageAsync(
+    // Private upload using dedicated method
+    var privateResult = await _fileUploadService.UploadPrivateBase64ImageAsync(
         request.Base64Image, 
         "images", 
         request.FileName);
     
-    // Public upload
-    var publicResult = await _fileUploadService.UploadBase64ImageAsync(
+    // Public upload using dedicated method
+    var publicResult = await _fileUploadService.UploadPublicBase64ImageAsync(
         request.Base64Image, 
         "public/images", 
         request.FileName, 
-        contentType: "image/jpeg",
-        isPublic: true);
+        contentType: "image/jpeg");
     
     return Ok(new { 
         PrivateUrl = privateResult.SaveUrl,
@@ -121,26 +119,34 @@ public async Task<IActionResult> UploadBase64Image([FromBody] Base64UploadReques
 
 ## Public vs Private Files
 
-### When to Use Public Files (`isPublic: true`)
+### When to Use Public Files (Dedicated Methods)
 
+Use `UploadPublicFileAsync()` and `UploadPublicBase64ImageAsync()` for:
 - **Profile pictures** - Need to be accessible without authentication
 - **Public assets** - Logos, banners, shared media
 - **Public documents** - Terms of service, privacy policy
 - **Product images** - E-commerce product photos
 
-### When to Use Private Files (`isPublic: false` - Default)
+### When to Use Private Files (Dedicated Methods)
 
+Use `UploadPrivateFileAsync()` and `UploadPrivateBase64ImageAsync()` for:
 - **Personal documents** - User-uploaded sensitive files
 - **Private media** - Personal photos, confidential documents
 - **Temporary files** - Processing files, backups
 - **Admin-only content** - Internal documents, reports
 
+### Legacy Methods (Still Available)
+
+The original methods `UploadFileAsync()` and `UploadBase64ImageAsync()` are still available for backward compatibility:
+- `UploadFileAsync()` - Equivalent to `UploadPrivateFileAsync()` (private by default)
+- `UploadBase64ImageAsync()` - Equivalent to `UploadPrivateBase64ImageAsync()` (private by default)
+
 ## File Access Patterns
 
 ### Public Files
 ```csharp
-// Upload as public
-var result = await _fileUploadService.UploadFileAsync(file, "public", isPublic: true);
+// Upload as public using dedicated method
+var result = await _fileUploadService.UploadPublicFileAsync(file, "public");
 
 // Access directly via CDN URL - no authentication needed
 var imageUrl = result.SaveUrl; // https://bucket.region.cdn.digitaloceanspaces.com/public/image.jpg
@@ -148,8 +154,8 @@ var imageUrl = result.SaveUrl; // https://bucket.region.cdn.digitaloceanspaces.c
 
 ### Private Files
 ```csharp
-// Upload as private (default)
-var result = await _fileUploadService.UploadFileAsync(file, "private");
+// Upload as private using dedicated method
+var result = await _fileUploadService.UploadPrivateFileAsync(file, "private");
 
 // Access via pre-signed URL (temporary, expires)
 var temporaryUrl = result.Url; // Pre-signed URL valid for 15 minutes by default
@@ -212,7 +218,7 @@ public async Task<IActionResult> UploadValidatedFile(IFormFile file)
 ```csharp
 try
 {
-    var result = await _fileUploadService.UploadFileAsync(file, "uploads", isPublic: true);
+    var result = await _fileUploadService.UploadPublicFileAsync(file, "uploads");
     return Ok(result);
 }
 catch (ArgumentException ex)
@@ -228,7 +234,9 @@ catch (Exception ex)
 
 ## Best Practices
 
-1. **Use appropriate ACL settings**: Public for assets that need direct access, private for sensitive content
+1. **Use dedicated methods**: 
+   - `UploadPublicFileAsync()` / `UploadPublicBase64ImageAsync()` for public files
+   - `UploadPrivateFileAsync()` / `UploadPrivateBase64ImageAsync()` for private files
 2. **Validate file types and sizes** before upload
 3. **Use descriptive folder structures** for organization
 4. **Handle errors gracefully** with proper logging
@@ -239,8 +247,19 @@ catch (Exception ex)
 
 If you need to change a file's access level after upload, you would need to:
 
-1. Re-upload the file with the correct `isPublic` setting
+1. Re-upload the file using the appropriate method (`UploadPublicFileAsync()` vs `UploadPrivateFileAsync()`)
 2. Update your database records with the new URL
 3. Delete the old file if no longer needed
 
 Note: AWS S3 doesn't support changing ACL after upload, so re-uploading is required.
+
+## API Methods Summary
+
+| Method | Purpose | Access Level | Returns |
+|--------|---------|--------------|---------|
+| `UploadFileAsync()` | **Legacy** private upload | Private (requires pre-signed URL) | CDN URL + Pre-signed URL |
+| `UploadBase64ImageAsync()` | **Legacy** private Base64 upload | Private (requires pre-signed URL) | CDN URL + Pre-signed URL |
+| `UploadPublicFileAsync()` | **New** public file upload | Public (direct CDN access) | CDN URL only |
+| `UploadPublicBase64ImageAsync()` | **New** public Base64 upload | Public (direct CDN access) | CDN URL only |
+| `UploadPrivateFileAsync()` | **New** explicit private upload | Private (requires pre-signed URL) | CDN URL + Pre-signed URL |
+| `UploadPrivateBase64ImageAsync()` | **New** explicit private Base64 upload | Private (requires pre-signed URL) | CDN URL + Pre-signed URL |
