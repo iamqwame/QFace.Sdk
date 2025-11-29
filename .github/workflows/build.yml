@@ -15,44 +15,88 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 9.0.x
 
       - name: Fix documentation paths
         run: |
           ROOT_DIR=$(pwd)
           
+          # Map SDK project names to their documentation files
+          declare -A SDK_DOCS=(
+            ["QFace.Sdk.ActorSystems"]="actor-system.md"
+            ["QFace.Sdk.RabbitMq"]="rabbitmq-messaging.md"
+            ["QFace.Sdk.RedisMq"]="rabbitmq-messaging.md"
+            ["QFace.Sdk.SendMessage"]="send-message.md"
+            ["QFace.Sdk.BlobStorage"]="blob-storage.md"
+            ["QFace.Sdk.MongoDb"]="mongodb.md"
+            ["QFace.Sdk.MongoDb.MultiTenant"]="mongodb.md"
+            ["QFace.Sdk.ElasticSearch"]="elasticsearch.md"
+            ["QFace.Sdk.Kafka"]="kafka-streaming.md"
+            ["QFace.Sdk.Logging"]="logging.md"
+            ["QFace.Sdk.Extensions"]="extensions.md"
+            ["QFace.Sdk.AI"]="ai-sdk.md"
+          )
+          
           for project_dir in ./src/QFace.Sdk.*; do
-            echo "Updating paths for $project_dir"
-          
+            project_name=$(basename "$project_dir")
+            echo "Processing $project_name..."
+            
+            # Skip template projects
+            if [[ "$project_name" == "QFace.WebApi.Template" ]]; then
+              echo "Skipping template project: $project_name"
+              continue
+            fi
+            
+            # Create docs directory structure
             mkdir -p "$project_dir/docs/shared"
-            cp README.md "$project_dir/"
-          
-            if [ -f "docs/actor-system.md" ]; then
-              cp docs/actor-system.md "$project_dir/docs/"
+            
+            # Copy README.md
+            if [ -f "README.md" ]; then
+              cp README.md "$project_dir/"
+              echo "  ✓ Copied README.md"
             fi
-          
-            if [ -f "docs/rabbitmq.md" ]; then
-              cp docs/rabbitmq.md "$project_dir/docs/"
+            
+            # Copy SDK-specific documentation if mapped
+            doc_file="${SDK_DOCS[$project_name]}"
+            if [ -n "$doc_file" ] && [ -f "docs/$doc_file" ]; then
+              cp "docs/$doc_file" "$project_dir/docs/"
+              echo "  ✓ Copied docs/$doc_file"
+            else
+              echo "  ⚠ No documentation mapping found for $project_name"
             fi
-          
-            if [ -f "docs/rabbitmq-messaging.md" ]; then
-              cp docs/rabbitmq-messaging.md "$project_dir/docs/"
-            fi
-          
+            
+            # Copy shared documentation
             if [ -d "docs/shared" ]; then
               cp -r docs/shared/* "$project_dir/docs/shared/"
+              echo "  ✓ Copied shared documentation"
             fi
-          
-            project_file="$project_dir/$(basename "$project_dir").csproj"
-            sed -i 's/<None Include="\$(SolutionDir)README.md"/<None Include="README.md"/g' "$project_file"
-            sed -i 's/<None Include="\$(SolutionDir)docs\//<None Include="docs\//g' "$project_file"
+            
+            # Update .csproj file paths
+            project_file="$project_dir/$project_name.csproj"
+            if [ -f "$project_file" ]; then
+              sed -i 's|<None Include="\$(SolutionDir)README.md"|<None Include="README.md"|g' "$project_file"
+              sed -i 's|<None Include="\$(SolutionDir)docs/|<None Include="docs/|g' "$project_file"
+              echo "  ✓ Updated .csproj paths"
+            fi
+            
+            echo ""
           done
+          
+          echo "Documentation setup complete!"
 
       - name: Build and Pack SDK projects
         run: |
           mkdir -p ./nupkgs
           
           for project in ./src/QFace.Sdk.*/*.csproj; do
+            project_name=$(basename "$(dirname "$project")")
+            
+            # Skip template projects
+            if [[ "$project_name" == "QFace.WebApi.Template" ]]; then
+              echo "Skipping template project: $project_name"
+              continue
+            fi
+            
             echo "Processing $project..."
             dotnet restore "$project"
             dotnet build "$project" -c Release --no-restore
