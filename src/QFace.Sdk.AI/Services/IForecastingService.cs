@@ -1,5 +1,3 @@
-using QFace.Sdk.AI.Models;
-
 namespace QFace.Sdk.AI.Services;
 
 /// <summary>

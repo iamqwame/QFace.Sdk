@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using QFace.Sdk.AI.Models;
 
 namespace QFace.Sdk.AI.Services;
 
@@ -33,13 +31,13 @@ public class SkillsAnalysisService : ISkillsAnalysisService
     }
 
     /// <inheritdoc />
-    public async Task<List<SkillsRecommendation>> GenerateRecommendationsAsync(
+    public Task<List<SkillsRecommendation>> GenerateRecommendationsAsync(
         SkillsGapResult gapAnalysis, 
         CancellationToken cancellationToken = default)
     {
         if (gapAnalysis.GapSkills.Count == 0)
         {
-            return new List<SkillsRecommendation>();
+            return Task.FromResult(new List<SkillsRecommendation>());
         }
 
         var recommendations = new List<SkillsRecommendation>();
@@ -59,7 +57,7 @@ public class SkillsAnalysisService : ISkillsAnalysisService
             recommendations.Add(recommendation);
         }
 
-        return recommendations;
+        return Task.FromResult(recommendations);
     }
 
     private async Task<SkillsGapResult> AnalyzeWithLLMAsync(SkillsGapRequest request, CancellationToken cancellationToken)

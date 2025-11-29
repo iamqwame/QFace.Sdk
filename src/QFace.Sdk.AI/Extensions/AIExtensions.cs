@@ -1,11 +1,3 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using QFace.Sdk.AI.Algorithms;
-using QFace.Sdk.AI.Models;
-using QFace.Sdk.AI.Providers;
-using QFace.Sdk.AI.Services;
-
 namespace QFace.Sdk.AI.Extensions;
 
 /// <summary>
@@ -31,6 +23,8 @@ public static class AIExtensions
         // Register LLM providers
         services.AddSingleton<ILLMProvider, OpenAIProvider>();
         services.AddSingleton<ILLMProvider, AnthropicProvider>();
+        // GoogleGeminiProvider is registered but currently returns NotImplementedException
+        // until the Google.GenerativeAI NuGet package becomes available
         services.AddSingleton<ILLMProvider, GoogleGeminiProvider>();
         services.AddSingleton<LLMProviderFactory>();
         

@@ -1,9 +1,6 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using Microsoft.ML.Transforms.TimeSeries;
-using QFace.Sdk.AI.Models;
 
 namespace QFace.Sdk.AI.Algorithms;
 

@@ -1,8 +1,3 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using QFace.Sdk.AI.Algorithms;
-using QFace.Sdk.AI.Models;
-
 namespace QFace.Sdk.AI.Services;
 
 /// <summary>
@@ -33,7 +28,7 @@ public class ForecastingService : IForecastingService
     /// <inheritdoc />
     public async Task<ForecastResult> CalculateForecastAsync(ForecastRequest request, ForecastMethod? method = null, CancellationToken cancellationToken = default)
     {
-        var forecastMethod = method ?? request.Method ?? _options.DefaultForecastMethod;
+        var forecastMethod = method ?? request.Method;
         var methodName = forecastMethod.ToString();
         
         if (!_algorithms.TryGetValue(methodName, out var algorithm))
@@ -58,7 +53,7 @@ public class ForecastingService : IForecastingService
         
         foreach (var request in requests)
         {
-            var result = await CalculateForecastAsync(request, cancellationToken);
+            var result = await CalculateForecastAsync(request, null, cancellationToken);
             results.Add(result);
         }
 

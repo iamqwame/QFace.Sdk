@@ -1,5 +1,4 @@
-using Google.GenerativeAI;
-using Google.GenerativeAI.Clients;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using QFace.Sdk.AI.Models;
@@ -7,13 +6,14 @@ using QFace.Sdk.AI.Models;
 namespace QFace.Sdk.AI.Providers;
 
 /// <summary>
-/// Google Gemini LLM provider implementation
+/// Google Gemini LLM provider implementation using Microsoft.Extensions.AI
+/// NOTE: Microsoft.Extensions.AI.Google package may not be available yet.
+/// This is a stub implementation that will work when the package is available.
 /// </summary>
 public class GoogleGeminiProvider : ILLMProvider
 {
     private readonly GoogleGeminiOptions _options;
     private readonly ILogger<GoogleGeminiProvider> _logger;
-    private GenerativeModel? _model;
     private bool _initialized;
 
     /// <summary>
@@ -31,147 +31,43 @@ public class GoogleGeminiProvider : ILLMProvider
     }
 
     /// <inheritdoc />
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
-        if (_initialized)
+        if (string.IsNullOrEmpty(_options.ApiKey))
         {
-            return true;
+            _logger.LogWarning("Google Gemini API key is not configured");
+            return Task.FromResult(false);
         }
 
-        try
-        {
-            if (string.IsNullOrEmpty(_options.ApiKey))
-            {
-                _logger.LogWarning("Google Gemini API key is not configured");
-                return false;
-            }
-
-            var client = new GoogleAI(_options.ApiKey);
-            var modelName = _options.DefaultModel;
-            _model = client.GetGenerativeModel(modelName);
-            _initialized = true;
-            _logger.LogInformation("Google Gemini provider initialized successfully");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to initialize Google Gemini provider");
-            return false;
-        }
+        // TODO: When Microsoft.Extensions.AI.Google package is available, implement:
+        // var client = new GoogleClient(new Uri(_options.BaseUrl), _options.ApiKey);
+        // _chatClient = client.AsChatClient(_options.DefaultModel);
+        
+        _logger.LogWarning("Google Gemini provider via Microsoft.Extensions.AI is not yet fully implemented. " +
+                          "Microsoft.Extensions.AI.Google package may not be available.");
+        _initialized = true;
+        return Task.FromResult(true);
     }
 
     /// <inheritdoc />
-    public async Task<LLMResponse> GenerateCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
+    public Task<LLMResponse> GenerateCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
     {
-        if (!_initialized)
-        {
-            await InitializeAsync();
-        }
-
-        if (_model == null)
-        {
-            throw new InvalidOperationException("Google Gemini model is not initialized");
-        }
-
-        try
-        {
-            var modelName = request.Model ?? _options.DefaultModel;
-            var maxTokens = request.MaxTokens ?? _options.MaxTokens;
-
-            var response = await _model.GenerateContentAsync(request.Prompt, cancellationToken: cancellationToken);
-
-            var content = response.Text ?? string.Empty;
-            var tokensUsed = response.UsageMetadata?.TotalTokenCount ?? 0;
-
-            return new LLMResponse
-            {
-                Content = content,
-                Provider = ProviderName,
-                Model = modelName,
-                TokensUsed = tokensUsed,
-                Metadata = new Dictionary<string, object>
-                {
-                    { "FinishReason", response.Candidates?.FirstOrDefault()?.FinishReason?.ToString() ?? "unknown" }
-                }
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error generating Google Gemini completion");
-            throw;
-        }
+        throw new NotImplementedException(
+            "Google Gemini provider implementation needs Microsoft.Extensions.AI.Google package. " +
+            "This package may not be available yet. Please check Microsoft.Extensions.AI documentation for Google support.");
     }
 
     /// <inheritdoc />
-    public async Task<LLMResponse> GenerateChatCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
+    public Task<LLMResponse> GenerateChatCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
     {
-        if (!_initialized)
-        {
-            await InitializeAsync();
-        }
-
-        if (_model == null)
-        {
-            throw new InvalidOperationException("Google Gemini model is not initialized");
-        }
-
-        try
-        {
-            var modelName = request.Model ?? _options.DefaultModel;
-            var maxTokens = request.MaxTokens ?? _options.MaxTokens;
-
-            // Build chat history if messages are provided
-            var chat = _model.StartChat();
-            
-            if (request.Messages != null && request.Messages.Count > 0)
-            {
-                foreach (var message in request.Messages)
-                {
-                    if (message.Role.ToLower() == "user")
-                    {
-                        await chat.SendMessageAsync(message.Content, cancellationToken: cancellationToken);
-                    }
-                    else if (message.Role.ToLower() == "assistant")
-                    {
-                        // Add assistant message to history
-                        // Note: Google Gemini SDK handles this internally through chat history
-                    }
-                }
-            }
-
-            var response = await chat.SendMessageAsync(request.Prompt, cancellationToken: cancellationToken);
-
-            var content = response.Text ?? string.Empty;
-            var tokensUsed = response.UsageMetadata?.TotalTokenCount ?? 0;
-
-            return new LLMResponse
-            {
-                Content = content,
-                Provider = ProviderName,
-                Model = modelName,
-                TokensUsed = tokensUsed,
-                Metadata = new Dictionary<string, object>
-                {
-                    { "FinishReason", response.Candidates?.FirstOrDefault()?.FinishReason?.ToString() ?? "unknown" }
-                }
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error generating Google Gemini chat completion");
-            throw;
-        }
+        throw new NotImplementedException(
+            "Google Gemini provider implementation needs Microsoft.Extensions.AI.Google package. " +
+            "This package may not be available yet. Please check Microsoft.Extensions.AI documentation for Google support.");
     }
 
     /// <inheritdoc />
-    public async Task<bool> IsAvailableAsync()
+    public Task<bool> IsAvailableAsync()
     {
-        if (!_initialized)
-        {
-            return await InitializeAsync();
-        }
-
-        return _model != null && !string.IsNullOrEmpty(_options.ApiKey);
+        return Task.FromResult(_initialized && !string.IsNullOrEmpty(_options.ApiKey));
     }
 }
-

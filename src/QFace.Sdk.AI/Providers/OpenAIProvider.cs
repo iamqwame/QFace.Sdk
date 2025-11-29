@@ -1,5 +1,5 @@
+using Microsoft.Extensions.AI;
 using OpenAI;
-using OpenAI.Chat;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using QFace.Sdk.AI.Models;
@@ -7,13 +7,13 @@ using QFace.Sdk.AI.Models;
 namespace QFace.Sdk.AI.Providers;
 
 /// <summary>
-/// OpenAI LLM provider implementation
+/// OpenAI LLM provider implementation using Microsoft.Extensions.AI
 /// </summary>
 public class OpenAIProvider : ILLMProvider
 {
     private readonly OpenAIOptions _options;
     private readonly ILogger<OpenAIProvider> _logger;
-    private OpenAIClient? _client;
+    private IChatClient? _chatClient;
     private bool _initialized;
 
     /// <summary>
@@ -31,11 +31,11 @@ public class OpenAIProvider : ILLMProvider
     }
 
     /// <inheritdoc />
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
         if (_initialized)
         {
-            return true;
+            return Task.FromResult(true);
         }
 
         try
@@ -43,18 +43,20 @@ public class OpenAIProvider : ILLMProvider
             if (string.IsNullOrEmpty(_options.ApiKey))
             {
                 _logger.LogWarning("OpenAI API key is not configured");
-                return false;
+                return Task.FromResult(false);
             }
 
-            _client = new OpenAIClient(_options.ApiKey);
+            var client = new OpenAIClient(_options.ApiKey);
+            var model = _options.DefaultModel;
+            _chatClient = client.AsChatClient(modelId: model);
             _initialized = true;
-            _logger.LogInformation("OpenAI provider initialized successfully");
-            return true;
+            _logger.LogInformation("OpenAI provider initialized successfully with model {Model}", model);
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to initialize OpenAI provider");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -66,40 +68,31 @@ public class OpenAIProvider : ILLMProvider
             await InitializeAsync();
         }
 
-        if (_client == null)
+        if (_chatClient == null)
         {
-            throw new InvalidOperationException("OpenAI client is not initialized");
+            throw new InvalidOperationException("OpenAI chat client is not initialized");
         }
 
         try
         {
             var model = request.Model ?? _options.DefaultModel;
-            var maxTokens = request.MaxTokens ?? _options.MaxTokens;
-            var temperature = request.Temperature ?? _options.Temperature;
+            var chatClient = await GetOrCreateChatClientAsync(model);
 
-            var chatClient = new ChatClient(_client, model);
-            var chatMessages = new List<ChatMessage>
-            {
-                new UserChatMessage(request.Prompt)
-            };
+            // Use the prompt directly for completion
+            var response = await chatClient.CompleteAsync(request.Prompt, cancellationToken: cancellationToken);
 
-            var chatCompletionOptions = new ChatCompletionOptions
-            {
-                MaxTokens = maxTokens,
-                Temperature = (float)temperature
-            };
-
-            var response = await chatClient.CompleteChatAsync(chatMessages, chatCompletionOptions, cancellationToken);
-
+            // Extract content from ChatMessage - it might be Text, Content, or ToString()
+            var content = response.Message.ToString();
+            
             return new LLMResponse
             {
-                Content = response.Value.Content[0].Text,
+                Content = content,
                 Provider = ProviderName,
                 Model = model,
-                TokensUsed = response.Value.Usage.TotalTokens,
+                TokensUsed = (response.Usage?.InputTokenCount ?? 0) + (response.Usage?.OutputTokenCount ?? 0),
                 Metadata = new Dictionary<string, object>
                 {
-                    { "FinishReason", response.Value.FinishReason.ToString() }
+                    { "FinishReason", response.FinishReason?.ToString() ?? "unknown" }
                 }
             };
         }
@@ -118,60 +111,46 @@ public class OpenAIProvider : ILLMProvider
             await InitializeAsync();
         }
 
-        if (_client == null)
+        if (_chatClient == null)
         {
-            throw new InvalidOperationException("OpenAI client is not initialized");
+            throw new InvalidOperationException("OpenAI chat client is not initialized");
         }
 
         try
         {
             var model = request.Model ?? _options.DefaultModel;
-            var maxTokens = request.MaxTokens ?? _options.MaxTokens;
-            var temperature = request.Temperature ?? _options.Temperature;
+            var chatClient = await GetOrCreateChatClientAsync(model);
 
-            var chatClient = new ChatClient(_client, model);
-            var chatMessages = new List<ChatMessage>();
-
+            // Build the prompt from messages or use the prompt directly
+            string prompt;
             if (request.Messages != null && request.Messages.Count > 0)
             {
-                foreach (var message in request.Messages)
+                var messageParts = request.Messages.Select(m => $"{m.Role}: {m.Content}");
+                prompt = string.Join("\n", messageParts);
+                if (!string.IsNullOrEmpty(request.Prompt))
                 {
-                    switch (message.Role.ToLower())
-                    {
-                        case "system":
-                            chatMessages.Add(new SystemChatMessage(message.Content));
-                            break;
-                        case "user":
-                            chatMessages.Add(new UserChatMessage(message.Content));
-                            break;
-                        case "assistant":
-                            chatMessages.Add(new AssistantChatMessage(message.Content));
-                            break;
-                    }
+                    prompt += $"\nuser: {request.Prompt}";
                 }
             }
             else
             {
-                chatMessages.Add(new UserChatMessage(request.Prompt));
+                prompt = request.Prompt;
             }
 
-            var chatCompletionOptions = new ChatCompletionOptions
-            {
-                MaxTokens = maxTokens,
-                Temperature = (float)temperature
-            };
+            var response = await chatClient.CompleteAsync(prompt, cancellationToken: cancellationToken);
 
-            var response = await chatClient.CompleteChatAsync(chatMessages, chatCompletionOptions, cancellationToken);
-
+            // Extract content from ChatMessage - it might be Text, Content, or ToString()
+            var content = response.Message.ToString();
+            
             return new LLMResponse
             {
-                Content = response.Value.Content[0].Text,
+                Content = content,
                 Provider = ProviderName,
                 Model = model,
-                TokensUsed = response.Value.Usage.TotalTokens,
+                TokensUsed = (response.Usage?.InputTokenCount ?? 0) + (response.Usage?.OutputTokenCount ?? 0),
                 Metadata = new Dictionary<string, object>
                 {
-                    { "FinishReason", response.Value.FinishReason.ToString() }
+                    { "FinishReason", response.FinishReason?.ToString() ?? "unknown" }
                 }
             };
         }
@@ -190,7 +169,21 @@ public class OpenAIProvider : ILLMProvider
             return await InitializeAsync();
         }
 
-        return _client != null && !string.IsNullOrEmpty(_options.ApiKey);
+        return _chatClient != null && !string.IsNullOrEmpty(_options.ApiKey);
+    }
+
+    /// <summary>
+    /// Gets or creates a chat client for the specified model
+    /// </summary>
+    private Task<IChatClient> GetOrCreateChatClientAsync(string model)
+    {
+        // If model changed or client not initialized, create new client
+        if (_chatClient == null || model != _options.DefaultModel)
+        {
+            var client = new OpenAIClient(_options.ApiKey);
+            _chatClient = client.AsChatClient(modelId: model);
+        }
+
+        return Task.FromResult(_chatClient);
     }
 }
-

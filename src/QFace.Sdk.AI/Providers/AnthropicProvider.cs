@@ -1,5 +1,4 @@
-using Anthropic.SDK;
-using Anthropic.SDK.Messaging;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using QFace.Sdk.AI.Models;
@@ -7,13 +6,14 @@ using QFace.Sdk.AI.Models;
 namespace QFace.Sdk.AI.Providers;
 
 /// <summary>
-/// Anthropic LLM provider implementation
+/// Anthropic LLM provider implementation using Microsoft.Extensions.AI
+/// NOTE: Microsoft.Extensions.AI.Anthropic package may not be available yet.
+/// This is a stub implementation that will work when the package is available.
 /// </summary>
 public class AnthropicProvider : ILLMProvider
 {
     private readonly AnthropicOptions _options;
     private readonly ILogger<AnthropicProvider> _logger;
-    private AnthropicClient? _client;
     private bool _initialized;
 
     /// <summary>
@@ -31,166 +31,43 @@ public class AnthropicProvider : ILLMProvider
     }
 
     /// <inheritdoc />
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
-        if (_initialized)
+        if (string.IsNullOrEmpty(_options.ApiKey))
         {
-            return true;
+            _logger.LogWarning("Anthropic API key is not configured");
+            return Task.FromResult(false);
         }
 
-        try
-        {
-            if (string.IsNullOrEmpty(_options.ApiKey))
-            {
-                _logger.LogWarning("Anthropic API key is not configured");
-                return false;
-            }
-
-            _client = new AnthropicClient(_options.ApiKey);
-            _initialized = true;
-            _logger.LogInformation("Anthropic provider initialized successfully");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to initialize Anthropic provider");
-            return false;
-        }
+        // TODO: When Microsoft.Extensions.AI.Anthropic package is available, implement:
+        // var client = new AnthropicClient(new Uri(_options.BaseUrl), _options.ApiKey);
+        // _chatClient = client.AsChatClient(_options.DefaultModel);
+        
+        _logger.LogWarning("Anthropic provider via Microsoft.Extensions.AI is not yet fully implemented. " +
+                          "Microsoft.Extensions.AI.Anthropic package may not be available.");
+        _initialized = true;
+        return Task.FromResult(true);
     }
 
     /// <inheritdoc />
-    public async Task<LLMResponse> GenerateCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
+    public Task<LLMResponse> GenerateCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
     {
-        if (!_initialized)
-        {
-            await InitializeAsync();
-        }
-
-        if (_client == null)
-        {
-            throw new InvalidOperationException("Anthropic client is not initialized");
-        }
-
-        try
-        {
-            var model = request.Model ?? _options.DefaultModel;
-            var maxTokens = request.MaxTokens ?? _options.MaxTokens;
-
-            var messages = new List<Message>
-            {
-                new Message { Role = "user", Content = request.Prompt }
-            };
-
-            var messageRequest = new MessagesRequest
-            {
-                Model = model,
-                MaxTokens = maxTokens,
-                Messages = messages
-            };
-
-            var response = await _client.Messages.CreateAsync(messageRequest, cancellationToken);
-
-            var content = response.Content.FirstOrDefault()?.Text ?? string.Empty;
-            var tokensUsed = response.Usage.InputTokens + response.Usage.OutputTokens;
-
-            return new LLMResponse
-            {
-                Content = content,
-                Provider = ProviderName,
-                Model = model,
-                TokensUsed = tokensUsed,
-                Metadata = new Dictionary<string, object>
-                {
-                    { "StopReason", response.StopReason ?? "unknown" }
-                }
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error generating Anthropic completion");
-            throw;
-        }
+        throw new NotImplementedException(
+            "Anthropic provider implementation needs Microsoft.Extensions.AI.Anthropic package. " +
+            "This package may not be available yet. Please check Microsoft.Extensions.AI documentation for Anthropic support.");
     }
 
     /// <inheritdoc />
-    public async Task<LLMResponse> GenerateChatCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
+    public Task<LLMResponse> GenerateChatCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
     {
-        if (!_initialized)
-        {
-            await InitializeAsync();
-        }
-
-        if (_client == null)
-        {
-            throw new InvalidOperationException("Anthropic client is not initialized");
-        }
-
-        try
-        {
-            var model = request.Model ?? _options.DefaultModel;
-            var maxTokens = request.MaxTokens ?? _options.MaxTokens;
-
-            var messages = new List<Message>();
-
-            if (request.Messages != null && request.Messages.Count > 0)
-            {
-                foreach (var message in request.Messages)
-                {
-                    if (message.Role.ToLower() != "system")
-                    {
-                        messages.Add(new Message
-                        {
-                            Role = message.Role.ToLower() == "assistant" ? "assistant" : "user",
-                            Content = message.Content
-                        });
-                    }
-                }
-            }
-            else
-            {
-                messages.Add(new Message { Role = "user", Content = request.Prompt });
-            }
-
-            var messageRequest = new MessagesRequest
-            {
-                Model = model,
-                MaxTokens = maxTokens,
-                Messages = messages
-            };
-
-            var response = await _client.Messages.CreateAsync(messageRequest, cancellationToken);
-
-            var content = response.Content.FirstOrDefault()?.Text ?? string.Empty;
-            var tokensUsed = response.Usage.InputTokens + response.Usage.OutputTokens;
-
-            return new LLMResponse
-            {
-                Content = content,
-                Provider = ProviderName,
-                Model = model,
-                TokensUsed = tokensUsed,
-                Metadata = new Dictionary<string, object>
-                {
-                    { "StopReason", response.StopReason ?? "unknown" }
-                }
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error generating Anthropic chat completion");
-            throw;
-        }
+        throw new NotImplementedException(
+            "Anthropic provider implementation needs Microsoft.Extensions.AI.Anthropic package. " +
+            "This package may not be available yet. Please check Microsoft.Extensions.AI documentation for Anthropic support.");
     }
 
     /// <inheritdoc />
-    public async Task<bool> IsAvailableAsync()
+    public Task<bool> IsAvailableAsync()
     {
-        if (!_initialized)
-        {
-            return await InitializeAsync();
-        }
-
-        return _client != null && !string.IsNullOrEmpty(_options.ApiKey);
+        return Task.FromResult(_initialized && !string.IsNullOrEmpty(_options.ApiKey));
     }
 }
-

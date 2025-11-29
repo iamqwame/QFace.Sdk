@@ -1,8 +1,3 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using QFace.Sdk.AI.Models;
-using QFace.Sdk.AI.Providers;
-
 namespace QFace.Sdk.AI.Services;
 
 /// <summary>

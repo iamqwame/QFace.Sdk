@@ -1,6 +1,4 @@
 using MathNet.Numerics.LinearRegression;
-using Microsoft.Extensions.Logging;
-using QFace.Sdk.AI.Models;
 
 namespace QFace.Sdk.AI.Algorithms;
 
@@ -55,7 +53,7 @@ public class RegressionAnalysisAlgorithm : IForecastAlgorithm
         var residuals = yValues.Select((y, i) => y - (intercept + slope * xValues[i])).ToArray();
         var residualVariance = residuals.Sum(r => r * r) / (dataCount - 2);
         var standardError = Math.Sqrt(residualVariance);
-        var zScore = GetZScore(confidenceLevel);
+        var zScore = (double)GetZScore(confidenceLevel);
         var margin = (decimal)(standardError * zScore);
 
         var result = new ForecastResult
