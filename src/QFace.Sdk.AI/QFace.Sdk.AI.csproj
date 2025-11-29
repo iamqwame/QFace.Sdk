@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>QFace.Sdk.AI</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>IAmQwame</Authors>
+        <Company>QFace</Company>
+        <Description>A generic AI/ML SDK library supporting multiple LLM providers, forecasting algorithms, and skills analysis for .NET applications.</Description>
+        <PackageTags>ai;ml;llm;forecasting;regression;openai;anthropic;qface</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/iamqwame/qface-sdk</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/iamqwame/qface-sdk</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Core ML Libraries -->
+        <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+        <PackageReference Include="Microsoft.ML" Version="3.0.0" />
+        <PackageReference Include="Microsoft.ML.TimeSeries" Version="3.0.0" />
+        
+        <!-- LLM Provider SDKs -->
+        <PackageReference Include="OpenAI" Version="1.10.0" />
+        <PackageReference Include="Anthropic.SDK" Version="1.0.0" />
+        <PackageReference Include="Google.GenerativeAI" Version="2.0.0" />
+        
+        <!-- HTTP & Configuration -->
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
+        <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    </ItemGroup>
+
+    <!-- Documentation files -->
+    <ItemGroup>
+        <None Include="$(SolutionDir)README.md" Pack="true" PackagePath="\" />
+        <None Include="$(SolutionDir)docs\ai-sdk.md" Pack="true" PackagePath="content\docs\" />
+        <None Include="$(SolutionDir)docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
+    </ItemGroup>
+
+</Project>
+

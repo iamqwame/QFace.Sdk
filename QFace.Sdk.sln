@@ -86,6 +86,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.RedisMq.Api", "samples
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.ActorSystems.Api", "samples\Demo.ActorSystems.Api\Demo.ActorSystems.Api.csproj", "{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.AI", "src\QFace.Sdk.AI\QFace.Sdk.AI.csproj", "{5ECCC9A0-0723-449B-995E-08FABA91E200}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -122,6 +124,7 @@ Global
 		{D2C55536-37A4-4A5B-AA43-6A094B4C30C5} = {EE45EA75-127B-436F-AF9D-37C8F0EAC85D}
 		{55ECA3B6-2E79-4CC9-A12A-2E21C12FF575} = {EE45EA75-127B-436F-AF9D-37C8F0EAC85D}
 		{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589} = {108FEDD7-76A7-4275-968C-97F3FF941B47}
+		{5ECCC9A0-0723-449B-995E-08FABA91E200} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{5A2D54B9-AE62-41BC-B21D-1E37FB19FFBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -224,5 +227,9 @@ Global
 		{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{50CD1C98-A9CE-45C3-8D5C-D90DB0F9E589}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5ECCC9A0-0723-449B-995E-08FABA91E200}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5ECCC9A0-0723-449B-995E-08FABA91E200}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5ECCC9A0-0723-449B-995E-08FABA91E200}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5ECCC9A0-0723-449B-995E-08FABA91E200}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
