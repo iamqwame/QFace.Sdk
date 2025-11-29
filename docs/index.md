@@ -16,6 +16,10 @@ Provides a unified API for working with various message queues and event brokers
 
 A flexible data access layer that supports multiple databases and provides a clean repository pattern implementation with built-in caching and performance optimizations.
 
+### [AI/ML SDK](ai-sdk.md)
+
+A generic AI/ML SDK library supporting multiple LLM providers (OpenAI, Anthropic, Google Gemini), forecasting algorithms (Trend, Regression, ML, Manual), and skills analysis. Designed to be extensible and provider-agnostic.
+
 ## Getting Started
 
 For all SDKs, see the [installation](shared/installation.md) guide to get started with adding QFace packages to your project.

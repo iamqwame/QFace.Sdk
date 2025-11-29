@@ -1,0 +1,199 @@
+### AI SDK Demo API - HTTP Requests
+
+@baseUrl = http://localhost:5000
+@apiKey = your-api-key-here
+
+### Get API Information
+GET {{baseUrl}}/api/info
+
+### ============================================
+### Forecasting Endpoints
+### ============================================
+
+### Forecast using Trend Analysis
+POST {{baseUrl}}/api/forecast/trend
+Content-Type: application/json
+
+{
+  "historicalData": [
+    { "date": "2024-01-01T00:00:00Z", "value": 100 },
+    { "date": "2024-02-01T00:00:00Z", "value": 120 },
+    { "date": "2024-03-01T00:00:00Z", "value": 140 },
+    { "date": "2024-04-01T00:00:00Z", "value": 160 },
+    { "date": "2024-05-01T00:00:00Z", "value": 180 }
+  ],
+  "targetDate": "2024-06-01T00:00:00Z",
+  "confidenceLevel": 80
+}
+
+### Forecast using Regression Analysis
+POST {{baseUrl}}/api/forecast/regression
+Content-Type: application/json
+
+{
+  "historicalData": [
+    { "date": "2024-01-01T00:00:00Z", "value": 100 },
+    { "date": "2024-02-01T00:00:00Z", "value": 120 },
+    { "date": "2024-03-01T00:00:00Z", "value": 140 },
+    { "date": "2024-04-01T00:00:00Z", "value": 160 },
+    { "date": "2024-05-01T00:00:00Z", "value": 180 }
+  ],
+  "targetDate": "2024-06-01T00:00:00Z",
+  "confidenceLevel": 95
+}
+
+### Forecast using ML
+POST {{baseUrl}}/api/forecast/ml
+Content-Type: application/json
+
+{
+  "historicalData": [
+    { "date": "2024-01-01T00:00:00Z", "value": 100 },
+    { "date": "2024-02-01T00:00:00Z", "value": 120 },
+    { "date": "2024-03-01T00:00:00Z", "value": 140 },
+    { "date": "2024-04-01T00:00:00Z", "value": 160 },
+    { "date": "2024-05-01T00:00:00Z", "value": 180 }
+  ],
+  "targetDate": "2024-06-01T00:00:00Z"
+}
+
+### Forecast using Manual method
+POST {{baseUrl}}/api/forecast/manual
+Content-Type: application/json
+
+{
+  "targetDate": "2024-06-01T00:00:00Z",
+  "assumptions": {
+    "value": 200,
+    "lowerBound": 180,
+    "upperBound": 220
+  },
+  "confidenceLevel": 100
+}
+
+### Forecast with method selection
+POST {{baseUrl}}/api/forecast?method=Regression
+Content-Type: application/json
+
+{
+  "historicalData": [
+    { "date": "2024-01-01T00:00:00Z", "value": 100 },
+    { "date": "2024-02-01T00:00:00Z", "value": 120 },
+    { "date": "2024-03-01T00:00:00Z", "value": 140 },
+    { "date": "2024-04-01T00:00:00Z", "value": 160 },
+    { "date": "2024-05-01T00:00:00Z", "value": 180 }
+  ],
+  "targetDate": "2024-06-01T00:00:00Z"
+}
+
+### ============================================
+### LLM Endpoints
+### ============================================
+
+### Generate LLM Completion
+POST {{baseUrl}}/api/llm/completion
+Content-Type: application/json
+
+{
+  "prompt": "Explain what artificial intelligence is in simple terms.",
+  "provider": "OpenAI",
+  "model": "gpt-4",
+  "maxTokens": 500,
+  "temperature": 0.7
+}
+
+### Generate LLM Chat Completion
+POST {{baseUrl}}/api/llm/chat
+Content-Type: application/json
+
+{
+  "prompt": "What are the key differences between machine learning and deep learning?",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful AI assistant specializing in technology."
+    },
+    {
+      "role": "user",
+      "content": "I want to understand AI better."
+    }
+  ],
+  "provider": "OpenAI",
+  "model": "gpt-4"
+}
+
+### ============================================
+### Skills Analysis Endpoints
+### ============================================
+
+### Analyze Skills Gap (Rule-based)
+POST {{baseUrl}}/api/skills/analyze
+Content-Type: application/json
+
+{
+  "requiredSkills": [
+    "C#",
+    "ASP.NET Core",
+    "Entity Framework",
+    "Docker",
+    "Kubernetes",
+    "Microservices Architecture"
+  ],
+  "currentSkills": [
+    "C#",
+    "ASP.NET Core",
+    "Entity Framework",
+    "SQL Server"
+  ],
+  "useLLMForAnalysis": false
+}
+
+### Analyze Skills Gap (LLM-based)
+POST {{baseUrl}}/api/skills/analyze
+Content-Type: application/json
+
+{
+  "requiredSkills": [
+    "C#",
+    "ASP.NET Core",
+    "Entity Framework",
+    "Docker",
+    "Kubernetes",
+    "Microservices Architecture",
+    "Cloud Computing",
+    "CI/CD"
+  ],
+  "currentSkills": [
+    "C#",
+    "ASP.NET Core",
+    "Entity Framework",
+    "SQL Server",
+    "Git"
+  ],
+  "useLLMForAnalysis": true,
+  "llmProvider": "OpenAI"
+}
+
+### Generate Skills Recommendations
+POST {{baseUrl}}/api/skills/recommendations
+Content-Type: application/json
+
+{
+  "gapSkills": [
+    "Docker",
+    "Kubernetes",
+    "Microservices Architecture"
+  ],
+  "matchedSkills": [
+    "C#",
+    "ASP.NET Core",
+    "Entity Framework"
+  ],
+  "gapSeverity": {
+    "Docker": "High",
+    "Kubernetes": "High",
+    "Microservices Architecture": "Critical"
+  },
+  "recommendations": []
+}
+

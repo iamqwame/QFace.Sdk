@@ -20,11 +20,12 @@ public static class AIExtensions
         // Register options
         services.Configure<AIOptions>(configuration.GetSection(sectionName));
         
+        // Register HttpClient for Google Gemini provider
+        services.AddSingleton<HttpClient>();
+        
         // Register LLM providers
         services.AddSingleton<ILLMProvider, OpenAIProvider>();
         services.AddSingleton<ILLMProvider, AnthropicProvider>();
-        // GoogleGeminiProvider is registered but currently returns NotImplementedException
-        // until the Google.GenerativeAI NuGet package becomes available
         services.AddSingleton<ILLMProvider, GoogleGeminiProvider>();
         services.AddSingleton<LLMProviderFactory>();
         

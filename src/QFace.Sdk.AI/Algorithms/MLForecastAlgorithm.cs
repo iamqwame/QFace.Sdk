@@ -91,7 +91,7 @@ public class MLForecastAlgorithm : IForecastAlgorithm
                     { "WindowSize", Math.Min(mlData.Count / 2, 10) },
                     { "SeriesLength", mlData.Count }
                 },
-                Warnings = new List<string>()
+                Warnings = []
             };
 
             if (mlData.Count < 10)
@@ -126,7 +126,7 @@ public class MLForecastAlgorithm : IForecastAlgorithm
     private class ForecastOutput
     {
         [VectorType(1)]
-        public float[] Forecast { get; set; } = Array.Empty<float>();
+        public float[] Forecast { get; set; } = [];
     }
 }
 
