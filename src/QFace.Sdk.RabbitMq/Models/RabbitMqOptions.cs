@@ -9,7 +9,14 @@ public class RabbitMqOptions
     public bool PassiveExchange { get; set; } = true;
     public bool AutomaticRecoveryEnabled { get; set; } = true;
     public int RetryCount { get; set; } = 5;
-    public int RetryIntervalMs { get; set; } = 1000;
+    public int RetryIntervalMs { get; set; } = 2000; // Base delay for exponential backoff
+    
+    // Timeout settings
+    public int RequestedConnectionTimeout { get; set; } = 30000; // 30 seconds
+    public ushort RequestedHeartbeat { get; set; } = 60; // 60 seconds
+    public int ContinuationTimeout { get; set; } = 10000; // 10 seconds
+    public int SocketReadTimeout { get; set; } = 30000; // 30 seconds
+    
     public int PublisherInstances { get; set; } = 10;
     public int PublisherUpperBound { get; set; } = 100;
     public int ConsumerInstances { get; set; } = 10;

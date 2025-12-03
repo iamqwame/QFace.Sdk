@@ -4,21 +4,28 @@ namespace QFace.Sdk.RabbitMq.Actors
     {
         private readonly ILogger<RabbitMqConsumerActor> _logger;
         private readonly RabbitMqOptions _options;
+        /// <summary>
+        /// Root service provider (not scoped). Actors are long-lived and create scopes manually when needed.
+        /// </summary>
         private readonly IServiceProvider _serviceProvider;
         private readonly ConsumerMetadata _consumerMetadata;
         private IConnection _connection;
         private IModel _channel;
         private string _consumerTag;
 
+        /// <summary>
+        /// Initializes a new instance of RabbitMqConsumerActor.
+        /// Note: Uses IServiceProvider (root, not scoped) to create scopes manually when processing messages.
+        /// </summary>
         public RabbitMqConsumerActor(
             ILogger<RabbitMqConsumerActor> logger,
             IOptions<RabbitMqOptions> options,
-            IServiceProvider serviceProvider,
+            IServiceProvider serviceProvider, // Root service provider - actors are long-lived
             ConsumerMetadata consumerMetadata)
         {
             _logger = logger;
             _options = options.Value;
-            _serviceProvider = serviceProvider;
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _consumerMetadata = consumerMetadata;
 
             Initialize();
@@ -30,112 +37,150 @@ namespace QFace.Sdk.RabbitMq.Actors
 
         private void Initialize()
         {
-            try
+            var exchangeName = _consumerMetadata.TopicAttribute.ExchangeName;
+            _logger.LogInformation(
+                $"[RabbitMQ] Initializing consumer actor for {_consumerMetadata.ConsumerType.Name}.{_consumerMetadata.HandlerMethod.Name}");
+
+            // Retry initialization with exponential backoff
+            int attempt = 0;
+            Exception lastException = null;
+            
+            while (attempt <= _options.RetryCount)
             {
-                var exchangeName = _consumerMetadata.TopicAttribute.ExchangeName;
-                _logger.LogInformation(
-                    $"[RabbitMQ] Initializing consumer actor for {_consumerMetadata.ConsumerType.Name}.{_consumerMetadata.HandlerMethod.Name}");
-
-                var factory = new ConnectionFactory
-                {
-                    Uri = new Uri(_options.ConnectionString),
-                    AutomaticRecoveryEnabled = _options.AutomaticRecoveryEnabled
-                };
-
-                _logger.LogInformation($"[RabbitMQ] Creating connection to {factory.Uri}");
-                _connection = factory.CreateConnection();
-                _channel = _connection.CreateModel();
-                _logger.LogInformation($"[RabbitMQ] Connection created successfully");
-
                 try
                 {
-                    if (_options.PassiveExchange)
+                    var factory = Services.ConnectionFactoryHelper.CreateConnectionFactory(_options);
+                    
+                    _logger.LogInformation($"[RabbitMQ] Creating connection to {factory.Uri} (attempt {attempt + 1}/{_options.RetryCount + 1})");
+                    _connection = factory.CreateConnection();
+                    _channel = _connection.CreateModel();
+                    _logger.LogInformation($"[RabbitMQ] Connection created successfully");
+
+                    try
                     {
-                        // Check if exchange exists with passive declare
-                        try
+                        if (_options.PassiveExchange)
                         {
-                            _logger.LogInformation(
-                                $"[RabbitMQ] Checking if exchange '{exchangeName}' exists (passive mode)");
-                            _channel.ExchangeDeclarePassive(exchangeName);
-                            _logger.LogInformation($"[RabbitMQ] Exchange '{exchangeName}' exists");
+                            // Check if exchange exists with passive declare
+                            try
+                            {
+                                _logger.LogInformation(
+                                    $"[RabbitMQ] Checking if exchange '{exchangeName}' exists (passive mode)");
+                                _channel.ExchangeDeclarePassive(exchangeName);
+                                _logger.LogInformation($"[RabbitMQ] Exchange '{exchangeName}' exists");
+                            }
+                            catch (Exception)
+                            {
+                                _logger.LogInformation(
+                                    $"[RabbitMQ] Exchange '{exchangeName}' doesn't exist, will create it");
+
+                                // Need to recreate channel since it's closed after a passive declare failure
+                                _channel?.Dispose();
+                                _channel = _connection.CreateModel();
+
+                                _channel.ExchangeDeclare(
+                                    exchange: exchangeName,
+                                    type: _options.ExchangeType,
+                                    durable: true,
+                                    autoDelete: false
+                                );
+                                _logger.LogInformation($"[RabbitMQ] Successfully created exchange '{exchangeName}'");
+                            }
                         }
-                        catch (Exception)
+                        else
                         {
-                            _logger.LogInformation(
-                                $"[RabbitMQ] Exchange '{exchangeName}' doesn't exist, will create it");
-
-                            // Need to recreate channel since it's closed after a passive declare failure
-                            _channel?.Dispose();
-                            _channel = _connection.CreateModel();
-
+                            // Just try to create the exchange directly (will verify if it exists with correct settings)
+                            _logger.LogInformation($"[RabbitMQ] Creating exchange '{exchangeName}' if needed");
                             _channel.ExchangeDeclare(
                                 exchange: exchangeName,
                                 type: _options.ExchangeType,
                                 durable: true,
                                 autoDelete: false
                             );
-                            _logger.LogInformation($"[RabbitMQ] Successfully created exchange '{exchangeName}'");
+                            _logger.LogInformation($"[RabbitMQ] Exchange '{exchangeName}' is ready");
                         }
+
+                        // Rest of the initialization code...
+                        var queueName = string.IsNullOrEmpty(_consumerMetadata.TopicAttribute.QueueName)
+                            ? $"{_consumerMetadata.ConsumerType.Name}_{_consumerMetadata.HandlerMethod.Name}_queue"
+                            : _consumerMetadata.TopicAttribute.QueueName;
+
+                        _logger.LogInformation($"[RabbitMQ] Using queue name: '{queueName}'");
+
+                        _channel.QueueDeclare(
+                            queue: queueName,
+                            durable: _consumerMetadata.TopicAttribute.Durable,
+                            exclusive: false,
+                            autoDelete: _consumerMetadata.TopicAttribute.AutoDelete
+                        );
+
+                        var routingKey = _options.ExchangeType == ExchangeType.Fanout
+                            ? ""
+                            : _consumerMetadata.TopicAttribute.RoutingKey;
+
+                        _channel.QueueBind(
+                            queue: queueName,
+                            exchange: exchangeName,
+                            routingKey: routingKey
+                        );
+
+                        _channel.BasicQos(
+                            prefetchSize: 0,
+                            prefetchCount: (ushort)_consumerMetadata.TopicAttribute.PrefetchCount,
+                            global: false
+                        );
+
+                        _consumerMetadata.TopicAttribute.QueueName = queueName;
+
+                        _logger.LogInformation(
+                            $"[RabbitMQ] Consumer actor initialized for queue '{queueName}' with routing key '{routingKey}' on exchange '{exchangeName}'");
+                        
+                        // Success - break out of retry loop
+                        return;
+                    }
+                    catch (Exception exchangeEx)
+                    {
+                        _logger.LogError(exchangeEx, $"[RabbitMQ] Failed to declare exchange: {exchangeEx.Message}");
+                        throw;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    attempt++;
+                    
+                    if (attempt <= _options.RetryCount)
+                    {
+                        var delay = Services.ConnectionFactoryHelper.CalculateExponentialBackoff(
+                            _options.RetryIntervalMs, 
+                            attempt - 1
+                        );
+                        
+                        _logger.LogWarning(
+                            $"[RabbitMQ] Initialization attempt {attempt} failed: {ex.Message}. " +
+                            $"Retrying in {delay}ms (attempt {attempt + 1}/{_options.RetryCount + 1})...");
+                        
+                        // Clean up failed connection
+                        try
+                        {
+                            _channel?.Dispose();
+                            _connection?.Dispose();
+                        }
+                        catch { }
+                        
+                        Thread.Sleep(delay);
                     }
                     else
                     {
-                        // Just try to create the exchange directly (will verify if it exists with correct settings)
-                        _logger.LogInformation($"[RabbitMQ] Creating exchange '{exchangeName}' if needed");
-                        _channel.ExchangeDeclare(
-                            exchange: exchangeName,
-                            type: _options.ExchangeType,
-                            durable: true,
-                            autoDelete: false
-                        );
-                        _logger.LogInformation($"[RabbitMQ] Exchange '{exchangeName}' is ready");
+                        _logger.LogError(ex, 
+                            $"[RabbitMQ] Failed to initialize consumer actor after {_options.RetryCount + 1} attempts: {ex.Message}");
                     }
-
-                    // Rest of the initialization code...
-                    var queueName = string.IsNullOrEmpty(_consumerMetadata.TopicAttribute.QueueName)
-                        ? $"{_consumerMetadata.ConsumerType.Name}_{_consumerMetadata.HandlerMethod.Name}_queue"
-                        : _consumerMetadata.TopicAttribute.QueueName;
-
-                    _logger.LogInformation($"[RabbitMQ] Using queue name: '{queueName}'");
-
-                    _channel.QueueDeclare(
-                        queue: queueName,
-                        durable: _consumerMetadata.TopicAttribute.Durable,
-                        exclusive: false,
-                        autoDelete: _consumerMetadata.TopicAttribute.AutoDelete
-                    );
-
-                    var routingKey = _options.ExchangeType == ExchangeType.Fanout
-                        ? ""
-                        : _consumerMetadata.TopicAttribute.RoutingKey;
-
-                    _channel.QueueBind(
-                        queue: queueName,
-                        exchange: exchangeName,
-                        routingKey: routingKey
-                    );
-
-                    _channel.BasicQos(
-                        prefetchSize: 0,
-                        prefetchCount: (ushort)_consumerMetadata.TopicAttribute.PrefetchCount,
-                        global: false
-                    );
-
-                    _consumerMetadata.TopicAttribute.QueueName = queueName;
-
-                    _logger.LogInformation(
-                        $"[RabbitMQ] Consumer actor initialized for queue '{queueName}' with routing key '{routingKey}' on exchange '{exchangeName}'");
-                }
-                catch (Exception exchangeEx)
-                {
-                    _logger.LogError(exchangeEx, $"[RabbitMQ] Failed to declare exchange: {exchangeEx.Message}");
-                    throw;
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"[RabbitMQ] Failed to initialize consumer actor: {ex.Message}");
-                throw;
-            }
+            
+            // If we get here, all retries failed
+            throw new InvalidOperationException(
+                $"Failed to initialize RabbitMQ consumer actor after {_options.RetryCount + 1} attempts", 
+                lastException);
         }
 
         private void StartConsuming()

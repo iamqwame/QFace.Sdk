@@ -16,11 +16,7 @@ public class RabbitMqConnectionProvider : IDisposable
 
         try
         {
-            var factory = new ConnectionFactory
-            {
-                Uri = new Uri(_options.ConnectionString),
-                AutomaticRecoveryEnabled = _options.AutomaticRecoveryEnabled
-            };
+            var factory = ConnectionFactoryHelper.CreateConnectionFactory(_options);
 
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();

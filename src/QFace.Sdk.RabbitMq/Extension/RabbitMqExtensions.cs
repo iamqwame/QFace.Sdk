@@ -303,11 +303,7 @@ public static class RabbitMqExtensions
         try
         {
             InitializeConsumer(options);
-            var factory = new ConnectionFactory
-            {
-                Uri = new Uri(options.ConnectionString),
-                AutomaticRecoveryEnabled = options.AutomaticRecoveryEnabled
-            };
+            var factory = Services.ConnectionFactoryHelper.CreateConnectionFactory(options);
 
             var connection = factory.CreateConnection();
             var channel = connection.CreateModel();

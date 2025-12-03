@@ -31,12 +31,7 @@ namespace QFace.Sdk.RabbitMq.Actors
                 // Only initialize if we don't have a connection
                 if (_connection == null || !_connection.IsOpen)
                 {
-                    var factory = new ConnectionFactory
-                    {
-                        Uri = new Uri(_options.ConnectionString),
-                        AutomaticRecoveryEnabled = _options.AutomaticRecoveryEnabled
-                    };
-
+                    var factory = Services.ConnectionFactoryHelper.CreateConnectionFactory(_options);
                     _connection = factory.CreateConnection();
                 }
 
@@ -171,8 +166,12 @@ namespace QFace.Sdk.RabbitMq.Actors
                     
                     if (currentRetry < _options.RetryCount)
                     {
-                        _logger.LogInformation($"[RabbitMQ] Retrying publish ({currentRetry + 1}/{_options.RetryCount})...");
-                        await Task.Delay(_options.RetryIntervalMs);
+                        var delay = Services.ConnectionFactoryHelper.CalculateExponentialBackoff(
+                            _options.RetryIntervalMs, 
+                            currentRetry
+                        );
+                        _logger.LogInformation($"[RabbitMQ] Retrying publish ({currentRetry + 1}/{_options.RetryCount}) in {delay}ms...");
+                        await Task.Delay(delay);
                         return await PublishWithRetryAsync(message, routingKey, exchangeName, currentRetry + 1);
                     }
                     
@@ -185,7 +184,11 @@ namespace QFace.Sdk.RabbitMq.Actors
                 
                 if (currentRetry < _options.RetryCount)
                 {
-                    _logger.LogInformation($"[RabbitMQ] Retrying publish after error ({currentRetry + 1}/{_options.RetryCount})...");
+                    var delay = Services.ConnectionFactoryHelper.CalculateExponentialBackoff(
+                        _options.RetryIntervalMs, 
+                        currentRetry
+                    );
+                    _logger.LogInformation($"[RabbitMQ] Retrying publish after error ({currentRetry + 1}/{_options.RetryCount}) in {delay}ms...");
                     
                     // If we get a channel-related error, try to reinitialize
                     if (ex is RabbitMQ.Client.Exceptions.AlreadyClosedException || 
@@ -199,7 +202,7 @@ namespace QFace.Sdk.RabbitMq.Actors
                         }
                     }
                     
-                    await Task.Delay(_options.RetryIntervalMs);
+                    await Task.Delay(delay);
                     return await PublishWithRetryAsync(message, routingKey, exchangeName, currentRetry + 1);
                 }
                 

@@ -39,11 +39,14 @@ namespace QFace.Sdk.RabbitMq.Actors
                         $"{consumer.HandlerMethod.Name} with routing key '{consumer.TopicAttribute.RoutingKey}'"
                     );
         
+                    // Use manual Props.Create to avoid DI resolution issues
+                    // We manually resolve services from the root service provider (not scoped)
+                    // This ensures IServiceProvider (not IServiceScope) is injected
                     var props = Props.Create(
                         () => new RabbitMqConsumerActor(
                             _serviceProvider.GetRequiredService<ILogger<RabbitMqConsumerActor>>(),
                             _serviceProvider.GetRequiredService<IOptions<RabbitMqOptions>>(),
-                            _serviceProvider,
+                            _serviceProvider, // Root service provider - actors are long-lived
                             consumer
                         )
                     );
