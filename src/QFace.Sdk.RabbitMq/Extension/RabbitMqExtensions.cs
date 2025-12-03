@@ -51,7 +51,7 @@ public static class RabbitMqExtensions
         // Register RabbitMQ consumers if assemblies are provided
         if (consumerAssemblies.Length > 0)
         {
-            services.AddRabbitMqConsumers(consumerAssemblies);
+            services.AddRabbitMqConsumers(configuration, consumerAssemblies);
         }
 
         return services;
@@ -86,7 +86,7 @@ public static class RabbitMqExtensions
     /// Adds only the RabbitMQ consumer functionality to the service collection
     /// </summary>
     public static IServiceCollection AddRabbitMqConsumers(this IServiceCollection services,
-        params Assembly[] assemblies)
+        IConfiguration configuration, params Assembly[] assemblies)
     {
         // Validate assemblies
         if (assemblies == null || assemblies.Length == 0)
@@ -171,6 +171,58 @@ public static class RabbitMqExtensions
             foreach (var method in methods)
             {
                 var topicAttr = method.GetCustomAttribute<TopicAttribute>();
+                
+                // If ConfigurationKey is provided and configuration is available, read values from configuration
+                if (!string.IsNullOrEmpty(topicAttr.ConfigurationKey) && configuration != null)
+                {
+                    var configKey = $"RabbitMq:Consumers:{topicAttr.ConfigurationKey}";
+                    var configExchangeName = configuration[configKey + ":ExchangeName"];
+                    var configQueueName = configuration[configKey + ":QueueName"];
+                    var configRoutingKey = configuration[configKey + ":RoutingKey"];
+                    var configDurable = configuration[configKey + ":Durable"];
+                    var configAutoDelete = configuration[configKey + ":AutoDelete"];
+                    var configPrefetchCount = configuration[configKey + ":PrefetchCount"];
+                    
+                    // Override attribute values with configuration if present
+                    if (!string.IsNullOrEmpty(configExchangeName))
+                    {
+                        topicAttr.ExchangeName = configExchangeName;
+                    }
+                    
+                    if (!string.IsNullOrEmpty(configQueueName))
+                    {
+                        topicAttr.QueueName = configQueueName;
+                    }
+                    
+                    if (!string.IsNullOrEmpty(configRoutingKey))
+                    {
+                        topicAttr.RoutingKey = configRoutingKey;
+                    }
+                    
+                    if (bool.TryParse(configDurable, out var durable))
+                    {
+                        topicAttr.Durable = durable;
+                    }
+                    
+                    if (bool.TryParse(configAutoDelete, out var autoDelete))
+                    {
+                        topicAttr.AutoDelete = autoDelete;
+                    }
+                    
+                    if (int.TryParse(configPrefetchCount, out var prefetchCount))
+                    {
+                        topicAttr.PrefetchCount = prefetchCount;
+                    }
+                    
+                    logger.LogInformation(
+                        $"Loaded configuration for '{topicAttr.ConfigurationKey}': Exchange='{topicAttr.ExchangeName}', Queue='{topicAttr.QueueName}'");
+                }
+                else if (!string.IsNullOrEmpty(topicAttr.ConfigurationKey) && configuration == null)
+                {
+                    logger.LogWarning(
+                        $"ConfigurationKey '{topicAttr.ConfigurationKey}' specified but IConfiguration is null. Using attribute values as fallback.");
+                }
+                
                 consumerMetadata.Add(new ConsumerMetadata
                 {
                     ConsumerType = consumerType,

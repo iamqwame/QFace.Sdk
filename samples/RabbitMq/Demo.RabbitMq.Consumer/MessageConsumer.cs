@@ -11,10 +11,7 @@ public class MessageConsumer
     {
         _logger = logger;
     }
-    [Topic(
-        exchangeName: "umat.core.admissions_payment_made.prod_exchange",
-        queueName:    "umat.admissions.payment.queue"
-    )]
+    [Topic("PaymentMadeHandler")]
     public async Task HandleImportantMessage(PublishRequest message)
     {
         _logger.LogInformation("=== IMPORTANT MESSAGE RECEIVED ===");
