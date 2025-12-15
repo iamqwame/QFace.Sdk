@@ -1,0 +1,89 @@
+### Redis Cache API Test File
+
+@baseUrl = http://localhost:5000
+
+### Basic Cache Operations
+
+### Get value from cache
+GET {{baseUrl}}/cache/mykey
+
+### Set value in cache
+POST {{baseUrl}}/cache/mykey
+Content-Type: application/json
+
+{
+  "value": "Hello Redis Cache!",
+  "expirationMinutes": 60
+}
+
+### Check if key exists
+GET {{baseUrl}}/cache/mykey/exists
+
+### Delete key from cache
+DELETE {{baseUrl}}/cache/mykey
+
+### User Cache (GetOrSet Pattern)
+
+### Get user (will cache if not exists)
+GET {{baseUrl}}/users/123
+
+### Hash Operations
+
+### Get hash field
+GET {{baseUrl}}/cache/user:123/hash/email
+
+### Set hash field
+POST {{baseUrl}}/cache/user:123/hash/email
+Content-Type: application/json
+
+{
+  "value": "user123@example.com"
+}
+
+### Get all hash fields
+GET {{baseUrl}}/cache/user:123/hash
+
+### List Operations
+
+### Add to list
+POST {{baseUrl}}/cache/notifications:123/list
+Content-Type: application/json
+
+{
+  "value": "New notification message"
+}
+
+### Get list range
+GET {{baseUrl}}/cache/notifications:123/list?start=0&stop=-1
+
+### Set Operations
+
+### Add to set
+POST {{baseUrl}}/cache/tags:post:123/set
+Content-Type: application/json
+
+{
+  "value": "technology"
+}
+
+### Get all set members
+GET {{baseUrl}}/cache/tags:post:123/set
+
+### Batch Operations
+
+### Set multiple values
+POST {{baseUrl}}/cache/batch
+Content-Type: application/json
+
+{
+  "items": {
+    "key1": "value1",
+    "key2": "value2",
+    "key3": "value3"
+  },
+  "expirationMinutes": 30
+}
+
+### Get multiple values
+GET {{baseUrl}}/cache/batch?keys=key1&keys=key2&keys=key3
+

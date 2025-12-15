@@ -1,4 +1,127 @@
-# Redis Pub/Sub Demo
+# Redis SDK Demos
+
+This directory contains demo applications showing how to use the QFace Redis SDKs:
+- **QFace.Sdk.RedisMq** - Redis Pub/Sub messaging
+- **QFace.Sdk.RedisCache** - Redis caching with multi-provider support
+
+---
+
+## Redis Cache Demo (QFace.Sdk.RedisCache)
+
+### Quick Start
+
+1. **Start Redis Server** (for StackExchange provider)
+   ```bash
+   redis-server
+   ```
+
+2. **Run the Cache API**
+   ```bash
+   cd Demo.RedisCache.Api
+   dotnet run
+   ```
+
+3. **Test the endpoints**
+   ```bash
+   # Set a value
+   curl -X POST http://localhost:5000/cache/mykey \
+     -H "Content-Type: application/json" \
+     -d '{"value": "Hello Cache!", "expirationMinutes": 60}'
+   
+   # Get a value
+   curl http://localhost:5000/cache/mykey
+   ```
+
+### Available Endpoints
+
+#### Basic Operations
+- `GET /cache/{key}` - Get value from cache
+- `POST /cache/{key}` - Set value in cache
+- `DELETE /cache/{key}` - Remove key from cache
+- `GET /cache/{key}/exists` - Check if key exists and get TTL
+
+#### User Cache (GetOrSet Pattern)
+- `GET /users/{id}` - Get user (caches automatically)
+
+#### Hash Operations
+- `GET /cache/{key}/hash/{field}` - Get hash field value
+- `POST /cache/{key}/hash/{field}` - Set hash field value
+- `GET /cache/{key}/hash` - Get all hash fields
+
+#### List Operations
+- `POST /cache/{key}/list` - Add value to list
+- `GET /cache/{key}/list?start=0&stop=-1` - Get list range
+
+#### Set Operations
+- `POST /cache/{key}/set` - Add value to set
+- `GET /cache/{key}/set` - Get all set members
+
+#### Batch Operations
+- `POST /cache/batch` - Set multiple values
+- `GET /cache/batch?keys=key1&keys=key2` - Get multiple values
+
+### Configuration
+
+#### StackExchange Provider (Default)
+```json
+{
+  "RedisCache": {
+    "Provider": "StackExchange",
+    "KeyPrefix": "demo:cache:",
+    "DefaultExpiration": "00:30:00",
+    "StackExchange": {
+      "ConnectionString": "localhost:6379",
+      "Database": 0
+    }
+  }
+}
+```
+
+#### Upstash Provider
+```json
+{
+  "RedisCache": {
+    "Provider": "Upstash",
+    "KeyPrefix": "demo:cache:",
+    "DefaultExpiration": "00:30:00",
+    "Upstash": {
+      "Url": "https://your-redis.upstash.io",
+      "Token": "your-upstash-token"
+    }
+  }
+}
+```
+
+### Features Demonstrated
+
+- ✅ **Multi-Provider Support**: Switch between Upstash and StackExchange.Redis
+- ✅ **Basic Caching**: Get, Set, Delete operations
+- ✅ **GetOrSet Pattern**: Automatic caching with factory functions
+- ✅ **Hash Operations**: Store and retrieve hash data structures
+- ✅ **List Operations**: Push, pop, and range operations
+- ✅ **Set Operations**: Add, check membership, get all members
+- ✅ **Batch Operations**: Efficient bulk operations
+- ✅ **TTL Management**: Expiration and time-to-live queries
+
+### Usage Example
+
+```csharp
+// GetOrSet pattern (recommended)
+var user = await _cache.GetOrSetAsync(
+    $"user:{userId}",
+    async () => await _dbContext.Users.FindAsync(userId),
+    TimeSpan.FromHours(1)
+);
+
+// Basic operations
+await _cache.SetAsync("key", "value", TimeSpan.FromMinutes(30));
+var value = await _cache.GetAsync<string>("key");
+await _cache.RemoveAsync("key");
+```
+
+---
+
+## Redis Pub/Sub Demo (QFace.Sdk.RedisMq)
 
 This directory contains demo applications showing how to use the QFace.Sdk.RedisMq library.
 

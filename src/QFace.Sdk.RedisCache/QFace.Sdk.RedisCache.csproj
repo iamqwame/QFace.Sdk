@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>QFace.Sdk.RedisCache</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>IAmQwame</Authors>
+        <Company>QFace</Company>
+        <Description>A Redis caching SDK for .NET applications supporting both Upstash Redis (HTTP) and standard Redis (StackExchange.Redis TCP).</Description>
+        <PackageTags>redis;cache;upstash;stackexchange;caching;qface</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/iamqwame/qface-sdk</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/iamqwame/qface-sdk</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- For Upstash provider (HTTP) -->
+        <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
+        
+        <!-- For StackExchange provider (TCP) -->
+        <PackageReference Include="StackExchange.Redis" Version="2.6.122" />
+        
+        <!-- Common dependencies -->
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+
+    <!-- Documentation files -->
+    <ItemGroup>
+        <None Include="$(SolutionDir)README.md" Pack="true" PackagePath="\" />
+        <None Include="$(SolutionDir)docs\redis-cache.md" Pack="true" PackagePath="content\docs\" />
+        <None Include="$(SolutionDir)docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
+    </ItemGroup>
+
+</Project>
+
