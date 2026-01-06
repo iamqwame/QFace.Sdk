@@ -20,8 +20,20 @@ public static class SendMessageExtensions
         // Register configuration
         services.Configure<MessageConfig>(configuration.GetSection("MessageSettings"));
             
-        // Register providers
-        services.AddSingleton<IEmailProvider, SmtpEmailProvider>();
+        // Register email provider based on configuration
+        var messageConfig = configuration.GetSection("MessageSettings").Get<MessageConfig>();
+        var emailProvider = messageConfig?.Email?.Provider?.ToUpperInvariant();
+        
+        if (emailProvider == "GRAPH")
+        {
+            services.AddSingleton<IEmailProvider, GraphEmailProvider>();
+        }
+        else
+        {
+            services.AddSingleton<IEmailProvider, SmtpEmailProvider>();
+        }
+        
+        // Register SMS provider
         services.AddSingleton<ISmsProvider, RestSmsProvider>();
             
         // Register message service

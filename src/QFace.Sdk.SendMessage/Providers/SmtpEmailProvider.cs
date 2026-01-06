@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Options;
-
 namespace QFace.Sdk.SendMessage.Providers;
 
 /// <summary>

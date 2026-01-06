@@ -5,10 +5,24 @@ namespace QFace.Sdk.SendMessage.Models;
 /// </summary>
 public class EmailConfig
 {
+    /// <summary>
+    /// Email provider type: "SMTP" or "Graph"
+    /// </summary>
+    public string Provider { get; set; } = "SMTP";
+    
+    // SMTP Settings
     public string SmtpServer { get; set; }
     public int SmtpPort { get; set; } = 587;
     public string SmtpUser { get; set; }
     public string SmtpPassword { get; set; }
+    
+    // Microsoft Graph Settings
+    public string TenantId { get; set; }
+    public string ClientId { get; set; }
+    public string ClientSecret { get; set; }
+    public string SendAsUser { get; set; }
+    
+    // Common Settings
     public string FromEmail { get; set; }
     public string FromName { get; set; }
     public bool IsLocalHost { get; set; } = false;
