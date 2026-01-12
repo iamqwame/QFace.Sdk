@@ -4,7 +4,7 @@ namespace QimErp.Shared.Common.Events;
 /// Learning payment events for cross-module communication.
 /// These events are consumed by other modules (e.g., Payroll) without direct module references.
 /// </summary>
-public class SubscriptionCreatedEvent : DomainEvent
+public class LearningSubscriptionCreatedEvent : DomainEvent
 {
     public Guid SubscriptionId { get; set; }
     public string SubscriptionCode { get; set; } = string.Empty;
@@ -14,7 +14,7 @@ public class SubscriptionCreatedEvent : DomainEvent
     public decimal Amount { get; set; }
     public int SubscriptionYear { get; set; }
 
-    public SubscriptionCreatedEvent(
+    public LearningSubscriptionCreatedEvent(
         string tenantId,
         string userEmail,
         string? triggeredBy = null,
@@ -24,7 +24,7 @@ public class SubscriptionCreatedEvent : DomainEvent
     }
 }
 
-public class SubscriptionFinanceApprovedEvent : DomainEvent
+public class LearningSubscriptionFinanceApprovedEvent : DomainEvent
 {
     public Guid SubscriptionId { get; set; }
     public string SubscriptionCode { get; set; } = string.Empty;
@@ -32,7 +32,7 @@ public class SubscriptionFinanceApprovedEvent : DomainEvent
     public string? ApprovedByName { get; set; }
     public DateTime ApprovedDate { get; set; }
 
-    public SubscriptionFinanceApprovedEvent(
+    public LearningSubscriptionFinanceApprovedEvent(
         string tenantId,
         string userEmail,
         string? triggeredBy = null,
@@ -42,14 +42,14 @@ public class SubscriptionFinanceApprovedEvent : DomainEvent
     }
 }
 
-public class SubscriptionPaidEvent : DomainEvent
+public class LearningSubscriptionPaidEvent : DomainEvent
 {
     public Guid SubscriptionId { get; set; }
     public string SubscriptionCode { get; set; } = string.Empty;
     public DateTime PaymentDate { get; set; }
     public string? PaymentReference { get; set; }
 
-    public SubscriptionPaidEvent(
+    public LearningSubscriptionPaidEvent(
         string tenantId,
         string userEmail,
         string? triggeredBy = null,
