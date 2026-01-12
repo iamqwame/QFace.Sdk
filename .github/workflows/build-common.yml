@@ -1,0 +1,72 @@
+name: Build and Publish QimErp.Shared.Common
+
+on:
+  push:
+    branches: [main, master, developments]
+    tags: ["v*.*.*"]
+    paths:
+      - 'src/QimErp.Shared.Common/**'
+      - '.github/workflows/build-common.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build and Pack QimErp.Shared.Common
+        run: |
+          mkdir -p ./nupkgs
+          
+          # First, build the project to ensure everything compiles
+          echo "🔨 Building QimErp.Shared.Common..."
+          if [ -f "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj" ]; then
+            echo "Building QimErp.Shared.Common..."
+            dotnet restore "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj"
+            dotnet build "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj" -c Release --no-restore
+            echo "  ✓ Built QimErp.Shared.Common"
+          else
+            echo "ERROR: QimErp.Shared.Common.csproj not found"
+            exit 1
+          fi
+          
+          echo ""
+          echo "📦 Packing NuGet package..."
+          
+          # Pack if it has PackageId
+          if grep -q "<PackageId>" "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj"; then
+            # Check if project is explicitly set to not be packable
+            if grep -q "<IsPackable>false</IsPackable>" "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj"; then
+              echo "  ⏭ Skipping QimErp.Shared.Common (IsPackable=false)"
+            else
+              echo "  📦 Packing QimErp.Shared.Common..."
+              dotnet pack "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj" -c Release --no-build -o ./nupkgs
+              echo "  ✓ Packed QimErp.Shared.Common"
+            fi
+          else
+            echo "  ⏭ Skipping QimErp.Shared.Common (no PackageId found - not a NuGet package)"
+          fi
+          
+          echo ""
+          echo "📦 Created packages:"
+          ls -la ./nupkgs/ || echo "No packages were created"
+
+      - name: Publish to NuGet
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/developments' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') && hashFiles('./nupkgs/*.nupkg') != ''
+        run: |
+          if [ -z "$(ls -A ./nupkgs/*.nupkg 2>/dev/null)" ]; then
+            echo "No packages to publish"
+            exit 0
+          fi
+          
+          for package in ./nupkgs/*.nupkg; do
+            echo "📤 Publishing $(basename "$package")..."
+            dotnet nuget push "$package" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+            echo "  ✓ Published $(basename "$package")"
+          done
