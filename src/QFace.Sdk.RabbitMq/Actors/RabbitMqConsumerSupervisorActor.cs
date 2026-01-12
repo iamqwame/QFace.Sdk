@@ -30,6 +30,13 @@ namespace QFace.Sdk.RabbitMq.Actors
         {
             _logger.LogInformation($"[RabbitMQ] Starting {_consumers.Count} consumers");
 
+            // Get shared connection for all consumers (registered as singleton)
+            // This reduces connection count from N (one per consumer) to 1 (shared)
+            var connectionProvider = _serviceProvider.GetRequiredService<RabbitMqConnectionProvider>();
+            var sharedConnection = connectionProvider.Connection;
+            
+            _logger.LogInformation($"[RabbitMQ] Using shared connection for all {_consumers.Count} consumers");
+
             foreach (var consumer in _consumers)
             {
                 try
@@ -42,12 +49,14 @@ namespace QFace.Sdk.RabbitMq.Actors
                     // Use manual Props.Create to avoid DI resolution issues
                     // We manually resolve services from the root service provider (not scoped)
                     // This ensures IServiceProvider (not IServiceScope) is injected
+                    // Pass shared connection to avoid creating one connection per consumer
                     var props = Props.Create(
                         () => new RabbitMqConsumerActor(
                             _serviceProvider.GetRequiredService<ILogger<RabbitMqConsumerActor>>(),
                             _serviceProvider.GetRequiredService<IOptions<RabbitMqOptions>>(),
                             _serviceProvider, // Root service provider - actors are long-lived
-                            consumer
+                            consumer,
+                            sharedConnection // Shared connection - all consumers use the same connection
                         )
                     );
 

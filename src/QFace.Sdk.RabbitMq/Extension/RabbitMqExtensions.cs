@@ -95,6 +95,19 @@ public static class RabbitMqExtensions
                 nameof(assemblies));
         }
 
+        // Ensure RabbitMqOptions is configured
+        if (!services.Any(s => s.ServiceType == typeof(IConfigureOptions<RabbitMqOptions>)))
+        {
+            services.Configure<RabbitMqOptions>(configuration.GetSection("RabbitMq"));
+        }
+
+        // Register connection provider as singleton if not already registered
+        // This is required for shared connection across all consumer actors
+        if (!services.Any(s => s.ServiceType == typeof(RabbitMqConnectionProvider)))
+        {
+            services.AddSingleton<RabbitMqConnectionProvider>();
+        }
+
         // Configure logging for diagnostic purposes
         var logger = LoggerFactory.Create(builder => builder.AddConsole())
             .CreateLogger("RabbitMQ Consumer Discovery");
