@@ -6,7 +6,8 @@ public class RabbitMqOptions
     public string ExchangeType { get; set; } =RabbitMQ.Client.ExchangeType.Fanout;
         
     // Add option to passively check exchange (not try to create/modify it)
-    public bool PassiveExchange { get; set; } = true;
+    // WARNING: Only set to true if exchanges are pre-created by RabbitMQ admins
+    public bool PassiveExchange { get; set; } = false;
     public bool AutomaticRecoveryEnabled { get; set; } = true;
     public int RetryCount { get; set; } = 5;
     public int RetryIntervalMs { get; set; } = 2000; // Base delay for exponential backoff

@@ -12,13 +12,15 @@ public class MessageConsumer
         _logger = logger;
     }
     [Topic("PaymentMadeHandler")]
-    public async Task HandleImportantMessage(PublishRequest message)
+    public async Task HandlePaymentMade(PublishRequest message)
     {
-        _logger.LogInformation("=== IMPORTANT MESSAGE RECEIVED ===");
-        _logger.LogInformation($"ID: {message.PaymentItemId}");
-        _logger.LogInformation($"Content: {message.Amount}");
-        _logger.LogInformation($"Timestamp: {message.TransactionDate}");
-        _logger.LogInformation("=================================");
+        _logger.LogInformation("=== PAYMENT MADE MESSAGE RECEIVED ===");
+        _logger.LogInformation($"Transaction ID: {message.TransactionId}");
+        _logger.LogInformation($"Payment Item: {message.PaymentItemName}");
+        _logger.LogInformation($"Amount: {message.Amount} {message.Currency}");
+        _logger.LogInformation($"Customer: {message.CustomerName}");
+        _logger.LogInformation($"Date: {message.TransactionDate}");
+        _logger.LogInformation("====================================");
         
         // Simulate processing time
         await Task.Delay(500);

@@ -14,8 +14,20 @@ public class RabbitMqConnectionProvider : IDisposable
         _logger = logger;
         _options = options.Value;
 
+        // Validate configuration
+        if (string.IsNullOrEmpty(_options.ConnectionString))
+        {
+            var errorMessage = "RabbitMQ ConnectionString is not configured. " +
+                              "Please add 'RabbitMq:ConnectionString' to your appsettings.json";
+            _logger.LogError(errorMessage);
+            throw new InvalidOperationException(errorMessage);
+        }
+
         try
         {
+            _logger.LogInformation("[RabbitMQ] Initializing connection to: {ConnectionString}", 
+                MaskConnectionString(_options.ConnectionString));
+            
             var factory = ConnectionFactoryHelper.CreateConnectionFactory(_options);
 
             _connection = factory.CreateConnection();
@@ -32,6 +44,37 @@ public class RabbitMqConnectionProvider : IDisposable
 
     public IConnection Connection => _connection;
     public IModel Channel => _channel;
+
+    /// <summary>
+    /// Masks sensitive information in the connection string for logging
+    /// </summary>
+    private static string MaskConnectionString(string connectionString)
+    {
+        if (string.IsNullOrEmpty(connectionString))
+            return "null";
+
+        try
+        {
+            var uri = new Uri(connectionString);
+            var userInfo = uri.UserInfo;
+            if (!string.IsNullOrEmpty(userInfo))
+            {
+                // Mask password: user:password -> user:****
+                var parts = userInfo.Split(':');
+                if (parts.Length > 1)
+                {
+                    var maskedUserInfo = $"{parts[0]}:****";
+                    return connectionString.Replace(userInfo, maskedUserInfo);
+                }
+            }
+            return connectionString;
+        }
+        catch
+        {
+            // If parsing fails, just mask the entire string
+            return "****";
+        }
+    }
 
     public void Dispose()
     {

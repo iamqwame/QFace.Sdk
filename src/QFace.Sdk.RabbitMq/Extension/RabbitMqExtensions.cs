@@ -236,6 +236,16 @@ public static class RabbitMqExtensions
                         $"ConfigurationKey '{topicAttr.ConfigurationKey}' specified but IConfiguration is null. Using attribute values as fallback.");
                 }
                 
+                // Validate that required properties are set (either from config or attribute)
+                if (string.IsNullOrEmpty(topicAttr.ExchangeName))
+                {
+                    logger.LogError(
+                        $"ExchangeName is required for consumer '{consumerType.FullName}.{method.Name}'. " +
+                        $"Set it in configuration (RabbitMq:Consumers:{topicAttr.ConfigurationKey}:ExchangeName) or in the [Topic] attribute.");
+                    throw new InvalidOperationException(
+                        $"ExchangeName is required for consumer '{consumerType.FullName}.{method.Name}'");
+                }
+                
                 consumerMetadata.Add(new ConsumerMetadata
                 {
                     ConsumerType = consumerType,
