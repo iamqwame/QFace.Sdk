@@ -2,151 +2,110 @@ name: Build and Publish NuGet Packages
 
 on:
   push:
-    branches: [master]
+    branches: [main, master, developments]
     tags: ["v*.*.*"]
+    paths:
+      - 'src/**'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
 
-      - name: Fix documentation paths
-        run: |
-          ROOT_DIR=$(pwd)
-          
-          # Map SDK project names to their documentation files
-          declare -A SDK_DOCS=(
-            ["QFace.Sdk.ActorSystems"]="actor-system.md"
-            ["QFace.Sdk.RabbitMq"]="rabbitmq-messaging.md"
-            ["QFace.Sdk.RedisMq"]="rabbitmq-messaging.md"
-            ["QFace.Sdk.SendMessage"]="send-message.md"
-            ["QFace.Sdk.BlobStorage"]="blob-storage.md"
-            ["QFace.Sdk.MongoDb"]="mongodb.md"
-            ["QFace.Sdk.MongoDb.MultiTenant"]="mongodb.md"
-            ["QFace.Sdk.ElasticSearch"]="elasticsearch.md"
-            ["QFace.Sdk.Kafka"]="kafka-streaming.md"
-            ["QFace.Sdk.Logging"]="logging.md"
-            ["QFace.Sdk.Extensions"]="extensions.md"
-            ["QFace.Sdk.AI"]="ai-sdk.md"
-          )
-          
-          for project_dir in ./src/QFace.Sdk.*; do
-            project_name=$(basename "$project_dir")
-            echo "Processing $project_name..."
-            
-            # Skip template projects
-            if [[ "$project_name" == "QFace.WebApi.Template" ]]; then
-              echo "Skipping template project: $project_name"
-              continue
-            fi
-            
-            # Create docs directory structure
-            mkdir -p "$project_dir/docs/shared"
-            
-            # Copy README.md
-            if [ -f "README.md" ]; then
-              cp README.md "$project_dir/"
-              echo "  ✓ Copied README.md"
-            fi
-            
-            # Copy SDK-specific documentation if mapped
-            doc_file="${SDK_DOCS[$project_name]}"
-            if [ -n "$doc_file" ] && [ -f "docs/$doc_file" ]; then
-              cp "docs/$doc_file" "$project_dir/docs/"
-              echo "  ✓ Copied docs/$doc_file"
-            else
-              echo "  ⚠ No documentation mapping found for $project_name"
-            fi
-            
-            # Copy shared documentation
-            if [ -d "docs/shared" ]; then
-              cp -r docs/shared/* "$project_dir/docs/shared/"
-              echo "  ✓ Copied shared documentation"
-            fi
-            
-            # Update .csproj file paths
-            project_file="$project_dir/$project_name.csproj"
-            if [ -f "$project_file" ]; then
-              sed -i 's|<None Include="\$(SolutionDir)README.md"|<None Include="README.md"|g' "$project_file"
-              sed -i 's|<None Include="\$(SolutionDir)docs/|<None Include="docs/|g' "$project_file"
-              # Also handle PackageReadmeFile if it references SolutionDir
-              sed -i 's|<PackageReadmeFile>\$(SolutionDir)README.md</PackageReadmeFile>|<PackageReadmeFile>README.md</PackageReadmeFile>|g' "$project_file"
-              echo "  ✓ Updated .csproj paths"
-            fi
-            
-            # Verify README.md exists if PackageReadmeFile is set
-            if [ -f "$project_file" ] && grep -q "PackageReadmeFile" "$project_file"; then
-              if [ ! -f "$project_dir/README.md" ]; then
-                echo "  ⚠ WARNING: PackageReadmeFile specified but README.md not found in $project_dir"
-              fi
-            fi
-            
-            echo ""
-          done
-          
-          echo "Documentation setup complete!"
-
-      - name: Build and Pack SDK projects
+      - name: Build and Pack SDK Projects
         run: |
           mkdir -p ./nupkgs
           
-          # First, restore and build all QFace.Sdk projects
-          for project in ./src/QFace.Sdk.*/*.csproj; do
-            project_name=$(basename "$(dirname "$project")")
+          # First, build all QFace.Sdk projects to ensure everything compiles
+          echo "🔨 Building all QFace.Sdk projects..."
+          for project_file in ./src/QFace.Sdk.*/*.csproj; do
+            project_name=$(basename "$(dirname "$project_file")")
             
             # Skip template projects
             if [[ "$project_name" == "QFace.WebApi.Template" ]]; then
-              echo "Skipping template project: $project_name"
+              echo "  ⏭ Skipping $project_name (template project)"
               continue
             fi
             
-            # Skip QFace.Sdk.AI if it has prerelease dependencies (until stable versions are available)
-            # Also skip if README.md doesn't exist (documentation step may have failed)
-            if [[ "$project_name" == "QFace.Sdk.AI" ]]; then
-              echo "Skipping $project_name (has prerelease dependencies)"
-              continue
-            fi
-            
-            # Verify README.md exists before packing
-            project_dir=$(dirname "$project")
-            if [ ! -f "$project_dir/README.md" ] && grep -q "PackageReadmeFile" "$project"; then
-              echo "ERROR: README.md not found for $project_name but PackageReadmeFile is set"
-              exit 1
-            fi
-            
-            echo "Processing $project..."
-            dotnet restore "$project"
-            dotnet build "$project" -c Release --no-restore || {
-              echo "Build failed for $project_name"
-              exit 1
-            }
-            dotnet pack "$project" -c Release --no-build -o ./nupkgs || {
-              echo "Pack failed for $project_name"
-              exit 1
-            }
+            echo "Building $project_name..."
+            dotnet restore "$project_file"
+            dotnet build "$project_file" -c Release --no-restore
+            echo "  ✓ Built $project_name"
           done
           
-          # Build QimErp.Shared.Common (depends on QFace.Sdk packages from NuGet)
-          # Add local nupkgs as a NuGet source in case dependencies were just built
-          echo "Adding local nupkgs as NuGet source..."
-          dotnet nuget add source ./nupkgs --name local-packages || true
+          # Build QimErp.Shared.Common
+          if [ -f "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj" ]; then
+            echo "Building QimErp.Shared.Common..."
+            dotnet restore "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj"
+            dotnet build "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj" -c Release --no-restore
+            echo "  ✓ Built QimErp.Shared.Common"
+          fi
           
-          echo "Processing QimErp.Shared.Common..."
-          dotnet restore ./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj
-          dotnet build ./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj -c Release --no-restore
-          dotnet pack ./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj -c Release --no-build -o ./nupkgs
+          echo ""
+          echo "📦 Packing NuGet packages..."
           
-          echo "Created packages:"
-          ls -la ./nupkgs/
+          # Pack all QFace.Sdk projects with PackageId
+          for project_file in ./src/QFace.Sdk.*/*.csproj; do
+            project_name=$(basename "$(dirname "$project_file")")
+            
+            # Skip template projects
+            if [[ "$project_name" == "QFace.WebApi.Template" ]]; then
+              continue
+            fi
+            
+            # Check if the project has PackageId (indicating it's a NuGet package)
+            if grep -q "<PackageId>" "$project_file"; then
+              # Check if project is explicitly set to not be packable
+              if grep -q "<IsPackable>false</IsPackable>" "$project_file"; then
+                echo "  ⏭ Skipping $project_name (IsPackable=false)"
+                continue
+              fi
+              
+              echo "  📦 Packing $project_file..."
+              dotnet pack "$project_file" -c Release --no-build -o ./nupkgs
+              echo "  ✓ Packed $project_name"
+              echo ""
+            else
+              if [[ "$project_name" != *".Tests"* ]]; then
+                echo "  ⏭ Skipping $project_name (no PackageId found - not a NuGet package)"
+              fi
+            fi
+          done
+          
+          # Pack QimErp.Shared.Common if it has PackageId
+          if [ -f "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj" ]; then
+            if grep -q "<PackageId>" "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj"; then
+              if ! grep -q "<IsPackable>false</IsPackable>" "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj"; then
+                echo "  📦 Packing QimErp.Shared.Common..."
+                dotnet pack "./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj" -c Release --no-build -o ./nupkgs
+                echo "  ✓ Packed QimErp.Shared.Common"
+                echo ""
+              fi
+            fi
+          fi
+          
+          echo ""
+          echo "📦 Created packages:"
+          ls -la ./nupkgs/ || echo "No packages were created"
 
       - name: Publish to NuGet
-        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/developments' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') && hashFiles('./nupkgs/*.nupkg') != ''
         run: |
-          dotnet nuget push ./nupkgs/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+          if [ -z "$(ls -A ./nupkgs/*.nupkg 2>/dev/null)" ]; then
+            echo "No packages to publish"
+            exit 0
+          fi
+          
+          for package in ./nupkgs/*.nupkg; do
+            echo "📤 Publishing $(basename "$package")..."
+            dotnet nuget push "$package" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+            echo "  ✓ Published $(basename "$package")"
+          done
