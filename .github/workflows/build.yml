@@ -76,7 +76,16 @@ jobs:
             if [ -f "$project_file" ]; then
               sed -i 's|<None Include="\$(SolutionDir)README.md"|<None Include="README.md"|g' "$project_file"
               sed -i 's|<None Include="\$(SolutionDir)docs/|<None Include="docs/|g' "$project_file"
+              # Also handle PackageReadmeFile if it references SolutionDir
+              sed -i 's|<PackageReadmeFile>\$(SolutionDir)README.md</PackageReadmeFile>|<PackageReadmeFile>README.md</PackageReadmeFile>|g' "$project_file"
               echo "  ✓ Updated .csproj paths"
+            fi
+            
+            # Verify README.md exists if PackageReadmeFile is set
+            if [ -f "$project_file" ] && grep -q "PackageReadmeFile" "$project_file"; then
+              if [ ! -f "$project_dir/README.md" ]; then
+                echo "  ⚠ WARNING: PackageReadmeFile specified but README.md not found in $project_dir"
+              fi
             fi
             
             echo ""
@@ -98,10 +107,30 @@ jobs:
               continue
             fi
             
+            # Skip QFace.Sdk.AI if it has prerelease dependencies (until stable versions are available)
+            # Also skip if README.md doesn't exist (documentation step may have failed)
+            if [[ "$project_name" == "QFace.Sdk.AI" ]]; then
+              echo "Skipping $project_name (has prerelease dependencies)"
+              continue
+            fi
+            
+            # Verify README.md exists before packing
+            project_dir=$(dirname "$project")
+            if [ ! -f "$project_dir/README.md" ] && grep -q "PackageReadmeFile" "$project"; then
+              echo "ERROR: README.md not found for $project_name but PackageReadmeFile is set"
+              exit 1
+            fi
+            
             echo "Processing $project..."
             dotnet restore "$project"
-            dotnet build "$project" -c Release --no-restore
-            dotnet pack "$project" -c Release --no-build -o ./nupkgs
+            dotnet build "$project" -c Release --no-restore || {
+              echo "Build failed for $project_name"
+              exit 1
+            }
+            dotnet pack "$project" -c Release --no-build -o ./nupkgs || {
+              echo "Pack failed for $project_name"
+              exit 1
+            }
           done
           
           # Build QimErp.Shared.Common (depends on QFace.Sdk packages from NuGet)
