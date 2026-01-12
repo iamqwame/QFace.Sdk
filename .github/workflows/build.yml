@@ -103,6 +103,12 @@ jobs:
             dotnet pack "$project" -c Release --no-build -o ./nupkgs
           done
           
+          # Build QimErp.Shared.Common
+          echo "Processing QimErp.Shared.Common..."
+          dotnet restore ./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj
+          dotnet build ./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj -c Release --no-restore
+          dotnet pack ./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj -c Release --no-build -o ./nupkgs
+          
           echo "Created packages:"
           ls -la ./nupkgs/
 
