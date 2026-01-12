@@ -7,7 +7,7 @@
         
         <!-- NuGet Package Metadata -->
         <PackageId>QimErp.Shared.Common</PackageId>
-        <Version>2.0.2</Version>
+        <Version>2.0.3</Version>
         <Authors>IAmQwame</Authors>
         <Company>QimErp</Company>
         <Description>Shared common library for QimErp microservices ERP system. Contains common entities, contracts, services, and utilities used across all QimErp modules.</Description>
@@ -120,7 +120,7 @@
         <PackageReference Include="QFace.Sdk.ActorSystems" Version="1.0.1" />
         <PackageReference Include="QFace.Sdk.Extensions" Version="1.0.2" />
         <PackageReference Include="QFace.Sdk.Logging" Version="1.0.2" />
-        <PackageReference Include="QFace.Sdk.RabbitMq" Version="1.1.3" />
+        <PackageReference Include="QFace.Sdk.RabbitMq" Version="1.1.4" />
         <PackageReference Include="QFace.Sdk.SendMessage" Version="1.0.4" />
         <PackageReference Include="QFace.Sdk.AI" Version="1.0.0" />
         <PackageReference Include="QFace.Sdk.RedisCache" Version="1.0.0" />
