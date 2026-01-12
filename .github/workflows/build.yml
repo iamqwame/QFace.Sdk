@@ -88,6 +88,7 @@ jobs:
         run: |
           mkdir -p ./nupkgs
           
+          # First, restore and build all QFace.Sdk projects
           for project in ./src/QFace.Sdk.*/*.csproj; do
             project_name=$(basename "$(dirname "$project")")
             
@@ -103,7 +104,11 @@ jobs:
             dotnet pack "$project" -c Release --no-build -o ./nupkgs
           done
           
-          # Build QimErp.Shared.Common
+          # Build QimErp.Shared.Common (depends on QFace.Sdk packages from NuGet)
+          # Add local nupkgs as a NuGet source in case dependencies were just built
+          echo "Adding local nupkgs as NuGet source..."
+          dotnet nuget add source ./nupkgs --name local-packages || true
+          
           echo "Processing QimErp.Shared.Common..."
           dotnet restore ./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj
           dotnet build ./src/QimErp.Shared.Common/QimErp.Shared.Common.csproj -c Release --no-restore
