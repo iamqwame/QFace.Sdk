@@ -510,40 +510,7 @@ public static class AppConstant
 
         public static class Url
         {
-            public static class Auth
-            {
-                public const string Login = "api/auth/login";
-                public const string SocialLogin = "api/auth/social-login";
-                public const string ResetPassword = "api/auth/reset-password";
-                public const string ForgotPassword = "api/auth/forgot-password";
-                public const string AccountActivate = "api/auth/activate-account";
-                public const string RefreshToken = "api/auth/token/refresh";
-                public const string RevokeToken = "api/auth/logout";
-                public const string CurrentUser = "api/auth/me";
-                public const string CompanyInfo = "api/auth/company-info";
-                // Two-Factor Authentication URLs
-                public const string EnableTwoFactor = "api/auth/2fa/enable";
-                public const string DisableTwoFactor = "api/auth/2fa/disable";
-                public const string VerifyTwoFactorSetup = "api/auth/2fa/verify-setup";
-                public const string VerifyTwoFactorCode = "api/auth/2fa/verify-code";
-                public const string CompleteLoginWithTwoFactor = "api/auth/login/complete-2fa";
-                public const string GetTwoFactorStatus = "api/auth/2fa/status";
-                public const string RegenerateBackupCodes = "api/auth/2fa/backup-codes/regenerate";
-                public const string Registration = "api/tenants/register";
-                public const string ResendRegistrationVerification = "api/tenants/resend-verification";
-                public const string AddUserToTenant = "api/tenants/add-user";
-                public const string ValidateDomain = "api/tenants/validate";
-                public const string TenantPage = "api/tenants";
-                public const string TenantConfig = "api/tenants/config";
-
-                // Parameterized URL helpers
-                // Usage: AppConstant.Api.Url.Auth.TenantLogo(tenantId)
-                public static string TenantLogo(string tenantId) => $"{TenantPage}/{tenantId}/logo";
-                public static string TenantTheme(string tenantId) => $"{TenantPage}/{tenantId}/theme";
-
-                public static string TenantById(string id) => $"{TenantPage}/{id}";
-                // Add more parameterized URLs here as needed
-            }
+          
 
             public static class Hr
             {

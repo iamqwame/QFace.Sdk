@@ -24,4 +24,12 @@ public abstract class DomainEvent : IDomainEvent
         UserEmail = userEmail;
         UserName = userName;
     }
+    protected DomainEvent(Guid tenantId, string userEmail, string? triggeredBy = null, string? userName = null)
+    {
+        OccurredOn = DateTime.UtcNow;
+        TenantId = tenantId.ToString();
+        TriggeredBy = triggeredBy;
+        UserEmail = userEmail;
+        UserName = userName;
+    }
 }
