@@ -34,6 +34,7 @@
     <!-- API & Documentation -->
     <ItemGroup>
         <PackageReference Include="QFace.Sdk.BlobStorage" Version="1.0.3" />
+        <PackageReference Include="QFace.Sdk.Logging" Version="1.0.5" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
         <PackageReference Include="Carter" Version="9.0.0" />
@@ -57,15 +58,7 @@
 
      
         
-        <!-- WORKAROUND: Fix EF Core 9.0.0 Design Tools CodeAnalysis version conflict
-             This resolves NU1107 error in all WebApi projects that use EntityFrameworkCore.Design.
-             All three packages needed to properly override the transitive 4.8.0 dependencies.
-             Can be removed when Microsoft releases EF Core 9.0.1+ with the fix.
-             NOTE: No PrivateAssets so these flow transitively to all WebApi projects. -->
-        
-<!--        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.11.0" />-->
-<!--        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />-->
-<!--        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.11.0" />-->
+
 
         <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.11.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
@@ -119,7 +112,6 @@
     <ItemGroup>
         <PackageReference Include="QFace.Sdk.ActorSystems" Version="1.0.1" />
         <PackageReference Include="QFace.Sdk.Extensions" Version="1.0.2" />
-        <PackageReference Include="QFace.Sdk.Logging" Version="1.0.4" />
         <PackageReference Include="QFace.Sdk.RabbitMq" Version="1.1.4" />
         <PackageReference Include="QFace.Sdk.SendMessage" Version="1.0.4" />
         <PackageReference Include="QFace.Sdk.AI" Version="1.0.0" />
