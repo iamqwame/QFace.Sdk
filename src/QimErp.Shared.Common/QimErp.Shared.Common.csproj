@@ -119,7 +119,7 @@
     <ItemGroup>
         <PackageReference Include="QFace.Sdk.ActorSystems" Version="1.0.1" />
         <PackageReference Include="QFace.Sdk.Extensions" Version="1.0.2" />
-        <PackageReference Include="QFace.Sdk.Logging" Version="1.0.2" />
+        <PackageReference Include="QFace.Sdk.Logging" Version="1.0.4" />
         <PackageReference Include="QFace.Sdk.RabbitMq" Version="1.1.4" />
         <PackageReference Include="QFace.Sdk.SendMessage" Version="1.0.4" />
         <PackageReference Include="QFace.Sdk.AI" Version="1.0.0" />
