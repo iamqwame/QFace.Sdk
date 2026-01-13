@@ -47,6 +47,11 @@ public static class LoggingExtensions
                     throw new InvalidOperationException($"Unsupported logging sink: {opts.Using}");
                 }
 
+                // Parse transport type from configuration
+                var transportType = opts.TransportType?.Equals("Http", StringComparison.OrdinalIgnoreCase) == true
+                    ? TransportType.Http
+                    : TransportType.Udp;
+
                 loggerConfig
                     .MinimumLevel.Is(opts.MinimumLevel)
                     .Enrich.FromLogContext()
@@ -57,7 +62,7 @@ public static class LoggingExtensions
                         Port = opts.Port,
                         Facility = opts.Facility,
                         Host = Environment.MachineName,
-                        TransportType = TransportType.Http,
+                        TransportType = transportType,
                         MinimumLogEventLevel = opts.MinimumLevel,
                     });
             }

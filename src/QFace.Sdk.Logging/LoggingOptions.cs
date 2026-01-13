@@ -32,4 +32,10 @@ public class LoggingOptions
     /// Whether to include console logging alongside Graylog
     /// </summary>
     public bool IncludeConsole { get; set; } = true;
+    
+    /// <summary>
+    /// Transport type for Graylog (Udp or Http)
+    /// Defaults to Udp for better performance
+    /// </summary>
+    public string TransportType { get; set; } = "Udp";
 }
