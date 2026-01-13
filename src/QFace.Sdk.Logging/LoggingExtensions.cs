@@ -52,6 +52,9 @@ public static class LoggingExtensions
                     ? TransportType.Http
                     : TransportType.Udp;
 
+                var transportTypeName = transportType == TransportType.Http ? "HTTP" : "UDP";
+                Console.WriteLine($"[QFace.Logging] Configuring Graylog sink: {opts.Url}:{opts.Port} using {transportTypeName} transport");
+
                 loggerConfig
                     .MinimumLevel.Is(opts.MinimumLevel)
                     .Enrich.FromLogContext()
