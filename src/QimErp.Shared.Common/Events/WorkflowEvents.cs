@@ -90,6 +90,10 @@ public class WorkflowApprovalRequestEvent : DomainEvent
     public string EntityName { get; set; } = "";
     public string WorkflowCode { get; set; } = "";
     public string? CurrentState { get; set; }
+    public bool ShouldComplete { get; set; }
+    public bool IsLastStep { get; set; }
+    public string? NextStepCode { get; set; }
+    public string? PreviousStep { get; set; }
     public string Comments { get; set; } = "";
     public string ApprovedBy { get; set; } = "";
     public DateTime ApprovedAt { get; set; }
@@ -132,4 +136,36 @@ public class WorkflowApprovalProcessedEvent : DomainEvent
     {
     }
     
+}
+
+public class WorkflowRejectionRequestEvent : DomainEvent
+{
+    public Guid EventId { get; } = Guid.NewGuid();
+    public DateTime OccurredAt { get; } = DateTime.UtcNow;
+    public string WorkflowId { get; set; } = "";
+    public string EntityType { get; set; } = "";
+    public string EntityId { get; set; } = "";
+    public string EntityName { get; set; } = "";
+    public string WorkflowCode { get; set; } = "";
+    public string? CurrentState { get; set; }
+    public string? PreviousStep { get; set; }
+    public string RejectionReason { get; set; } = "";
+    public string RejectedBy { get; set; } = "";
+    public DateTime RejectedAt { get; set; }
+    public bool ReturnToOriginator { get; set; } = true;
+    public string Module { get; set; } = "";
+    public Dictionary<string, object> EntityData { get; set; } = new();
+
+    public WorkflowRejectionRequestEvent()
+    {
+    }
+
+    public WorkflowRejectionRequestEvent(
+        string tenantId,
+        string userEmail,
+        string? triggeredBy = null,
+        string? userName = null)
+        : base(tenantId, userEmail, triggeredBy, userName)
+    {
+    }
 }

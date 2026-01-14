@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Your Request Progress Update - QimERP</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#2b6cee',
+              'background-light': '#f6f6f8',
+              'background-dark': '#101622',
+            },
+            fontFamily: {
+              display: ['Inter', 'sans-serif'],
+              sans: ['Inter', 'sans-serif'],
+            },
+            borderRadius: {
+              DEFAULT: '0.25rem',
+              lg: '0.5rem',
+              xl: '0.75rem',
+              full: '9999px',
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body
+    class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased min-h-screen flex flex-col items-center justify-center p-4 sm:p-8"
+  >
+    <div
+      class="w-full max-w-[600px] bg-white dark:bg-[#1e293b] rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col relative group/design-root"
+    >
+      <div class="h-1.5 w-full bg-primary"></div>
+      <div class="px-8 pt-8 pb-4 flex justify-center">
+        <div class="flex items-center gap-2.5">
+          <div
+            class="h-9 w-9 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary"
+          >
+            <span class="material-symbols-outlined text-[24px]"
+              >verified_user</span
+            >
+          </div>
+          <span
+            class="text-xl font-bold tracking-tight text-slate-900 dark:text-white"
+            >QIM ERP</span
+          >
+        </div>
+      </div>
+      <div class="px-8 pb-8 flex flex-col gap-6">
+        <div
+          class="flex flex-col gap-3 text-center border-b border-slate-100 dark:border-slate-700 pb-6"
+        >
+          <h1
+            class="text-[#111318] dark:text-white tracking-tight text-[28px] font-bold leading-tight"
+          >
+            Your {{WorkflowCode}} Request Progress Update
+          </h1>
+          <p
+            class="text-[#616f89] dark:text-slate-400 text-base font-normal leading-relaxed max-w-[480px] mx-auto"
+          >
+            Hello {{RequesterName}},
+          </p>
+          <p
+            class="text-[#616f89] dark:text-slate-400 text-base font-normal leading-relaxed max-w-[480px] mx-auto"
+          >
+            Your {{WorkflowCode}} request has been approved at the
+            <strong class="text-slate-900 dark:text-slate-200 font-semibold"
+              >{{StepName}}</strong
+            >
+            stage by <strong class="text-slate-900 dark:text-slate-200 font-semibold">{{ActorName}}</strong> and is now moving to the next stage.
+          </p>
+        </div>
+        <div
+          class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 border border-slate-100 dark:border-slate-700"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3
+              class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
+            >
+              Workflow Progress
+            </h3>
+            <span
+              class="text-xs font-medium text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30 px-2 py-1 rounded"
+              >{{StageInfo}}</span
+            >
+          </div>
+          {{WorkflowProgressHtml}}
+        </div>
+        <div class="grid grid-cols-2 gap-y-6 gap-x-4 py-2">
+          <div class="flex flex-col gap-1">
+            <p
+              class="text-[#616f89] dark:text-slate-400 text-xs uppercase tracking-wide font-medium"
+            >
+              Request Type
+            </p>
+            <p class="text-[#111318] dark:text-white text-sm font-medium">
+              {{WorkflowCode}}
+            </p>
+          </div>
+          <div class="flex flex-col gap-1">
+            <p
+              class="text-[#616f89] dark:text-slate-400 text-xs uppercase tracking-wide font-medium"
+            >
+              Date Approved
+            </p>
+            <p class="text-[#111318] dark:text-white text-sm font-medium">
+              {{Date}}
+            </p>
+          </div>
+          <div class="flex flex-col gap-1">
+            <p
+              class="text-[#616f89] dark:text-slate-400 text-xs uppercase tracking-wide font-medium"
+            >
+              Approved By
+            </p>
+            <p class="text-[#111318] dark:text-white text-sm font-medium">
+              {{ActorName}}
+            </p>
+          </div>
+          <div class="flex flex-col gap-1">
+            <p
+              class="text-[#616f89] dark:text-slate-400 text-xs uppercase tracking-wide font-medium"
+            >
+              Current Status
+            </p>
+            <div class="flex">
+              <span
+                class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 border border-emerald-100 dark:border-emerald-800"
+              >
+                <span class="material-symbols-outlined text-[14px]"
+                  >check_circle</span
+                >
+                Approved - Moving Forward
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="pt-2 flex flex-col gap-3">
+          <a
+            href="{{ReviewUrl}}"
+            class="w-full flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-semibold leading-normal tracking-[0.015em]"
+          >
+            <span class="mr-2 material-symbols-outlined text-[18px]"
+              >open_in_new</span
+            >
+            View Full Workflow Status
+          </a>
+        </div>
+      </div>
+      <div
+        class="bg-slate-50 dark:bg-[#162030] px-8 py-6 text-center border-t border-slate-100 dark:border-slate-700"
+      >
+        <p
+          class="text-slate-500 dark:text-slate-400 text-xs mb-4 leading-relaxed"
+        >
+          This is an automated notification from QimERP's HRIS.
+        </p>
+
+        <p class="text-slate-400 dark:text-slate-600 text-[10px] mt-6">
+          © {{Year}} QFace Group. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

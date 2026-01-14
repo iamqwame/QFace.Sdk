@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Action Required: Review Request - QimERP</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#2b6cee',
+              'background-light': '#f6f6f8',
+              'background-dark': '#101622',
+            },
+            fontFamily: {
+              display: ['Inter', 'sans-serif'],
+              sans: ['Inter', 'sans-serif'],
+            },
+            borderRadius: {
+              DEFAULT: '0.25rem',
+              lg: '0.5rem',
+              xl: '0.75rem',
+              full: '9999px',
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body
+    class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased min-h-screen flex flex-col items-center justify-center p-4 sm:p-8"
+  >
+    <div
+      class="w-full max-w-[600px] bg-white dark:bg-[#1e293b] rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col relative group/design-root"
+    >
+      <div class="h-1.5 w-full bg-primary"></div>
+      <div class="px-8 pt-8 pb-4 flex justify-center">
+        <div class="flex items-center gap-2.5">
+          <div
+            class="h-9 w-9 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary"
+          >
+            <span class="material-symbols-outlined text-[24px]"
+              >verified_user</span
+            >
+          </div>
+          <span
+            class="text-xl font-bold tracking-tight text-slate-900 dark:text-white"
+            >QIM ERP</span
+          >
+        </div>
+      </div>
+      <div class="px-8 pb-8 flex flex-col gap-6">
+        <div
+          class="flex flex-col gap-3 text-center border-b border-slate-100 dark:border-slate-700 pb-6"
+        >
+          <h1
+            class="text-[#111318] dark:text-white tracking-tight text-[28px] font-bold leading-tight"
+          >
+            Action Required: Review {{WorkflowCode}} Request
+          </h1>
+          <p
+            class="text-[#616f89] dark:text-slate-400 text-base font-normal leading-relaxed max-w-[480px] mx-auto"
+          >
+            Hello,
+          </p>
+          <p
+            class="text-[#616f89] dark:text-slate-400 text-base font-normal leading-relaxed max-w-[480px] mx-auto"
+          >
+            A new {{WorkflowCode}} request has been submitted by
+            <strong class="text-slate-900 dark:text-slate-200 font-semibold"
+              >{{InitiatedByName}}</strong
+            >
+            and requires your review.
+          </p>
+        </div>
+        <div
+          class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 border border-slate-100 dark:border-slate-700"
+        >
+          <div class="flex flex-col items-center text-center gap-4">
+            <div class="flex flex-col gap-1">
+              <p
+                class="text-[#616f89] dark:text-slate-400 text-xs uppercase tracking-wide font-medium"
+              >
+                Date Submitted
+              </p>
+              <p class="text-[#111318] dark:text-white text-lg font-bold">
+                {{InitiatedAt}}
+              </p>
+            </div>
+            <div class="w-full h-[1px] bg-slate-200 dark:bg-slate-700"></div>
+            <div class="flex flex-col gap-1">
+              <p
+                class="text-[#616f89] dark:text-slate-400 text-xs uppercase tracking-wide font-medium"
+              >
+                Workflow Type
+              </p>
+              <p class="text-[#111318] dark:text-white text-sm font-medium">
+                {{WorkflowCode}}
+              </p>
+            </div>
+            <div class="flex flex-col gap-1 mt-2">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200 border border-amber-100 dark:border-amber-800"
+              >
+                <span
+                  class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"
+                ></span>
+                Status: Pending Review
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="pt-2 flex flex-col gap-3">
+          <div class="grid grid-cols-2 gap-4">
+            <a
+              href="{{ReviewUrl}}?action=approve"
+              class="flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-11 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-colors text-white text-sm font-bold leading-normal tracking-[0.015em] shadow-sm"
+            >
+              <span class="mr-2 material-symbols-outlined text-[18px]"
+                >check</span
+              >
+              Approve
+            </a>
+            <a
+              href="{{ReviewUrl}}?action=reject"
+              class="flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-11 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-sm font-bold leading-normal tracking-[0.015em] shadow-sm transition-colors group"
+            >
+              <span class="mr-2 material-symbols-outlined text-[18px]"
+                >close</span
+              >
+              Reject
+            </a>
+          </div>
+          <a
+            href="{{ReviewUrl}}"
+            class="w-full flex cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-semibold leading-normal tracking-[0.015em]"
+          >
+            <span class="mr-2 material-symbols-outlined text-[18px]"
+              >open_in_new</span
+            >
+            View Full Workflow Status
+          </a>
+        </div>
+      </div>
+      <div
+        class="bg-slate-50 dark:bg-[#162030] px-8 py-6 text-center border-t border-slate-100 dark:border-slate-700"
+      >
+        <p
+          class="text-slate-500 dark:text-slate-400 text-xs mb-4 leading-relaxed"
+        >
+          You are receiving this notification because you are a participant in
+          this workflow request. If you believe this is an error, please contact
+          your administrator.
+        </p>
+
+        <p class="text-slate-400 dark:text-slate-600 text-[10px] mt-6">
+          © {{Year}} QIM ERP. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

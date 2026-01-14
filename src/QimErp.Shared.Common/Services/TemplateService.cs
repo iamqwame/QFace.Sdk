@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Hosting;
 
 namespace QimErp.Shared.Common.Services;
@@ -11,13 +12,15 @@ public interface ITemplateService
 /// <summary>
 /// Template service that works with both ASP.NET Core Web Host and Generic Host
 /// Uses IHostEnvironment which is available in both
+/// Loads templates from embedded resources first, then falls back to file system
 /// </summary>
 public class TemplateService(IHostEnvironment hostEnvironment, ILogger<TemplateService> logger)
     : ITemplateService
 {
     private readonly IHostEnvironment _hostEnvironment = hostEnvironment ?? throw new ArgumentNullException(nameof(hostEnvironment));
     private readonly ILogger<TemplateService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly Dictionary<string, string> _templateCache = [];
+    private readonly ConcurrentDictionary<string, string> _templateCache = [];
+    private static readonly Assembly _assembly = typeof(TemplateService).Assembly;
 
     public async Task<string> RenderEmailTemplateAsync(string templateName, Dictionary<string, string> replacements)
     {
@@ -35,31 +38,64 @@ public class TemplateService(IHostEnvironment hostEnvironment, ILogger<TemplateS
         }
     }
 
+    /// <summary>
+    /// Loads a template from embedded resources first, then falls back to file system.
+    /// Templates are cached after first load regardless of source.
+    /// </summary>
+    /// <param name="templatePath">The relative path to the template (e.g., "Templates/Emails/WorkflowStarted.html")</param>
+    /// <returns>The template content as a string</returns>
     public async Task<string> LoadTemplateAsync(string templatePath)
     {
         try
         {
-            // Check cache first
             if (_templateCache.TryGetValue(templatePath, out var cachedTemplate))
             {
                 _logger.LogDebug("📄 Template loaded from cache: {TemplatePath}", templatePath);
                 return cachedTemplate;
             }
 
-            var fullPath = Path.Combine(_hostEnvironment.ContentRootPath, templatePath);
+            string? template = null;
+            string? source = null;
+
+            var resourceNameCandidates = BuildResourceNameCandidates(templatePath);
             
-            if (!File.Exists(fullPath))
+            foreach (var resourceName in resourceNameCandidates)
             {
-                _logger.LogError("❌ Template file not found: {FullPath}", fullPath);
-                throw new FileNotFoundException($"Template file not found: {templatePath}");
+                var stream = _assembly.GetManifestResourceStream(resourceName);
+                if (stream != null)
+                {
+                    using var reader = new StreamReader(stream);
+                    template = await reader.ReadToEndAsync();
+                    source = "embedded resource";
+                    _logger.LogInformation("✅ Template loaded from embedded resource: {ResourceName} ({TemplatePath})", resourceName, templatePath);
+                    break;
+                }
             }
 
-            var template = await File.ReadAllTextAsync(fullPath);
-            
-            // Cache the template
+            if (template == null)
+            {
+                var availableResources = string.Join(", ", _assembly.GetManifestResourceNames());
+                _logger.LogWarning("⚠️ Embedded resource not found for {TemplatePath}. Tried: {Candidates}. Available resources: {AvailableResources}", 
+                    templatePath, string.Join(", ", resourceNameCandidates), availableResources);
+                
+                var fullPath = Path.Combine(_hostEnvironment.ContentRootPath, templatePath);
+                
+                if (File.Exists(fullPath))
+                {
+                    template = await File.ReadAllTextAsync(fullPath);
+                    source = "file system";
+                    _logger.LogInformation("✅ Template loaded from file system: {FullPath}", fullPath);
+                }
+                else
+                {
+                    _logger.LogError("❌ Template not found in embedded resources or file system: {TemplatePath}. Full path: {FullPath}", templatePath, fullPath);
+                    throw new FileNotFoundException($"Template file not found: {templatePath}");
+                }
+            }
+
             _templateCache[templatePath] = template;
+            _logger.LogDebug("📦 Template cached: {TemplatePath} (source: {Source})", templatePath, source);
             
-            _logger.LogInformation("✅ Template loaded successfully: {TemplatePath}", templatePath);
             return template;
         }
         catch (Exception ex)
@@ -67,6 +103,22 @@ public class TemplateService(IHostEnvironment hostEnvironment, ILogger<TemplateS
             _logger.LogError(ex, "❌ Error loading template: {TemplatePath}", templatePath);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Builds candidate resource names for embedded resource lookup.
+    /// Tries multiple formats to handle different namespace configurations.
+    /// </summary>
+    private static string[] BuildResourceNameCandidates(string templatePath)
+    {
+        var defaultNamespace = _assembly.GetName().Name ?? "QimErp.Shared.Common";
+        var normalizedPath = templatePath.Replace('\\', '.').Replace('/', '.');
+        
+        return new[]
+        {
+            $"{defaultNamespace}.{normalizedPath}",
+            normalizedPath
+        };
     }
 
     private static string ReplaceTokens(string template, Dictionary<string, string> replacements)

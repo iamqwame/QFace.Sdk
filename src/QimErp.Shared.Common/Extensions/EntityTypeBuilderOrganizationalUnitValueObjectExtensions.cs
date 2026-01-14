@@ -1,8 +1,3 @@
-using QimErp.Shared.Common.Entities.ValueObjects;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System.Linq.Expressions;
-
 namespace QimErp.Shared.Common.Extensions;
 
 /// <summary>

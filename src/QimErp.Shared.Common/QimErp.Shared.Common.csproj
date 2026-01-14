@@ -7,7 +7,7 @@
         
         <!-- NuGet Package Metadata -->
         <PackageId>QimErp.Shared.Common</PackageId>
-        <Version>2.0.5</Version>
+        <Version>2.0.6</Version>
         <Authors>IAmQwame</Authors>
         <Company>QimErp</Company>
         <Description>Shared common library for QimErp microservices ERP system. Contains common entities, contracts, services, and utilities used across all QimErp modules.</Description>
@@ -29,6 +29,10 @@
     <!-- Framework References -->
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Templates\Emails\*.html" />
     </ItemGroup>
     
     <!-- API & Documentation -->

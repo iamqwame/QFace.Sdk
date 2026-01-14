@@ -4,6 +4,8 @@ namespace QimErp.Shared.Common.Services.Workflow;
 
 public class WorkflowApprovalProcessor(
     IRabbitMqPublisher publisher,
+    ITemplateService templateService,
+    IConfiguration configuration,
     ILogger<WorkflowApprovalProcessor> logger)
     : IWorkflowApprovalProcessor
 {
@@ -43,6 +45,9 @@ public class WorkflowApprovalProcessor(
             workflowCode = entity.WorkflowCode;
         }
 
+        var workflowName = @event.WorkflowCode.Replace("-", " ");
+        @event.WorkflowCode = workflowName;
+        
         if (string.IsNullOrWhiteSpace(workflowCode))
         {
             logger.LogWarning("⚠️ [WorkflowApprovalProcessor] WorkflowCode is not available for EntityType={EntityType}, EntityId={EntityId}",
@@ -58,90 +63,123 @@ public class WorkflowApprovalProcessor(
             return;
         }
 
-        var currentState = @event.CurrentState ?? entity.CurrentWorkflowState;
-        var currentStep = GetCurrentWorkflowStep(entityWorkflowStep.WorkflowDefinition, currentState);
-
-        if (currentStep == null)
+        var approvedStepCode = !string.IsNullOrWhiteSpace(@event.PreviousStep) 
+            ? @event.PreviousStep 
+            : @event.CurrentState;
+        
+        var approvedStep = GetCurrentWorkflowStep(entityWorkflowStep.WorkflowDefinition, approvedStepCode);
+        if (approvedStep == null)
         {
-            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] No workflow step found for current state. WorkflowCode={WorkflowCode}, CurrentState={CurrentState}",
-                workflowCode, currentState);
+            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] No workflow step found for approved step. WorkflowCode={WorkflowCode}, ApprovedStepCode={ApprovedStepCode}",
+                workflowCode, approvedStepCode);
             return;
         }
 
-        var shouldComplete = currentStep.OnApproval.CompleteWorkflow;
-        var nextStepCode = currentStep.OnApproval.NextStepCode;
+        var currentState = @event.CurrentState;
+        var shouldCompleteStep = @event.ShouldComplete;
+        var nextStepCode = @event.NextStepCode;
 
-        var oldStatus = entity.WorkflowStatus;
-        WorkflowStatus newStatus;
+        var newStatus = WorkflowStatus.InProgress;
 
-        if (!shouldComplete && !string.IsNullOrWhiteSpace(nextStepCode))
+        if (@event.IsLastStep && shouldCompleteStep)
+        {
+            newStatus = WorkflowStatus.Approved;
+            entity.WorkflowStatus = newStatus;
+            entity.CurrentWorkflowState = AppConstant.Workflow.States.Completed;
+            entity.WorkflowCompletedAt = @event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow;
+            entity.WorkflowCompletedByEmail = @event.ApprovedBy;
+            entity.WorkflowCompletedByEmployeeId = @event.TriggeredBy;
+            entity.WorkflowCompletedByName = @event.UserName;
+            if (!string.IsNullOrWhiteSpace(@event.Comments))
+            {
+                entity.WorkflowComments = @event.Comments;
+            }
+            if (entity is AuditableEntity auditableEntity)
+            {
+                auditableEntity.ActivateFromDraft();
+            }
+            logger.LogInformation("✅ Completing workflow for {EntityType} {EntityId} - all steps approved. Approved step: {ApprovedStep}",
+                @event.EntityType, entityId, approvedStepCode);
+
+            await PublishNotificationsAsync(
+                entityWorkflowStep.WorkflowDefinition.Notifications,
+                approvedStep.OnApproval,
+                "Completion",
+                @event,
+                approvedStep.Name,
+                entity,
+                entityWorkflowStep.WorkflowDefinition);
+
+            await SendRequesterNotificationAsync(@event, entity, "WorkflowCompleted", approvedStep.Name);
+        }
+        else if (!string.IsNullOrWhiteSpace(nextStepCode))
         {
             newStatus = WorkflowStatus.InProgress;
             entity.CurrentWorkflowState = nextStepCode;
             entity.WorkflowStatus = newStatus;
-            logger.LogInformation("➡️ Moving {EntityType} {EntityId} to next step: {NextStep}",
-                @event.EntityType, entityId, nextStepCode);
+            logger.LogInformation("➡️ Moving {EntityType} {EntityId} to next step: {NextStep}. Approved step: {ApprovedStep}",
+                @event.EntityType, entityId, nextStepCode, approvedStepCode);
 
             await PublishNotificationsAsync(
                 entityWorkflowStep.WorkflowDefinition.Notifications,
-                currentStep.OnApproval,
-                "Approval",
+                approvedStep.OnApproval,
+                "StepApproved",
                 @event,
-                currentStep.Name);
+                approvedStep.Name,
+                entity,
+                entityWorkflowStep.WorkflowDefinition);
+
+            await SendRequesterNotificationAsync(@event, entity, "StepApproved", approvedStep.Name);
+
+            var nextStep = GetNextWorkflowStep(entityWorkflowStep.WorkflowDefinition, nextStepCode);
+            if (nextStep != null && nextStep.RequiredApprovers.Count > 0)
+            {
+                logger.LogDebug("📧 [WorkflowApprovalProcessor] Notifying required approvers for next step: {StepCode}",
+                    nextStepCode);
+                await SendNextStepNotificationsAsync(
+                    entityWorkflowStep.WorkflowDefinition,
+                    nextStep,
+                    @event,
+                    entity);
+            }
         }
-        else if (shouldComplete)
+        else if (shouldCompleteStep)
         {
-            newStatus = WorkflowStatus.Approved;
+            newStatus = WorkflowStatus.InProgress;
             entity.WorkflowStatus = newStatus;
-            entity.CurrentWorkflowState = AppConstant.Workflow.States.Completed;
-            entity.WorkflowCompletedAt = @event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow;
-            entity.WorkflowCompletedByEmail = @event.ApprovedBy;
-            entity.WorkflowCompletedByEmployeeId = @event.TriggeredBy;
-            entity.WorkflowCompletedByName = @event.UserName;
-            if (!string.IsNullOrWhiteSpace(@event.Comments))
-            {
-                entity.WorkflowComments = @event.Comments;
-            }
-            if (entity is AuditableEntity auditableEntity)
-            {
-                auditableEntity.ActivateFromDraft();
-            }
-            logger.LogInformation("✅ Completing workflow for {EntityType} {EntityId} - all steps approved",
-                @event.EntityType, entityId);
+            entity.CurrentWorkflowState = @event.CurrentState;
+            logger.LogInformation("✅ Step completed for {EntityType} {EntityId} - no next step defined. Approved step: {ApprovedStep}",
+                @event.EntityType, entityId, approvedStepCode);
 
             await PublishNotificationsAsync(
                 entityWorkflowStep.WorkflowDefinition.Notifications,
-                currentStep.OnApproval,
-                "Completion",
+                approvedStep.OnApproval,
+                "StepApproved",
                 @event,
-                currentStep.Name);
+                approvedStep.Name,
+                entity,
+                entityWorkflowStep.WorkflowDefinition);
+
+            await SendRequesterNotificationAsync(@event, entity, "StepApproved", approvedStep.Name);
         }
         else
         {
-            newStatus = WorkflowStatus.Approved;
+            newStatus = WorkflowStatus.InProgress;
             entity.WorkflowStatus = newStatus;
-            entity.CurrentWorkflowState = AppConstant.Workflow.States.Completed;
-            entity.WorkflowCompletedAt = @event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow;
-            entity.WorkflowCompletedByEmail = @event.ApprovedBy;
-            entity.WorkflowCompletedByEmployeeId = @event.TriggeredBy;
-            entity.WorkflowCompletedByName = @event.UserName;
-            if (!string.IsNullOrWhiteSpace(@event.Comments))
-            {
-                entity.WorkflowComments = @event.Comments;
-            }
-            if (entity is AuditableEntity auditableEntity)
-            {
-                auditableEntity.ActivateFromDraft();
-            }
-            logger.LogInformation("✅ Completing workflow for {EntityType} {EntityId} - no next step defined",
-                @event.EntityType, entityId);
+            entity.CurrentWorkflowState = @event.CurrentState;
+            logger.LogInformation("✅ Step approved for {EntityType} {EntityId} - no transition defined. Approved step: {ApprovedStep}",
+                @event.EntityType, entityId, approvedStepCode);
 
             await PublishNotificationsAsync(
                 entityWorkflowStep.WorkflowDefinition.Notifications,
-                currentStep.OnApproval,
-                "Completion",
+                approvedStep.OnApproval,
+                "Approval",
                 @event,
-                currentStep.Name);
+                approvedStep.Name,
+                entity,
+                entityWorkflowStep.WorkflowDefinition);
+
+            await SendRequesterNotificationAsync(@event, entity, "StepApproved", approvedStep.Name);
         }
 
         var entry = context.Entry(entity);
@@ -326,39 +364,90 @@ public class WorkflowApprovalProcessor(
                ?? workflowDefinition.Steps.MinBy(s => s.Order);
     }
 
+    private WorkflowStep? GetNextWorkflowStep(WorkflowDefinition workflowDefinition, string nextStepCode)
+    {
+        if (string.IsNullOrWhiteSpace(nextStepCode))
+        {
+            return null;
+        }
+
+        return workflowDefinition.Steps.FirstOrDefault(s => s.StepCode == nextStepCode);
+    }
+
     private async Task PublishNotificationsAsync(
-        WorkflowNotificationSettings notifications,
-        WorkflowStepAction action,
+        WorkflowNotificationSettings? notifications,
+        WorkflowStepAction? action,
         string notificationType,
         WorkflowApprovalRequestEvent @event,
-        string stepName)
+        string stepName,
+        IWorkflowEnabled entity,
+        WorkflowDefinition? workflowDefinition = null)
     {
+        if (notifications == null || action == null)
+        {
+            logger.LogDebug("📧 [WorkflowNotification] Notifications or action is null. Skipping notification publishing.");
+            return;
+        }
+
         if (notifications.SendSmsNotifications && action.SendNotificationTo.Count > 0)
         {
-            var smsMessage = BuildSmsNotification(@event, notificationType, stepName, action.SendNotificationTo);
-            await publisher.PublishAsync(smsMessage, "qimerp.core.notify.prod_exchange");
-            logger.LogInformation("📱 [WorkflowNotification] Published SMS notification for {NotificationType} to {RecipientCount} recipients",
-                notificationType, action.SendNotificationTo.Count);
+            try
+            {
+                var smsMessage = BuildSmsNotification(@event, notificationType, stepName, action.SendNotificationTo);
+                await publisher.PublishAsync(smsMessage, "qimerp.core.notify.prod_exchange");
+                logger.LogInformation("📱 [WorkflowNotification] Published SMS notification for {NotificationType} to {RecipientCount} recipients",
+                    notificationType, action.SendNotificationTo.Count);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "❌ [WorkflowNotification] Failed to publish SMS notification for {NotificationType}. Continuing with email notifications.",
+                    notificationType);
+            }
         }
 
         if (notifications.SendEmailNotifications)
         {
-            var recipients = action.SendEmailTo
-                .Concat(GetRecipientsForType(notifications, notificationType))
-                .Distinct()
-                .ToList();
-
-            if (recipients.Count > 0)
+            try
             {
-                var emailMessage = BuildEmailNotification(@event, notificationType, stepName, recipients);
-                await publisher.PublishAsync(emailMessage, "qimerp.core.notify.prod_exchange");
-                logger.LogInformation("📧 [WorkflowNotification] Published Email notification for {NotificationType} to {RecipientCount} recipients",
-                    notificationType, recipients.Count);
+                var recipients = new List<string>();
+                
+                if (action.SendEmailTo.Count > 0)
+                {
+                    recipients.AddRange(action.SendEmailTo);
+                }
+                
+                var typeRecipients = GetRecipientsForType(notifications, notificationType);
+                if (typeRecipients.Count > 0)
+                {
+                    var validTypeRecipients = typeRecipients
+                        .Where(r => !string.IsNullOrWhiteSpace(r) && IsValidEmail(r))
+                        .ToList();
+                    
+                    if (validTypeRecipients.Count > 0)
+                    {
+                        recipients.AddRange(validTypeRecipients);
+                    }
+                }
+                
+                recipients = recipients.Distinct().ToList();
+
+                if (recipients.Count > 0)
+                {
+                    var emailMessage = await BuildEmailNotificationAsync(@event, notificationType, stepName, recipients, entity, workflowDefinition);
+                    await publisher.PublishAsync(emailMessage, "qimerp.core.notify.prod_exchange");
+                    logger.LogInformation("📧 [WorkflowNotification] Published Email notification for {NotificationType} to {RecipientCount} recipients",
+                        notificationType, recipients.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "❌ [WorkflowNotification] Failed to publish Email notification for {NotificationType}",
+                    notificationType);
             }
         }
     }
 
-    private UnifiedMessageModel BuildSmsNotification(
+    private static UnifiedMessageModel BuildSmsNotification(
         WorkflowApprovalRequestEvent @event,
         string notificationType,
         string stepName,
@@ -367,8 +456,8 @@ public class WorkflowApprovalProcessor(
         return new UnifiedMessageModel
         {
             MessageType = phoneNumbers.Count > 1 ? "bulk_sms" : "sms",
-            PhoneNumber = phoneNumbers.Count == 1 ? phoneNumbers[0] : null,
-            PhoneNumbers = phoneNumbers.Count > 1 ? phoneNumbers : null,
+            PhoneNumber = phoneNumbers.Count == 1 ? phoneNumbers[0] : string.Empty,
+            PhoneNumbers = phoneNumbers.Count > 1 ? phoneNumbers : [],
             Message = $"Workflow {notificationType}: {@event.EntityType} at step {stepName}. Please review.",
             MessageId = Guid.NewGuid().ToString(),
             CorrelationId = @event.WorkflowId,
@@ -382,28 +471,120 @@ public class WorkflowApprovalProcessor(
         };
     }
 
-    private static UnifiedMessageModel BuildEmailNotification(
+    private async Task<UnifiedMessageModel> BuildEmailNotificationAsync(
         WorkflowApprovalRequestEvent @event,
         string notificationType,
         string stepName,
-        List<string> emails)
+        List<string> emails,
+        IWorkflowEnabled entity,
+        WorkflowDefinition? workflowDefinition = null)
     {
+        var templateName = notificationType switch
+        {
+            "Approval" => "WorkflowApproval",
+            "Rejection" => "WorkflowRejection",
+            "Completion" => "WorkflowCompletion",
+            "Timeout" => "WorkflowTimeout",
+            _ => "WorkflowApproval"
+        };
+
+        workflowDefinition ??= entity.WorkflowDefinition;
+        
+        var entityDetails = ExtractEntityDetails(entity);
+        var entityDisplayName = GetEntityDisplayName(entity);
+        var baseUrl = configuration.GetValue<string>("FrontendSettings:BaseUrl") 
+            ?? configuration.GetValue<string>("FrontendSettings__BaseUrl")
+            ?? "https://app.qimerp.com";
+        var reviewUrl = $"{baseUrl.TrimEnd('/')}/workflow/entity/{@event.EntityType}/{@event.EntityId}/review";
+        var approvedDate = @event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow;
+        var initiatedAt = entity.WorkflowInitiatedAt ?? DateTime.UtcNow;
+
+        var currentStep = workflowDefinition?.Steps?.FirstOrDefault(s => s.Name == stepName);
+        var currentStepNumber = currentStep?.Order ?? 0;
+        var totalSteps = workflowDefinition?.Steps?.Count ?? 0;
+        var stageInfo = totalSteps > 0 && currentStepNumber > 0
+            ? $"Stage {currentStepNumber} of {totalSteps}: Action Required"
+            : "Action Required";
+
+        var nextStepName = "Final Review";
+        if (!string.IsNullOrWhiteSpace(@event.NextStepCode) && workflowDefinition?.Steps != null)
+        {
+            var nextStep = workflowDefinition.Steps.FirstOrDefault(s => s.StepCode == @event.NextStepCode);
+            if (nextStep != null)
+            {
+                nextStepName = nextStep.Name;
+            }
+        }
+        else if (currentStepNumber > 0 && totalSteps > currentStepNumber && workflowDefinition?.Steps != null)
+        {
+            var nextStep = workflowDefinition.Steps.OrderBy(s => s.Order).Skip(currentStepNumber).FirstOrDefault();
+            if (nextStep != null)
+            {
+                nextStepName = nextStep.Name;
+            }
+        }
+
+        var entityReference = entityDetails.TryGetValue("Code", out var code) && !string.IsNullOrWhiteSpace(code)
+            ? code
+            : entityDetails.TryGetValue("EmployeeNumber", out var empNo) && !string.IsNullOrWhiteSpace(empNo)
+                ? empNo
+                : @event.EntityId;
+
+        var requesterDisplayName = entityDetails.TryGetValue("FullName", out var fullName) && !string.IsNullOrWhiteSpace(fullName)
+            ? fullName
+            : entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "Requester";
+
+        var requesterLabel = entityDetails.ContainsKey("FullName") ? "Employee Name" : "Requester Name";
+
+        var currentStepCode = @event.CurrentState ?? @event.NextStepCode ?? "";
+        if (string.IsNullOrWhiteSpace(currentStepCode) && workflowDefinition?.Steps != null)
+        {
+            var firstStep = workflowDefinition.Steps.OrderBy(s => s.Order).FirstOrDefault();
+            currentStepCode = firstStep?.StepCode ?? "";
+        }
+
+        var workflowProgressHtml = workflowDefinition != null
+            ? GenerateWorkflowProgressHtml(workflowDefinition, currentStepCode, initiatedAt, isCompleted: false)
+            : GenerateEmptyProgressHtml(initiatedAt);
+
+        var replacements = new Dictionary<string, string>
+        {
+            ["EntityType"] = @event.EntityType,
+            ["EntityName"] = entityDisplayName,
+            ["StepName"] = stepName,
+            ["NotificationType"] = notificationType,
+            ["Comments"] = @event.Comments ?? "",
+            ["ActorName"] = @event.UserName ?? "Approver",
+            ["ApproverName"] = @event.UserName ?? "Approver",
+            ["ActorEmail"] = @event.ApprovedBy ?? "",
+            ["WorkflowCode"] = @event.WorkflowCode ?? entity.WorkflowCode?.Replace("-", " ")    ?? "Workflow Request",
+            ["RequesterName"] = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "Requester",
+            ["Date"] = approvedDate.ToString("MMMM dd, yyyy"),
+            ["ReviewUrl"] = reviewUrl,
+            ["Year"] = DateTime.UtcNow.Year.ToString(),
+            ["EntityReference"] = entityReference,
+            ["StageInfo"] = stageInfo,
+            ["InitiatedAt"] = initiatedAt.ToString("MMMM dd, yyyy"),
+            ["NextStepName"] = nextStepName,
+            ["RequesterDisplayName"] = requesterDisplayName,
+            ["RequesterLabel"] = requesterLabel,
+            ["WorkflowProgressHtml"] = workflowProgressHtml
+        };
+
+        foreach (var detail in entityDetails)
+        {
+            replacements[detail.Key] = detail.Value;
+        }
+
+        var emailTemplate = await templateService.RenderEmailTemplateAsync(templateName, replacements);
+
         return new UnifiedMessageModel
         {
             MessageType = "templated_email",
             ToEmails = emails,
-            Subject = $"Workflow {notificationType}: {@event.EntityType}",
-            Template = GetEmailTemplate(notificationType),
-            Replacements = new Dictionary<string, string>
-            {
-                ["EntityType"] = @event.EntityType,
-                ["EntityId"] = @event.EntityId,
-                ["StepName"] = stepName,
-                ["NotificationType"] = notificationType,
-                ["Comments"] = @event.Comments ?? "",
-                ["ActorName"] = @event.UserName ?? "",
-                ["ActorEmail"] = @event.ApprovedBy ?? ""
-            },
+            Subject = $"Workflow {notificationType}: {entityDisplayName}",
+            Template = emailTemplate,
+            Replacements = replacements,
             MessageId = Guid.NewGuid().ToString(),
             CorrelationId = @event.WorkflowId,
             Metadata = new Dictionary<string, string>
@@ -429,64 +610,704 @@ public class WorkflowApprovalProcessor(
         };
     }
 
-    private static string GetEmailTemplate(string notificationType)
+    private async Task SendNextStepNotificationsAsync(
+        WorkflowDefinition workflowDefinition,
+        WorkflowStep nextStep,
+        WorkflowApprovalRequestEvent @event,
+        IWorkflowEnabled entity)
     {
-        return notificationType switch
+        var notifications = workflowDefinition.Notifications;
+        if (!notifications.SendEmailNotifications)
         {
-            "Approval" => @"
-                <html>
-                <body>
-                    <h2>Workflow Step Approved</h2>
-                    <p><strong>Entity Type:</strong> {{EntityType}}</p>
-                    <p><strong>Entity ID:</strong> {{EntityId}}</p>
-                    <p><strong>Step:</strong> {{StepName}}</p>
-                    <p><strong>Approved By:</strong> {{ActorName}} ({{ActorEmail}})</p>
-                    <p><strong>Comments:</strong> {{Comments}}</p>
-                </body>
-                </html>",
-            "Rejection" => @"
-                <html>
-                <body>
-                    <h2>Workflow Step Rejected</h2>
-                    <p><strong>Entity Type:</strong> {{EntityType}}</p>
-                    <p><strong>Entity ID:</strong> {{EntityId}}</p>
-                    <p><strong>Step:</strong> {{StepName}}</p>
-                    <p><strong>Rejected By:</strong> {{ActorName}} ({{ActorEmail}})</p>
-                    <p><strong>Reason:</strong> {{Comments}}</p>
-                </body>
-                </html>",
-            "Completion" => @"
-                <html>
-                <body>
-                    <h2>Workflow Completed</h2>
-                    <p><strong>Entity Type:</strong> {{EntityType}}</p>
-                    <p><strong>Entity ID:</strong> {{EntityId}}</p>
-                    <p><strong>Final Step:</strong> {{StepName}}</p>
-                    <p><strong>Completed By:</strong> {{ActorName}} ({{ActorEmail}})</p>
-                    <p>The workflow has been fully approved and completed.</p>
-                </body>
-                </html>",
-            "Timeout" => @"
-                <html>
-                <body>
-                    <h2>Workflow Timeout Warning</h2>
-                    <p><strong>Entity Type:</strong> {{EntityType}}</p>
-                    <p><strong>Entity ID:</strong> {{EntityId}}</p>
-                    <p><strong>Step:</strong> {{StepName}}</p>
-                    <p>This workflow step has timed out and requires attention.</p>
-                </body>
-                </html>",
-            _ => @"
-                <html>
-                <body>
-                    <h2>Workflow Notification</h2>
-                    <p><strong>Entity Type:</strong> {{EntityType}}</p>
-                    <p><strong>Entity ID:</strong> {{EntityId}}</p>
-                    <p><strong>Step:</strong> {{StepName}}</p>
-                    <p><strong>Type:</strong> {{NotificationType}}</p>
-                </body>
-                </html>"
+            logger.LogDebug("📧 [SendNextStepNotifications] Email notifications are disabled. Skipping next step notification sending.");
+            return;
+        }
+
+        var recipients = new List<string>();
+
+        if (nextStep.RequiredApprovers.Count > 0)
+        {
+            var approverEmails = ExtractEmailsFromApprovers(nextStep.RequiredApprovers);
+            if (approverEmails.Count > 0)
+            {
+                recipients.AddRange(approverEmails);
+                logger.LogInformation("📧 [SendNextStepNotifications] Extracted {Count} valid emails from {TotalCount} required approvers for step {StepCode}",
+                    approverEmails.Count, nextStep.RequiredApprovers.Count, nextStep.StepCode);
+            }
+            else
+            {
+                logger.LogDebug("📧 [SendNextStepNotifications] No valid emails found in {TotalCount} required approvers for step {StepCode}",
+                    nextStep.RequiredApprovers.Count, nextStep.StepCode);
+            }
+        }
+
+        recipients = recipients.Distinct(StringComparer.OrdinalIgnoreCase).Where(r => !string.IsNullOrWhiteSpace(r) && IsValidEmail(r)).ToList();
+
+        if (recipients.Count == 0)
+        {
+            logger.LogDebug("📧 [SendNextStepNotifications] No recipients found for next step notifications.");
+            return;
+        }
+
+        logger.LogInformation("📧 [SendNextStepNotifications] Sending next step notifications to {RecipientCount} recipients for step {StepCode}",
+            recipients.Count, nextStep.StepCode);
+
+        var baseUrl = configuration.GetValue<string>("FrontendSettings:BaseUrl") 
+            ?? configuration.GetValue<string>("FrontendSettings__BaseUrl")
+            ?? "https://app.qimerp.com";
+        
+        var reviewUrl = $"{baseUrl.TrimEnd('/')}/workflow/entity/{@event.EntityType}/{@event.EntityId}/review";
+
+        var entityDisplayName = GetEntityDisplayName(entity);
+        var initiatedByName = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "System";
+        var initiatedByEmail = entity.WorkflowInitiatedByEmail ?? "system@qimerp.com";
+        var initiatedAt = entity.WorkflowInitiatedAt ?? DateTime.UtcNow;
+
+        var replacements = new Dictionary<string, string>
+        {
+            ["EntityType"] = @event.EntityType,
+            ["EntityName"] = entityDisplayName,
+            ["WorkflowCode"] = @event.WorkflowCode ?? entity.WorkflowCode?.Replace("-", " ") ?? "Workflow Request",
+            ["StepName"] = nextStep.Name,
+            ["StepDescription"] = nextStep.Description,
+            ["InitiatedByName"] = initiatedByName,
+            ["InitiatedByEmail"] = initiatedByEmail,
+            ["InitiatedAt"] = initiatedAt.ToString("MMMM dd, yyyy 'at' HH:mm UTC"),
+            ["ApproverName"] = "",
+            ["WorkflowId"] = @event.WorkflowId ?? "",
+            ["EntityId"] = @event.EntityId ?? "",
+            ["ReviewUrl"] = reviewUrl,
+            ["Year"] = DateTime.UtcNow.Year.ToString()
         };
+
+        var emailTemplate = await templateService.RenderEmailTemplateAsync("WorkflowStarted", replacements);
+
+        foreach (var recipient in recipients)
+        {
+            try
+            {
+                var message = new UnifiedMessageModel
+                {
+                    MessageType = "templated_email",
+                    ToEmail = recipient,
+                    Subject = $"Action Required: {entityDisplayName} - Review Request",
+                    Template = emailTemplate,
+                    Replacements = replacements,
+                    MessageId = Guid.NewGuid().ToString(),
+                    CorrelationId = @event.WorkflowId,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        ["SourceModule"] = "Workflow",
+                        ["SourceEntityType"] = @event.EntityType ?? "",
+                        ["SourceEntityId"] = @event.EntityId ?? "",
+                        ["NotificationType"] = "WorkflowNextStep"
+                    }
+                };
+
+                await publisher.PublishAsync(message, "qimerp.core.notify.prod_exchange");
+
+                logger.LogInformation("✅ [SendNextStepNotifications] Successfully sent next step notification to {Recipient} for step {StepCode}",
+                    recipient, nextStep.StepCode);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "❌ [SendNextStepNotifications] Failed to send next step notification to {Recipient} for step {StepCode}",
+                    recipient, nextStep.StepCode);
+            }
+        }
     }
+
+    private async Task SendRequesterNotificationAsync(
+        WorkflowApprovalRequestEvent @event,
+        IWorkflowEnabled entity,
+        string notificationType,
+        string stepName)
+    {
+        if (string.IsNullOrWhiteSpace(entity.WorkflowInitiatedByEmail))
+        {
+            logger.LogDebug("📧 [SendRequesterNotification] WorkflowInitiatedByEmail is empty. Skipping requester notification.");
+            return;
+        }
+
+        if (!IsValidEmail(entity.WorkflowInitiatedByEmail))
+        {
+            logger.LogWarning("⚠️ [SendRequesterNotification] WorkflowInitiatedByEmail '{Email}' is not a valid email. Skipping requester notification.",
+                entity.WorkflowInitiatedByEmail);
+            return;
+        }
+
+        var templateName = notificationType switch
+        {
+            "StepApproved" => "WorkflowStepApproved",
+            "WorkflowCompleted" => "WorkflowCompletion",
+            _ => "WorkflowStepApproved"
+        };
+
+        var workflowDefinition = entity.WorkflowDefinition;
+        var entityDetails = ExtractEntityDetails(entity);
+        var entityDisplayName = GetEntityDisplayName(entity);
+        var baseUrl = configuration.GetValue<string>("FrontendSettings:BaseUrl") 
+            ?? configuration.GetValue<string>("FrontendSettings__BaseUrl")
+            ?? "https://app.qimerp.com";
+        var reviewUrl = $"{baseUrl.TrimEnd('/')}/workflow/entity/{@event.EntityType}/{@event.EntityId}/review";
+        var initiatedAt = entity.WorkflowInitiatedAt ?? DateTime.UtcNow;
+
+        var isCompleted = notificationType == "WorkflowCompleted"
+            || (!string.IsNullOrWhiteSpace(entity.CurrentWorkflowState) 
+                && string.Equals(entity.CurrentWorkflowState.Trim(), AppConstant.Workflow.States.Completed, StringComparison.OrdinalIgnoreCase));
+
+        if (isCompleted)
+        {
+            logger.LogDebug("✅ [SendRequesterNotification] Detected completed workflow. CurrentWorkflowState={State}, NotificationType={Type}", 
+                entity.CurrentWorkflowState, notificationType);
+        }
+
+        var completedDate = isCompleted && entity.WorkflowCompletedAt.HasValue
+            ? entity.WorkflowCompletedAt.Value
+            : (@event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow);
+        var approvedDate = completedDate;
+
+        var approvedStep = workflowDefinition?.Steps?.FirstOrDefault(s => s.Name == stepName);
+        var approvedStepNumber = approvedStep?.Order ?? 0;
+        var totalSteps = workflowDefinition?.Steps?.Count ?? 0;
+        
+        var nextStepCode = isCompleted
+            ? AppConstant.Workflow.States.Completed
+            : (@event.CurrentState ?? @event.NextStepCode ?? "");
+        var nextStepName = "Final Review";
+        if (!isCompleted && !string.IsNullOrWhiteSpace(nextStepCode) && workflowDefinition?.Steps != null)
+        {
+            var nextStep = workflowDefinition.Steps.FirstOrDefault(s => s.StepCode == nextStepCode);
+            if (nextStep != null)
+            {
+                nextStepName = nextStep.Name;
+            }
+        }
+        else if (!isCompleted && approvedStepNumber > 0 && totalSteps > approvedStepNumber && workflowDefinition?.Steps != null)
+        {
+            var nextStep = workflowDefinition.Steps.OrderBy(s => s.Order).Skip(approvedStepNumber).FirstOrDefault();
+            if (nextStep != null)
+            {
+                nextStepName = nextStep.Name;
+            }
+        }
+
+        var stageInfo = isCompleted
+            ? (totalSteps > 1 
+                ? $"All {totalSteps} Stages Completed"
+                : "Workflow Completed")
+            : (totalSteps > 0 && approvedStepNumber > 0
+                ? $"Stage {approvedStepNumber} of {totalSteps}: Approved"
+                : "Step Approved");
+
+        var entityReference = entityDetails.TryGetValue("Code", out var code) && !string.IsNullOrWhiteSpace(code)
+            ? code
+            : entityDetails.TryGetValue("EmployeeNumber", out var empNo) && !string.IsNullOrWhiteSpace(empNo)
+                ? empNo
+                : @event.EntityId;
+
+        var requesterDisplayName = entityDetails.TryGetValue("FullName", out var fullName) && !string.IsNullOrWhiteSpace(fullName)
+            ? fullName
+            : entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "Requester";
+
+        var requesterLabel = entityDetails.ContainsKey("FullName") ? "Employee Name" : "Requester Name";
+
+        var workflowProgressHtml = workflowDefinition != null
+            ? GenerateWorkflowProgressHtml(workflowDefinition, nextStepCode, initiatedAt, isRequester: true, isCompleted: isCompleted)
+            : GenerateEmptyProgressHtml(initiatedAt);
+
+        var actorName = isCompleted
+            ? (entity.WorkflowCompletedByName ?? @event.UserName ?? "System")
+            : (@event.UserName ?? "Approver");
+
+        var replacements = new Dictionary<string, string>
+        {
+            ["EntityType"] = @event.EntityType,
+            ["EntityName"] = entityDisplayName,
+            ["StepName"] = stepName,
+            ["NotificationType"] = notificationType,
+            ["Comments"] = @event.Comments ?? "",
+            ["ActorName"] = actorName,
+            ["ApproverName"] = actorName,
+            ["ActorEmail"] = isCompleted 
+                ? (entity.WorkflowCompletedByEmail ?? @event.ApprovedBy ?? "")
+                : (@event.ApprovedBy ?? ""),
+            ["WorkflowCode"] = @event.WorkflowCode ?? entity.WorkflowCode?.Replace("-", " ") ?? "Workflow Request",
+            ["RequesterName"] = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "Requester",
+            ["Date"] = completedDate.ToString("MMMM dd, yyyy"),
+            ["WorkflowId"] = @event.WorkflowId ?? "",
+            ["ReviewUrl"] = reviewUrl,
+            ["Year"] = DateTime.UtcNow.Year.ToString(),
+            ["WorkflowProgressHtml"] = workflowProgressHtml,
+            ["StageInfo"] = stageInfo,
+            ["NextStepName"] = nextStepName,
+            ["EntityReference"] = entityReference,
+            ["RequesterDisplayName"] = requesterDisplayName,
+            ["RequesterLabel"] = requesterLabel,
+            ["InitiatedAt"] = initiatedAt.ToString("MMMM dd, yyyy")
+        };
+
+        foreach (var detail in entityDetails)
+        {
+            replacements[detail.Key] = detail.Value;
+        }
+
+        try
+        {
+            var emailTemplate = await templateService.RenderEmailTemplateAsync(templateName, replacements);
+
+            var message = new UnifiedMessageModel
+            {
+                MessageType = "templated_email",
+                ToEmail = entity.WorkflowInitiatedByEmail,
+                Subject = $"Workflow {notificationType}: {entityDisplayName}",
+                Template = emailTemplate,
+                Replacements = replacements,
+                MessageId = Guid.NewGuid().ToString(),
+                CorrelationId = @event.WorkflowId,
+                Metadata = new Dictionary<string, string>
+                {
+                    ["SourceModule"] = "Workflow",
+                    ["SourceEntityType"] = @event.EntityType,
+                    ["SourceEntityId"] = @event.EntityId,
+                    ["NotificationType"] = notificationType,
+                    ["RecipientType"] = "Requester"
+                }
+            };
+
+            await publisher.PublishAsync(message, "qimerp.core.notify.prod_exchange");
+            logger.LogInformation("✅ [SendRequesterNotification] Successfully sent {NotificationType} notification to requester {Email}",
+                notificationType, entity.WorkflowInitiatedByEmail);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "❌ [SendRequesterNotification] Failed to send {NotificationType} notification to requester {Email}",
+                notificationType, entity.WorkflowInitiatedByEmail);
+        }
+    }
+
+    private static string GetEntityDisplayName(IWorkflowEnabled entity)
+    {
+        var entityType = entity.GetType();
+        var nameProperty = entityType.GetProperty("Name", BindingFlags.Public | BindingFlags.Instance);
+        if (nameProperty != null)
+        {
+            var nameValue = nameProperty.GetValue(entity);
+            if (nameValue != null && !string.IsNullOrWhiteSpace(nameValue.ToString()))
+            {
+                return nameValue.ToString() ?? string.Empty;
+            }
+        }
+
+        var titleProperty = entityType.GetProperty("Title", BindingFlags.Public | BindingFlags.Instance);
+        if (titleProperty != null)
+        {
+            var titleValue = titleProperty.GetValue(entity);
+            if (titleValue != null && !string.IsNullOrWhiteSpace(titleValue.ToString()))
+            {
+                return titleValue.ToString() ?? string.Empty;
+            }
+        }
+
+        return entity.EntityType;
+    }
+
+    private static bool IsValidEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return false;
+        }
+
+        var emailRegex = new Regex(
+            "^[\\w!#$%&'*+/=?`{|}~^-]+(?:\\.[\\w!#$%&'*+/=?`{|}~^-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,6}$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        return emailRegex.IsMatch(email.Trim());
+    }
+
+    private List<string> ExtractEmailsFromApprovers(List<WorkflowApprover> approvers)
+    {
+        var emails = new List<string>();
+
+        foreach (var approver in approvers)
+        {
+            if (!string.IsNullOrWhiteSpace(approver.Value) && IsValidEmail(approver.Value))
+            {
+                emails.Add(approver.Value.Trim());
+                logger.LogDebug("✅ [ExtractEmailsFromApprovers] Found valid email in approver {Type} Value: {Email}", approver.Type, approver.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(approver.ValueId) && IsValidEmail(approver.ValueId))
+            {
+                emails.Add(approver.ValueId.Trim());
+                logger.LogDebug("✅ [ExtractEmailsFromApprovers] Found valid email in approver {Type} ValueId: {Email}", approver.Type, approver.ValueId);
+            }
+        }
+
+        return emails.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private Dictionary<string, string> ExtractEntityDetails(IWorkflowEnabled entity)
+    {
+        var details = new Dictionary<string, string>();
+        var entityType = entity.GetType();
+        var entityTypeName = entityType.Name;
+
+        try
+        {
+            if (entityTypeName.Equals("Employee", StringComparison.OrdinalIgnoreCase))
+            {
+                ExtractEmployeeDetails(entity, entityType, details);
+            }
+            else
+            {
+                ExtractGenericEntityDetails(entity, entityType, details);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "⚠️ [ExtractEntityDetails] Error extracting entity details for {EntityType}. Continuing with basic details.",
+                entityTypeName);
+        }
+
+        return details;
+    }
+
+    private void ExtractEmployeeDetails(IWorkflowEnabled entity, Type entityType, Dictionary<string, string> details)
+    {
+        var properties = new[]
+        {
+            ("FullName", "FullName"),
+            ("FirstName", "FirstName"),
+            ("LastName", "LastName"),
+            ("MiddleName", "MiddleName"),
+            ("Code", "Code"),
+            ("No", "EmployeeNumber"),
+            ("Email", "Email"),
+            ("JobTitle", "JobTitle"),
+            ("JobTitleCode", "JobTitleCode"),
+            ("OrganizationalUnit", "OrganizationalUnit"),
+            ("OrganizationalUnitCode", "OrganizationalUnitCode"),
+            ("OrganizationalUnitName", "OrganizationalUnitName"),
+            ("Department", "Department"),
+            ("DepartmentCode", "DepartmentCode"),
+            ("DepartmentName", "DepartmentName"),
+            ("Station", "Station"),
+            ("StationCode", "StationCode"),
+            ("StationName", "StationName"),
+            ("PreferredName", "PreferredName"),
+            ("Salutation", "Salutation"),
+            ("Suffix", "Suffix")
+        };
+
+        foreach (var (propertyName, detailKey) in properties)
+        {
+            var property = entityType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+            if (property != null)
+            {
+                try
+                {
+                    var value = property.GetValue(entity);
+                    if (value != null)
+                    {
+                        var stringValue = value switch
+                        {
+                            string str => str,
+                            int intVal => intVal.ToString(),
+                            Guid guidVal => guidVal.ToString(),
+                            DateOnly dateVal => dateVal.ToString("yyyy-MM-dd"),
+                            DateTime dateTimeVal => dateTimeVal.ToString("yyyy-MM-dd HH:mm:ss"),
+                            _ => value.ToString() ?? ""
+                        };
+
+                        if (!string.IsNullOrWhiteSpace(stringValue))
+                        {
+                            details[detailKey] = stringValue;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "⚠️ [ExtractEmployeeDetails] Error reading property {PropertyName} for Employee entity", propertyName);
+                }
+            }
+        }
+    }
+
+    private void ExtractGenericEntityDetails(IWorkflowEnabled entity, Type entityType, Dictionary<string, string> details)
+    {
+        var properties = new[]
+        {
+            ("Name", "Name"),
+            ("Title", "Title"),
+            ("Code", "Code"),
+            ("Email", "Email"),
+            ("Description", "Description"),
+            ("ReferenceCode", "ReferenceCode")
+        };
+
+        foreach (var (propertyName, detailKey) in properties)
+        {
+            var property = entityType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+            if (property != null)
+            {
+                try
+                {
+                    var value = property.GetValue(entity);
+                    if (value != null)
+                    {
+                        var stringValue = value switch
+                        {
+                            string str => str,
+                            int intVal => intVal.ToString(),
+                            Guid guidVal => guidVal.ToString(),
+                            DateOnly dateVal => dateVal.ToString("yyyy-MM-dd"),
+                            DateTime dateTimeVal => dateTimeVal.ToString("yyyy-MM-dd HH:mm:ss"),
+                            _ => value.ToString() ?? ""
+                        };
+
+                        if (!string.IsNullOrWhiteSpace(stringValue))
+                        {
+                            details[detailKey] = stringValue;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "⚠️ [ExtractGenericEntityDetails] Error reading property {PropertyName} for {EntityType} entity",
+                        propertyName, entityType.Name);
+                }
+            }
+        }
+    }
+
+    private string GenerateWorkflowProgressHtml(
+        WorkflowDefinition workflowDefinition,
+        string currentStepCode,
+        DateTime initiatedAt,
+        bool isRequester = false,
+        bool isCompleted = false)
+    {
+        if (workflowDefinition?.Steps == null || workflowDefinition.Steps.Count == 0)
+        {
+            return GenerateEmptyProgressHtml(initiatedAt);
+        }
+
+        var orderedSteps = workflowDefinition.Steps.OrderBy(s => s.Order).ToList();
+
+        if (isCompleted)
+        {
+            var html = new StringBuilder();
+            html.AppendLine("<div class=\"grid grid-cols-[32px_1fr] gap-x-3\">");
+
+            html.Append(RenderRequestSubmittedStep(orderedSteps.Count > 0, initiatedAt));
+
+            for (int i = 0; i < orderedSteps.Count; i++)
+            {
+                var step = orderedSteps[i];
+                var isLast = i == orderedSteps.Count - 1;
+                html.Append(RenderCompletedStep(step, isLast));
+            }
+
+            html.AppendLine("</div>");
+            return html.ToString();
+        }
+
+        var currentStep = orderedSteps.FirstOrDefault(s => s.StepCode == currentStepCode);
+        
+        if (currentStep == null && !string.IsNullOrWhiteSpace(currentStepCode))
+        {
+            logger.LogWarning("⚠️ [GenerateWorkflowProgressHtml] Current step code {StepCode} not found in workflow definition. Using first step as current.",
+                currentStepCode);
+            currentStep = orderedSteps.FirstOrDefault();
+        }
+
+        if (currentStep == null)
+        {
+            return GenerateEmptyProgressHtml(initiatedAt);
+        }
+
+        var progressHtml = new StringBuilder();
+        progressHtml.AppendLine("<div class=\"grid grid-cols-[32px_1fr] gap-x-3\">");
+
+        progressHtml.Append(RenderRequestSubmittedStep(orderedSteps.Count > 0, initiatedAt));
+
+        for (int i = 0; i < orderedSteps.Count; i++)
+        {
+            var step = orderedSteps[i];
+            var isLast = i == orderedSteps.Count - 1;
+            
+            if (step.Order < currentStep.Order)
+            {
+                progressHtml.Append(RenderCompletedStep(step, isLast));
+            }
+            else if (step.Order == currentStep.Order)
+            {
+                progressHtml.Append(RenderCurrentStep(step, isLast, isRequester));
+            }
+            else
+            {
+                progressHtml.Append(RenderPendingStep(step, isLast));
+            }
+        }
+
+        progressHtml.AppendLine("</div>");
+        return progressHtml.ToString();
+    }
+
+    private string RenderRequestSubmittedStep(bool hasSteps, DateTime initiatedAt)
+    {
+        var html = new StringBuilder();
+        html.AppendLine("<div class=\"flex flex-col items-center\">");
+        html.AppendLine("  <div class=\"text-emerald-600 dark:text-emerald-500 z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 1, 'wght' 600, 'opsz' 20\">");
+        html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">check_circle</span>");
+        html.AppendLine("  </div>");
+        
+        if (hasSteps)
+        {
+            html.AppendLine("  <div class=\"w-[2px] bg-emerald-600 dark:text-emerald-500 h-full min-h-[2.5rem] -mt-1\"></div>");
+        }
+        
+        html.AppendLine("</div>");
+        html.AppendLine("<div class=\"flex flex-col pb-6 pt-0.5\">");
+        html.AppendLine("  <p class=\"text-[#111318] dark:text-white text-sm font-semibold leading-none\">Request Submitted</p>");
+        html.AppendLine($"  <p class=\"text-[#616f89] dark:text-slate-400 text-xs font-normal mt-1\">{initiatedAt:MMMM dd, yyyy}</p>");
+        html.AppendLine("</div>");
+        
+        return html.ToString();
+    }
+
+    private string RenderCompletedStep(WorkflowStep step, bool isLast)
+    {
+        var html = new StringBuilder();
+        html.AppendLine("<div class=\"flex flex-col items-center\">");
+        html.AppendLine("  <div class=\"text-emerald-600 dark:text-emerald-500 z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 1, 'wght' 600, 'opsz' 20\">");
+        html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">check_circle</span>");
+        html.AppendLine("  </div>");
+        
+        if (!isLast)
+        {
+            html.AppendLine("  <div class=\"w-[2px] bg-emerald-600 dark:text-emerald-500 h-full min-h-[2.5rem] -mt-1\"></div>");
+        }
+        
+        html.AppendLine("</div>");
+        html.AppendLine("<div class=\"flex flex-col pb-6 pt-0.5\">");
+        html.AppendLine($"  <p class=\"text-[#111318] dark:text-white text-sm font-semibold leading-none\">{EscapeHtml(step.Name)}</p>");
+        html.AppendLine("</div>");
+        
+        return html.ToString();
+    }
+
+    private string RenderCurrentStep(WorkflowStep step, bool isLast, bool isRequester = false)
+    {
+        var html = new StringBuilder();
+        html.AppendLine("<div class=\"flex flex-col items-center\">");
+        
+        if (isRequester)
+        {
+            html.AppendLine("  <div class=\"text-amber-600 dark:text-amber-500 z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 1, 'wght' 600, 'opsz' 20\">");
+            html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">schedule</span>");
+        }
+        else
+        {
+            html.AppendLine("  <div class=\"text-primary z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 1, 'wght' 600, 'opsz' 20\">");
+            html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">pending</span>");
+        }
+        
+        html.AppendLine("  </div>");
+        
+        if (!isLast)
+        {
+            html.AppendLine("  <div class=\"w-[2px] bg-[#dbdfe6] dark:bg-slate-600 h-full min-h-[2.5rem] -mt-1\"></div>");
+        }
+        
+        html.AppendLine("</div>");
+        html.AppendLine("<div class=\"flex flex-col pb-6 pt-0.5\">");
+        html.AppendLine($"  <p class=\"text-[#111318] dark:text-white text-sm font-semibold leading-none\">{EscapeHtml(step.Name)}</p>");
+        html.AppendLine("  <div class=\"flex items-center gap-2 mt-2\">");
+        
+        if (isRequester)
+        {
+            html.AppendLine("    <div class=\"flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800/50\">");
+            html.AppendLine("      <span class=\"w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse\"></span>");
+            html.AppendLine("      <p class=\"text-amber-700 dark:text-amber-300 text-xs font-medium\">Awaiting Approval</p>");
+        }
+        else
+        {
+            html.AppendLine("    <div class=\"flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50\">");
+            html.AppendLine("      <span class=\"w-1.5 h-1.5 rounded-full bg-primary animate-pulse\"></span>");
+            html.AppendLine("      <p class=\"text-primary dark:text-blue-300 text-xs font-medium\">Pending Your Review</p>");
+        }
+        
+        html.AppendLine("    </div>");
+        html.AppendLine("  </div>");
+        html.AppendLine("</div>");
+        
+        return html.ToString();
+    }
+
+    private string RenderPendingStep(WorkflowStep step, bool isLast)
+    {
+        var html = new StringBuilder();
+        html.AppendLine("<div class=\"flex flex-col items-center\">");
+        html.AppendLine("  <div class=\"text-[#9ca3af] dark:text-slate-500 z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 0, 'wght' 400, 'opsz' 20\">");
+        html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">radio_button_unchecked</span>");
+        html.AppendLine("  </div>");
+        html.AppendLine("</div>");
+        html.AppendLine("<div class=\"flex flex-col pt-0.5\">");
+        html.AppendLine($"  <p class=\"text-[#111318] dark:text-white text-sm font-medium leading-none opacity-60\">{EscapeHtml(step.Name)}</p>");
+        html.AppendLine("  <p class=\"text-[#616f89] dark:text-slate-400 text-xs font-normal mt-1 italic\">Waiting for approval</p>");
+        html.AppendLine("</div>");
+        
+        return html.ToString();
+    }
+
+    private string GenerateEmptyProgressHtml(DateTime initiatedAt)
+    {
+        var html = new StringBuilder();
+        html.AppendLine("<div class=\"grid grid-cols-[32px_1fr] gap-x-3\">");
+        html.Append(RenderRequestSubmittedStep(false, initiatedAt));
+        html.AppendLine("</div>");
+        return html.ToString();
+    }
+
+    private static string EscapeHtml(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return string.Empty;
+        }
+
+        return input
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("\"", "&quot;")
+            .Replace("'", "&#39;");
+    }
+
+    private static string? FormatEmailAsName(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return null;
+
+        if (!email.Contains('@'))
+            return null;
+
+        var localPart = email.Split('@')[0];
+
+        var formatted = localPart
+            .Replace('.', ' ')
+            .Replace('_', ' ')
+            .Replace('-', ' ');
+
+        var words = formatted.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var capitalized = string.Join(" ", words.Select(w =>
+            w.Length > 0 ? char.ToUpperInvariant(w[0]) + w.Substring(1).ToLowerInvariant() : w));
+
+        return capitalized;
+    }
+
 }
 

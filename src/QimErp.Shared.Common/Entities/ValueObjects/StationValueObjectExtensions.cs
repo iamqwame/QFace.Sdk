@@ -1,5 +1,3 @@
-using QimErp.Shared.Common.Entities;
-
 namespace QimErp.Shared.Common.Entities.ValueObjects;
 
 public static class StationValueObjectExtensions
