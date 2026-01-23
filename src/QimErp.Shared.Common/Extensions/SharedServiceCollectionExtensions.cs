@@ -335,6 +335,7 @@ public static class SharedServiceCollectionExtensions
         services.AddScoped<IWorkflowConfigCacheService, WorkflowConfigCacheService>();
         services.AddScoped<IWorkflowService, WorkflowService>();
         services.AddScoped<IWorkflowValidationService, WorkflowValidationService>();
+        services.AddScoped<IDynamicHtmlGenerator, DynamicHtmlGenerator>();
         services.AddScoped<IWorkflowApprovalProcessor, WorkflowApprovalProcessor>();
 
 
