@@ -1,4 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using QFace.Sdk.RabbitMq.Services;
+using QimErp.Shared.Common.Options;
 
 namespace QimErp.Shared.Common.Actors;
 
@@ -20,14 +23,18 @@ public class WorkflowEventPublisherActor : BaseActor
             logger.LogInformation("📤 [WorkflowEventPublisher] Publishing workflow event for {EntityType} {EntityId} with workflow code {WorkflowCode}, WorkflowId={WorkflowId}",
                 message.EntityType, message.EntityId, message.WorkflowCode, message.WorkflowId);
 
+            var exchangeName = RabbitMqOptions.DefaultWorkflowApprovalRequiredExchange;
             try
             {
                 using var scope = serviceProvider.CreateScope();
                 var publisher = scope.ServiceProvider.GetRequiredService<IRabbitMqPublisher>();
+                var systemOptions = scope.ServiceProvider.GetRequiredService<IOptions<SystemOptions>>().Value;
+                var rabbitMqOptions = scope.ServiceProvider.GetRequiredService<IOptions<RabbitMqOptions>>().Value;
+                exchangeName = rabbitMqOptions.WorkflowApprovalRequiredExchange;
 
                 var workflowEvent = new WorkflowApprovalRequiredEvent(
                     tenantId: message.TenantId,
-                    userEmail: message.InitiatedBy ?? "system@qimerp.com",
+                    userEmail: message.InitiatedBy ?? systemOptions.DefaultSystemEmail,
                     triggeredBy: message.TriggeredBy,
                     userName: message.UserName)
                 {
@@ -43,8 +50,6 @@ public class WorkflowEventPublisherActor : BaseActor
                     CurrentState = message.CurrentState,
                     NextStepCode = message.NextStepCode
                 };
-
-                var exchangeName = "qimerp.workflow.workflow_approval_required.prod_exchange";
                 var routingKey = "workflow.approval.required";
                 
                 logger.LogDebug("Publishing to Exchange={ExchangeName}, RoutingKey={RoutingKey}, EntityType={EntityType}, EntityId={EntityId}, WorkflowId={WorkflowId}",
@@ -58,7 +63,7 @@ public class WorkflowEventPublisherActor : BaseActor
             catch (Exception ex)
             {
                 logger.LogError(ex, "❌ [WorkflowEventPublisher] Failed to publish workflow event for {EntityType} {EntityId}: {ErrorMessage}. Exchange={ExchangeName}, RoutingKey={RoutingKey}",
-                    message.EntityType, message.EntityId, ex.Message, "qimerp.workflow.workflow_approval_required.prod_exchange", "workflow.approval.required");
+                    message.EntityType, message.EntityId, ex.Message, exchangeName, "workflow.approval.required");
                 throw;
             }
         });

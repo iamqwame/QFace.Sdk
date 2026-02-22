@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 using System.Transactions;
 using QFace.Sdk.RabbitMq.Services;
+using QimErp.Shared.Common.Options;
 using QimErp.Shared.Common.Services.Workflow;
 
 namespace QimErp.Shared.Common.Interceptors;
@@ -10,10 +12,13 @@ public class AuditEntitySaveChangesInterceptor(
     ICurrentUserService userContextService,
     ILogger<AuditEntitySaveChangesInterceptor> logger,
     IServiceProvider serviceProvider,
+    IOptions<RabbitMqOptions> rabbitMqOptions,
     IConfiguration? configuration = null,
     IPublisher? publisher = null)
     : SaveChangesInterceptor
 {
+    private readonly RabbitMqOptions _rabbitMqOptions = rabbitMqOptions.Value;
+
     private readonly ConditionalWeakTable<DbContext, List<IDomainEvent>> _contextEvents = [];
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
@@ -266,13 +271,13 @@ public class AuditEntitySaveChangesInterceptor(
         }
     }
 
-    private static string? GetExchangeNameForEvent(IDomainEvent domainEvent)
+    private string? GetExchangeNameForEvent(IDomainEvent domainEvent)
     {
         return domainEvent switch
         {
-            WorkflowChangedEvent => "qimerp.workflow.workflow_changed.prod_exchange",
-            WorkflowStatusChangedEvent => "qimerp.workflow.workflow_status_changed.prod_exchange",
-            WorkflowCompletedEvent => "qimerp.workflow.workflow_completed.prod_exchange",
+            WorkflowChangedEvent => _rabbitMqOptions.WorkflowChangedExchange,
+            WorkflowStatusChangedEvent => _rabbitMqOptions.WorkflowStatusChangedExchange,
+            WorkflowCompletedEvent => _rabbitMqOptions.WorkflowCompletedExchange,
             _ => null // Return null to use IPublisher fallback for other events
         };
     }

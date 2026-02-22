@@ -12,7 +12,9 @@ using Microsoft.OpenApi.Models;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Microsoft.Extensions.Configuration;
 using QFace.Sdk.RedisCache.Extensions;
+using QimErp.Shared.Common.Entities;
 using QimErp.Shared.Common.Database;
 using QimErp.Shared.Common.Middlewares;
 using QimErp.Shared.Common.Options;
@@ -25,6 +27,31 @@ namespace QimErp.Shared.Common.Extensions;
 
 public static class SharedServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers QimErp configuration options (FrontendSettings, System, RabbitMq).
+    /// Call from consuming application startup.
+    /// </summary>
+    public static IServiceCollection AddQimErpConfiguration(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddQimErpConfigurationWithDefaults();
+        services.Configure<FrontendSettings>(configuration.GetSection(FrontendSettings.SectionName));
+        services.Configure<SystemOptions>(configuration.GetSection(SystemOptions.SectionName));
+        services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
+        return services;
+    }
+
+    /// <summary>
+    /// Registers QimErp options with default values.
+    /// Use when IConfiguration is not available (e.g. AddDbContextWithOutbox without config).
+    /// Ensures IOptions&lt;T&gt; resolves for FrontendSettings, SystemOptions, RabbitMqOptions.
+    /// </summary>
+    public static IServiceCollection AddQimErpConfigurationWithDefaults(this IServiceCollection services)
+    {
+        services.Configure<FrontendSettings>(_ => { });
+        services.Configure<SystemOptions>(_ => { });
+        services.Configure<RabbitMqOptions>(_ => { });
+        return services;
+    }
 
     public static void AddApplicationTestDbContext<TContext>(
         this IServiceCollection services, string connectionString) where TContext : DbContext
@@ -54,11 +81,25 @@ public static class SharedServiceCollectionExtensions
 
         return services;
     }
+    /// <summary>
+    /// Registers DbContext with outbox support and audit interceptor.
+    /// </summary>
+    /// <param name="configuration">Optional. When provided, options bind from config; when null, default values are used.</param>
+    /// <remarks>
+    /// Requires ICurrentUserService. Registers DesignTimeCurrentUserService as fallback via TryAdd.
+    /// Call AddCoreServices/AddAuth before or after to use UserContextService (HTTP-based user) instead.
+    /// </remarks>
     public static IServiceCollection AddDbContextWithOutbox<TContext>(
-           this IServiceCollection services, string connectionString) where TContext : ApplicationDbContext<TContext>
+        this IServiceCollection services, string connectionString, IConfiguration? configuration = null) where TContext : ApplicationDbContext<TContext>
     {
+        if (configuration != null)
+            services.AddQimErpConfiguration(configuration);
+        else
+            services.AddQimErpConfigurationWithDefaults();
+
+        services.TryAddScoped<ICurrentUserService, DesignTimeCurrentUserService>();
         services.AddScoped<ITenantContext, TenantContext>();
-        
+
         services
             .AddScoped<AuditEntitySaveChangesInterceptor>()
             .AddDbContext<TContext>((provider, options) =>
@@ -80,9 +121,18 @@ public static class SharedServiceCollectionExtensions
         return services;
     }
     
+    /// <summary>
+    /// Registers DbContext with outbox support and audit interceptor for consumer/background apps.
+    /// </summary>
+    /// <param name="configuration">Optional. When provided, options bind from config; when null, default values are used.</param>
     public static IServiceCollection AddDbContextWithOutboxConsumer<TContext>(
-        this IServiceCollection services, string connectionString) where TContext : ApplicationDbContext<TContext>
+        this IServiceCollection services, string connectionString, IConfiguration? configuration = null) where TContext : ApplicationDbContext<TContext>
     {
+        if (configuration != null)
+            services.AddQimErpConfiguration(configuration);
+        else
+            services.AddQimErpConfigurationWithDefaults();
+
         services.AddSingleton<ITenantContext, TenantContext>();
         services.AddSingleton<ConsumerUserContextService>();
         services.AddSingleton<ICurrentUserService>(sp => sp.GetRequiredService<ConsumerUserContextService>());
@@ -294,6 +344,7 @@ public static class SharedServiceCollectionExtensions
 
 
         services.AddMemoryCache(); // For configuration caching
+        services.AddQimErpConfiguration(configuration);
         
         // Add antiforgery services (required by UseAntiforgery in UseAppSecurity)
         services.AddAntiforgery();
