@@ -1,11 +1,17 @@
+using Microsoft.Extensions.Options;
+using QimErp.Shared.Common.Options;
+
 namespace QimErp.Shared.Common.Services.Workflow;
 
 public class WorkflowService(
     IWorkflowConfigCacheService configCacheService,
+    IOptions<SystemOptions> systemOptions,
     ILogger<WorkflowService> logger,
     ICurrentUserService? currentUserService = null)
     : IWorkflowService
 {
+    private readonly SystemOptions _systemOptions = systemOptions.Value;
+
     public async Task<bool> ShouldTriggerWorkflow(IWorkflowEnabled entity, string operation, string? module = null)
     {
         try
@@ -80,9 +86,9 @@ public class WorkflowService(
                 return;
             }
 
-            string currentUser = currentUserService?.GetUserId() ?? "system";
-            string currentUserEmail = currentUserService?.GetUserEmail() ?? "system@qimerp.com";
-            string currentUserName = currentUserService?.GetUserName() ?? "System";
+            string currentUser = currentUserService?.GetUserId() ?? _systemOptions.DefaultUserId;
+            string currentUserEmail = currentUserService?.GetUserEmail() ?? _systemOptions.DefaultSystemEmail;
+            string currentUserName = currentUserService?.GetUserName() ?? _systemOptions.DefaultUserName;
             Guid workflowHistoryId = Guid.NewGuid();
 
             logger.LogDebug("Setting CurrentWorkflowHistoryId={WorkflowHistoryId} for {EntityType} before initiating workflow", 
@@ -145,7 +151,7 @@ public class WorkflowService(
     {
         try
         {
-            string currentUser = currentUserService?.GetUserId() ?? "system";
+            string currentUser = currentUserService?.GetUserId() ?? _systemOptions.DefaultUserId;
 
             // TODO: Update workflow history in database
             // TODO: Log activity

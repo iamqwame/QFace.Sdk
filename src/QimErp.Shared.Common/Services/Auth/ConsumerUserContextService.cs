@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
+using QimErp.Shared.Common.Options;
 
 namespace QimErp.Shared.Common.Services.Auth;
 
@@ -9,15 +11,21 @@ namespace QimErp.Shared.Common.Services.Auth;
 public class ConsumerUserContextService : ICurrentUserService
 {
     private static readonly AsyncLocal<ConsumerContext> Context = new();
+    private readonly SystemOptions _systemOptions;
+
+    public ConsumerUserContextService(IOptions<SystemOptions> systemOptions)
+    {
+        _systemOptions = systemOptions.Value;
+    }
 
     public void SetContext(string tenantId, string userEmail, string? userName = null, string? triggeredBy = null)
     {
         Context.Value = new ConsumerContext
         {
             TenantId = tenantId,
-            TriggeredBy = triggeredBy ?? "system",
+            TriggeredBy = triggeredBy ?? _systemOptions.DefaultUserId,
             UserEmail = userEmail,
-            UserName = userName ?? "system",
+            UserName = userName ?? _systemOptions.DefaultUserId,
             Timestamp = DateTime.UtcNow
         };
     }
@@ -34,13 +42,13 @@ public class ConsumerUserContextService : ICurrentUserService
             var context = Context.Value;
             if (context == null) return false;
             var userId = context.TriggeredBy;
-            return !string.IsNullOrEmpty(userId) && userId != "system" && userId != "anonymous";
+            return !string.IsNullOrEmpty(userId) && userId != _systemOptions.DefaultUserId && userId != "anonymous";
         }
     }
 
     public string GetUserId()
     {
-        return Context.Value?.TriggeredBy ?? "system";
+        return Context.Value?.TriggeredBy ?? _systemOptions.DefaultUserId;
     }
 
     public string? GetRole()
@@ -81,12 +89,12 @@ public class ConsumerUserContextService : ICurrentUserService
 
     public string GetUserEmail()
     {
-        return Context.Value?.UserEmail ?? "system@consumer";
+        return Context.Value?.UserEmail ?? _systemOptions.ConsumerSystemEmail;
     }
 
     public string GetUserName()
     {
-        return Context.Value?.UserName ?? "system";
+        return Context.Value?.UserName ?? _systemOptions.DefaultUserId;
     }
 
     public string? GetDomainName()

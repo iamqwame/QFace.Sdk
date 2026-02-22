@@ -1,21 +1,26 @@
+using Microsoft.Extensions.Options;
 using QFace.Sdk.RabbitMq.Services;
+using QimErp.Shared.Common.Entities;
+using QimErp.Shared.Common.Options;
 
 namespace QimErp.Shared.Common.Services.Workflow;
 
 /// <summary>
 /// Implements the workflow rejection processor to handle rejection requests.
 /// </summary>
-/// <param name="publisher"></param>
-/// <param name="templateService"></param>
-/// <param name="configuration"></param>
-/// <param name="logger"></param>
 public class WorkflowRejectionProcessor(
     IRabbitMqPublisher publisher,
     ITemplateService templateService,
-    IConfiguration configuration,
+    IOptions<FrontendSettings> frontendSettings,
+    IOptions<SystemOptions> systemOptions,
+    IOptions<RabbitMqOptions> rabbitMqOptions,
     ILogger<WorkflowRejectionProcessor> logger)
     : IWorkflowRejectionProcessor
 {
+    private readonly FrontendSettings _frontendSettings = frontendSettings.Value;
+    private readonly SystemOptions _systemOptions = systemOptions.Value;
+    private readonly RabbitMqOptions _rabbitMqOptions = rabbitMqOptions.Value;
+
     /// <summary>
     /// Processes a workflow rejection request.
     /// </summary>
@@ -326,12 +331,10 @@ public class WorkflowRejectionProcessor(
             recipients.Count);
 
         var entityDisplayName = GetEntityDisplayName(entity);
-        var rejectedByName = @event.UserName ?? FormatEmailAsName(@event.RejectedBy) ?? "System";
-        var rejectedByEmail = @event.RejectedBy ?? "system@qimerp.com";
+        var rejectedByName = @event.UserName ?? FormatEmailAsName(@event.RejectedBy) ?? _systemOptions.DefaultUserName;
+        var rejectedByEmail = @event.RejectedBy ?? _systemOptions.DefaultSystemEmail;
         var rejectedAt = @event.RejectedAt != default ? @event.RejectedAt : DateTime.UtcNow;
-        var baseUrl = configuration.GetValue<string>("FrontendSettings:BaseUrl") 
-            ?? configuration.GetValue<string>("FrontendSettings__BaseUrl")
-            ?? "https://app.qimerp.com";
+        var baseUrl = _frontendSettings.BaseUrl;
         var reviewUrl = $"{baseUrl.TrimEnd('/')}/workflow/entity/{@event.EntityType}/{@event.EntityId}/review";
 
         var replacements = new Dictionary<string, string>
@@ -343,8 +346,8 @@ public class WorkflowRejectionProcessor(
             ["ActorName"] = rejectedByName,
             ["ApproverName"] = rejectedByName,
             ["ActorEmail"] = rejectedByEmail,
-            ["WorkflowCode"] = @event.WorkflowCode ?? entity.WorkflowCode?.Replace("-", " ") ?? "Workflow Request",
-            ["RequesterName"] = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "Requester",
+            ["WorkflowCode"] = @event.WorkflowCode ?? entity.WorkflowCode?.Replace("-", " ") ?? _systemOptions.DefaultWorkflowCodeDisplayName,
+            ["RequesterName"] = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? _systemOptions.DefaultRequesterName,
             ["Date"] = rejectedAt.ToString("MMMM dd, yyyy"),
             ["ReviewUrl"] = reviewUrl,
             ["Year"] = DateTime.UtcNow.Year.ToString()
@@ -374,7 +377,7 @@ public class WorkflowRejectionProcessor(
                     }
                 };
 
-                await publisher.PublishAsync(message, "qimerp.core.notify.prod_exchange");
+                await publisher.PublishAsync(message, _rabbitMqOptions.NotificationsExchange);
 
                 logger.LogInformation("✅ [WorkflowRejectionProcessor] Successfully sent rejection notification to {Recipient}",
                     recipient);

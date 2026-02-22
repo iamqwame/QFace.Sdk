@@ -1,23 +1,27 @@
+using Microsoft.Extensions.Options;
 using QFace.Sdk.RabbitMq.Services;
+using QimErp.Shared.Common.Entities;
+using QimErp.Shared.Common.Options;
 
 namespace QimErp.Shared.Common.Services.Workflow;
 
 /// <summary>
 /// Processor for handling workflow approval requests.
 /// </summary>
-/// <param name="publisher"></param>
-/// <param name="templateService"></param>
-/// <param name="configuration"></param>
-/// <param name="dynamicHtmlGenerator"></param>
-/// <param name="logger"></param>
 public class WorkflowApprovalProcessor(
     IRabbitMqPublisher publisher,
     ITemplateService templateService,
-    IConfiguration configuration,
+    IOptions<FrontendSettings> frontendSettings,
+    IOptions<SystemOptions> systemOptions,
+    IOptions<RabbitMqOptions> rabbitMqOptions,
     IDynamicHtmlGenerator dynamicHtmlGenerator,
     ILogger<WorkflowApprovalProcessor> logger)
     : IWorkflowApprovalProcessor
 {
+    private readonly FrontendSettings _frontendSettings = frontendSettings.Value;
+    private readonly SystemOptions _systemOptions = systemOptions.Value;
+    private readonly RabbitMqOptions _rabbitMqOptions = rabbitMqOptions.Value;
+
     /// <summary>
     /// Processes a workflow approval request event.
     /// </summary>
@@ -409,7 +413,7 @@ public class WorkflowApprovalProcessor(
             try
             {
                 var smsMessage = BuildSmsNotification(@event, notificationType, stepName, action.SendNotificationTo);
-                await publisher.PublishAsync(smsMessage, "qimerp.core.notify.prod_exchange");
+                await publisher.PublishAsync(smsMessage, _rabbitMqOptions.NotificationsExchange);
                 logger.LogInformation("📱 [WorkflowNotification] Published SMS notification for {NotificationType} to {RecipientCount} recipients",
                     notificationType, action.SendNotificationTo.Count);
             }
@@ -449,7 +453,7 @@ public class WorkflowApprovalProcessor(
                 if (recipients.Count > 0)
                 {
                     var emailMessage = await BuildEmailNotificationAsync(@event, notificationType, stepName, recipients, entity, workflowDefinition);
-                    await publisher.PublishAsync(emailMessage, "qimerp.core.notify.prod_exchange");
+                    await publisher.PublishAsync(emailMessage, _rabbitMqOptions.NotificationsExchange);
                     logger.LogInformation("📧 [WorkflowNotification] Published Email notification for {NotificationType} to {RecipientCount} recipients",
                         notificationType, recipients.Count);
                 }
@@ -507,9 +511,7 @@ public class WorkflowApprovalProcessor(
         
         var entityDetails = ExtractEntityDetails(entity);
         var entityDisplayName = GetEntityDisplayName(entity);
-        var baseUrl = configuration.GetValue<string>("FrontendSettings:BaseUrl") 
-            ?? configuration.GetValue<string>("FrontendSettings__BaseUrl")
-            ?? "https://app.qimerp.com";
+        var baseUrl = _frontendSettings.BaseUrl;
         var reviewUrl = $"{baseUrl.TrimEnd('/')}/workflow/entity/{@event.EntityType}/{@event.EntityId}/review";
         var approvedDate = @event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow;
         var initiatedAt = entity.WorkflowInitiatedAt ?? DateTime.UtcNow;
@@ -521,7 +523,7 @@ public class WorkflowApprovalProcessor(
             ? $"Stage {currentStepNumber} of {totalSteps}: Action Required"
             : "Action Required";
 
-        var nextStepName = "Final Review";
+        var nextStepName = _systemOptions.DefaultNextStepName;
         if (!string.IsNullOrWhiteSpace(@event.NextStepCode) && workflowDefinition.Steps != null)
         {
             var nextStep = workflowDefinition.Steps.FirstOrDefault(s => s.StepCode == @event.NextStepCode);
@@ -547,9 +549,9 @@ public class WorkflowApprovalProcessor(
 
         var requesterDisplayName = entityDetails.TryGetValue("FullName", out var fullName) && !string.IsNullOrWhiteSpace(fullName)
             ? fullName
-            : entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "Requester";
+            : entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? _systemOptions.DefaultRequesterName;
 
-        var requesterLabel = entityDetails.ContainsKey("FullName") ? "Employee Name" : "Requester Name";
+        var requesterLabel = entityDetails.ContainsKey("FullName") ? "Employee Name" : $"{_systemOptions.DefaultRequesterName} Name";
 
         var currentStepCode = @event.CurrentState ?? @event.NextStepCode ?? "";
         if (string.IsNullOrWhiteSpace(currentStepCode) && workflowDefinition?.Steps != null)
@@ -569,11 +571,11 @@ public class WorkflowApprovalProcessor(
             ["StepName"] = stepName,
             ["NotificationType"] = notificationType,
             ["Comments"] = @event.Comments,
-            ["ActorName"] = @event.UserName ?? "Approver",
-            ["ApproverName"] = @event.UserName ?? "Approver",
+            ["ActorName"] = @event.UserName ?? _systemOptions.DefaultApproverName,
+            ["ApproverName"] = @event.UserName ?? _systemOptions.DefaultApproverName,
             ["ActorEmail"] = @event.ApprovedBy,
             ["WorkflowCode"] = @event.WorkflowCode,
-            ["RequesterName"] = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "Requester",
+            ["RequesterName"] = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? _systemOptions.DefaultRequesterName,
             ["Date"] = approvedDate.ToString("MMMM dd, yyyy"),
             ["ReviewUrl"] = reviewUrl,
             ["Year"] = DateTime.UtcNow.Year.ToString(),
@@ -667,15 +669,12 @@ public class WorkflowApprovalProcessor(
         logger.LogInformation("📧 [SendNextStepNotifications] Sending next step notifications to {RecipientCount} recipients for step {StepCode}",
             recipients.Count, nextStep.StepCode);
 
-        var baseUrl = configuration.GetValue<string>("FrontendSettings:BaseUrl") 
-            ?? configuration.GetValue<string>("FrontendSettings__BaseUrl")
-            ?? "https://app.qimerp.com";
-        
+        var baseUrl = _frontendSettings.BaseUrl;
         var reviewUrl = $"{baseUrl.TrimEnd('/')}/workflow/entity/{@event.EntityType}/{@event.EntityId}/review";
 
         var entityDisplayName = GetEntityDisplayName(entity);
-        var initiatedByName = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "System";
-        var initiatedByEmail = entity.WorkflowInitiatedByEmail ?? "system@qimerp.com";
+        var initiatedByName = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? _systemOptions.DefaultUserName;
+        var initiatedByEmail = entity.WorkflowInitiatedByEmail ?? _systemOptions.DefaultSystemEmail;
         var initiatedAt = entity.WorkflowInitiatedAt ?? DateTime.UtcNow;
 
         var replacements = new Dictionary<string, string>
@@ -719,7 +718,7 @@ public class WorkflowApprovalProcessor(
                     }
                 };
 
-                await publisher.PublishAsync(message, "qimerp.core.notify.prod_exchange");
+                await publisher.PublishAsync(message, _rabbitMqOptions.NotificationsExchange);
 
                 logger.LogInformation("✅ [SendNextStepNotifications] Successfully sent next step notification to {Recipient} for step {StepCode}",
                     recipient, nextStep.StepCode);
@@ -761,9 +760,7 @@ public class WorkflowApprovalProcessor(
         var workflowDefinition = entity.WorkflowDefinition;
         var entityDetails = ExtractEntityDetails(entity);
         var entityDisplayName = GetEntityDisplayName(entity);
-        var baseUrl = configuration.GetValue<string>("FrontendSettings:BaseUrl") 
-            ?? configuration.GetValue<string>("FrontendSettings__BaseUrl")
-            ?? "https://app.qimerp.com";
+        var baseUrl = _frontendSettings.BaseUrl;
         var reviewUrl = $"{baseUrl.TrimEnd('/')}/workflow/entity/{@event.EntityType}/{@event.EntityId}/review";
         var initiatedAt = entity.WorkflowInitiatedAt ?? DateTime.UtcNow;
 
@@ -789,7 +786,7 @@ public class WorkflowApprovalProcessor(
         var nextStepCode = isCompleted
             ? AppConstant.Workflow.States.Completed
             : (@event.CurrentState ?? @event.NextStepCode ?? "");
-        var nextStepName = "Final Review";
+        var nextStepName = _systemOptions.DefaultNextStepName;
         if (!isCompleted && !string.IsNullOrWhiteSpace(nextStepCode) && workflowDefinition?.Steps != null)
         {
             var nextStep = workflowDefinition.Steps.FirstOrDefault(s => s.StepCode == nextStepCode);
@@ -823,17 +820,17 @@ public class WorkflowApprovalProcessor(
 
         var requesterDisplayName = entityDetails.TryGetValue("FullName", out var fullName) && !string.IsNullOrWhiteSpace(fullName)
             ? fullName
-            : entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "Requester";
+            : entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? _systemOptions.DefaultRequesterName;
 
-        var requesterLabel = entityDetails.ContainsKey("FullName") ? "Employee Name" : "Requester Name";
+        var requesterLabel = entityDetails.ContainsKey("FullName") ? "Employee Name" : $"{_systemOptions.DefaultRequesterName} Name";
 
         var workflowProgressHtml = workflowDefinition != null
             ? dynamicHtmlGenerator.GenerateWorkflowProgressHtml(workflowDefinition, nextStepCode, initiatedAt, isRequester: true, isCompleted: isCompleted)
             : dynamicHtmlGenerator.GenerateEmptyProgressHtml(initiatedAt);
 
         var actorName = isCompleted
-            ? (entity.WorkflowCompletedByName ?? @event.UserName ?? "System")
-            : (@event.UserName ?? "Approver");
+            ? (entity.WorkflowCompletedByName ?? @event.UserName ?? _systemOptions.DefaultUserName)
+            : (@event.UserName ?? _systemOptions.DefaultApproverName);
 
         var replacements = new Dictionary<string, string>
         {
@@ -848,7 +845,7 @@ public class WorkflowApprovalProcessor(
                 ? (entity.WorkflowCompletedByEmail ?? @event.ApprovedBy)
                 : (@event.ApprovedBy),
             ["WorkflowCode"] = @event.WorkflowCode,
-            ["RequesterName"] = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? "Requester",
+            ["RequesterName"] = entity.WorkflowInitiatedByName ?? FormatEmailAsName(entity.WorkflowInitiatedByEmail) ?? _systemOptions.DefaultRequesterName,
             ["Date"] = completedDate.ToString("MMMM dd, yyyy"),
             ["WorkflowId"] = @event.WorkflowId,
             ["ReviewUrl"] = reviewUrl,
@@ -890,7 +887,7 @@ public class WorkflowApprovalProcessor(
                 }
             };
 
-            await publisher.PublishAsync(message, "qimerp.core.notify.prod_exchange");
+            await publisher.PublishAsync(message, _rabbitMqOptions.NotificationsExchange);
             logger.LogInformation("✅ [SendRequesterNotification] Successfully sent {NotificationType} notification to requester {Email}",
                 notificationType, entity.WorkflowInitiatedByEmail);
         }
