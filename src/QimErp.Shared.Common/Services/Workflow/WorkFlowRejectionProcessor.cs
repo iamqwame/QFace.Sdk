@@ -377,7 +377,7 @@ public class WorkflowRejectionProcessor(
                     }
                 };
 
-                await publisher.PublishAsync(message, _rabbitMqOptions.NotificationsExchange);
+                await publisher.PublishAsync(message, _rabbitMqOptions.Exchanges.Notification);
 
                 logger.LogInformation("✅ [WorkflowRejectionProcessor] Successfully sent rejection notification to {Recipient}",
                     recipient);

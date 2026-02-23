@@ -413,7 +413,7 @@ public class WorkflowApprovalProcessor(
             try
             {
                 var smsMessage = BuildSmsNotification(@event, notificationType, stepName, action.SendNotificationTo);
-                await publisher.PublishAsync(smsMessage, _rabbitMqOptions.NotificationsExchange);
+                await publisher.PublishAsync(smsMessage, _rabbitMqOptions.Exchanges.Notification);
                 logger.LogInformation("📱 [WorkflowNotification] Published SMS notification for {NotificationType} to {RecipientCount} recipients",
                     notificationType, action.SendNotificationTo.Count);
             }
@@ -453,7 +453,7 @@ public class WorkflowApprovalProcessor(
                 if (recipients.Count > 0)
                 {
                     var emailMessage = await BuildEmailNotificationAsync(@event, notificationType, stepName, recipients, entity, workflowDefinition);
-                    await publisher.PublishAsync(emailMessage, _rabbitMqOptions.NotificationsExchange);
+                    await publisher.PublishAsync(emailMessage, _rabbitMqOptions.Exchanges.Notification);
                     logger.LogInformation("📧 [WorkflowNotification] Published Email notification for {NotificationType} to {RecipientCount} recipients",
                         notificationType, recipients.Count);
                 }
@@ -718,7 +718,7 @@ public class WorkflowApprovalProcessor(
                     }
                 };
 
-                await publisher.PublishAsync(message, _rabbitMqOptions.NotificationsExchange);
+                await publisher.PublishAsync(message, _rabbitMqOptions.Exchanges.Notification);
 
                 logger.LogInformation("✅ [SendNextStepNotifications] Successfully sent next step notification to {Recipient} for step {StepCode}",
                     recipient, nextStep.StepCode);
@@ -887,7 +887,7 @@ public class WorkflowApprovalProcessor(
                 }
             };
 
-            await publisher.PublishAsync(message, _rabbitMqOptions.NotificationsExchange);
+            await publisher.PublishAsync(message, _rabbitMqOptions.Exchanges.Notification);
             logger.LogInformation("✅ [SendRequesterNotification] Successfully sent {NotificationType} notification to requester {Email}",
                 notificationType, entity.WorkflowInitiatedByEmail);
         }

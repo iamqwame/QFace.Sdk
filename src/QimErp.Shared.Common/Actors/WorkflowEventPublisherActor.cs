@@ -23,14 +23,14 @@ public class WorkflowEventPublisherActor : BaseActor
             logger.LogInformation("📤 [WorkflowEventPublisher] Publishing workflow event for {EntityType} {EntityId} with workflow code {WorkflowCode}, WorkflowId={WorkflowId}",
                 message.EntityType, message.EntityId, message.WorkflowCode, message.WorkflowId);
 
-            var exchangeName = RabbitMqOptions.DefaultWorkflowApprovalRequiredExchange;
+            var exchangeName = RabbitMqExchanges.DefaultWorkflowApprovalRequired;
             try
             {
                 using var scope = serviceProvider.CreateScope();
                 var publisher = scope.ServiceProvider.GetRequiredService<IRabbitMqPublisher>();
                 var systemOptions = scope.ServiceProvider.GetRequiredService<IOptions<SystemOptions>>().Value;
                 var rabbitMqOptions = scope.ServiceProvider.GetRequiredService<IOptions<RabbitMqOptions>>().Value;
-                exchangeName = rabbitMqOptions.WorkflowApprovalRequiredExchange;
+                exchangeName = rabbitMqOptions.Exchanges.WorkflowApprovalRequired;
 
                 var workflowEvent = new WorkflowApprovalRequiredEvent(
                     tenantId: message.TenantId,

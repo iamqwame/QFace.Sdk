@@ -22,9 +22,10 @@ Copy `.env.example` to `.env` and override as needed. Use `__` (double underscor
 ```
 FrontendSettings__BaseUrl=https://custom.qimerp.com
 System__DefaultSystemEmail=admin@mycompany.com
-RabbitMq__NotificationsExchange=qimerp.core.notify.dev_exchange
-RabbitMq__WorkflowApprovalRequiredExchange=qimerp.workflow.workflow_approval_required.dev_exchange
-RabbitMq__WorkflowChangedExchange=qimerp.workflow.workflow_changed.dev_exchange
-RabbitMq__WorkflowStatusChangedExchange=qimerp.workflow.workflow_status_changed.dev_exchange
-RabbitMq__WorkflowCompletedExchange=qimerp.workflow.workflow_completed.dev_exchange
+RabbitMq__Exchanges__Notify=qimerp.core.notify.dev_exchange
+RabbitMq__Exchanges__WorkflowApprovalRequired=qimerp.workflow.workflow_approval_required.dev_exchange
+RabbitMq__Exchanges__WorkflowChanged=qimerp.workflow.workflow_changed.dev_exchange
+RabbitMq__Exchanges__WorkflowStatusChanged=qimerp.workflow.workflow_status_changed.dev_exchange
+RabbitMq__Exchanges__WorkflowCompleted=qimerp.workflow.workflow_completed.dev_exchange
+RabbitMq__Exchanges__WorkflowApprovalRequest=qimerp.workflow.workflow_approval_request.local_exchange
 ```

@@ -38,7 +38,7 @@ public class SharedServiceCollectionExtensionsTests
 
         var rabbitMqOptions = provider.GetService<IOptions<RabbitMqOptions>>();
         rabbitMqOptions.Should().NotBeNull();
-        rabbitMqOptions!.Value.WorkflowApprovalRequiredExchange.Should().Be(RabbitMqOptions.DefaultWorkflowApprovalRequiredExchange);
+        rabbitMqOptions!.Value.Exchanges.WorkflowApprovalRequired.Should().Be(RabbitMqExchanges.DefaultWorkflowApprovalRequired);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class SharedServiceCollectionExtensionsTests
         const string customExchange = "custom.workflow.approval.exchange";
         var configData = new Dictionary<string, string?>
         {
-            ["RabbitMq:WorkflowApprovalRequiredExchange"] = customExchange
+            ["RabbitMq:Exchanges:WorkflowApprovalRequired"] = customExchange
         };
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(configData!)
@@ -79,7 +79,7 @@ public class SharedServiceCollectionExtensionsTests
         var rabbitMqOptions = provider.GetRequiredService<IOptions<RabbitMqOptions>>();
 
         // Assert
-        rabbitMqOptions.Value.WorkflowApprovalRequiredExchange.Should().Be(customExchange);
+        rabbitMqOptions.Value.Exchanges.WorkflowApprovalRequired.Should().Be(customExchange);
     }
 
     [Fact]
