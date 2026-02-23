@@ -275,9 +275,9 @@ public class AuditEntitySaveChangesInterceptor(
     {
         return domainEvent switch
         {
-            WorkflowChangedEvent => _rabbitMqOptions.WorkflowChangedExchange,
-            WorkflowStatusChangedEvent => _rabbitMqOptions.WorkflowStatusChangedExchange,
-            WorkflowCompletedEvent => _rabbitMqOptions.WorkflowCompletedExchange,
+            WorkflowChangedEvent => _rabbitMqOptions.Exchanges.WorkflowChanged,
+            WorkflowStatusChangedEvent => _rabbitMqOptions.Exchanges.WorkflowStatusChanged,
+            WorkflowCompletedEvent => _rabbitMqOptions.Exchanges.WorkflowCompleted,
             _ => null // Return null to use IPublisher fallback for other events
         };
     }

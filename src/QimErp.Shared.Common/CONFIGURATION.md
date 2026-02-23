@@ -1,6 +1,6 @@
 # QimErp.Shared.Common Configuration (Phase 1)
 
-This document describes the configurable options for FrontendSettings, System identity, and RabbitMQ NotificationsExchange.
+This document describes the configurable options for FrontendSettings, System identity, and RabbitMQ exchanges.
 
 ## Registration
 
@@ -39,11 +39,14 @@ Add these sections to `appsettings.json` (or use environment variables). Referen
     "DefaultWorkflowCodeDisplayName": "Workflow Request"
   },
   "RabbitMq": {
-    "NotificationsExchange": "qimerp.core.notify.prod_exchange",
-    "WorkflowApprovalRequiredExchange": "qimerp.workflow.workflow_approval_required.prod_exchange",
-    "WorkflowChangedExchange": "qimerp.workflow.workflow_changed.prod_exchange",
-    "WorkflowStatusChangedExchange": "qimerp.workflow.workflow_status_changed.prod_exchange",
-    "WorkflowCompletedExchange": "qimerp.workflow.workflow_completed.prod_exchange"
+    "Exchanges": {
+      "Notify": "qimerp.core.notify.prod_exchange",
+      "WorkflowApprovalRequired": "qimerp.workflow.workflow_approval_required.prod_exchange",
+      "WorkflowChanged": "qimerp.workflow.workflow_changed.prod_exchange",
+      "WorkflowStatusChanged": "qimerp.workflow.workflow_status_changed.prod_exchange",
+      "WorkflowCompleted": "qimerp.workflow.workflow_completed.prod_exchange",
+      "WorkflowApprovalRequest": "qimerp.workflow.workflow_approval_request.local_exchange"
+    }
   }
 }
 ```
@@ -54,11 +57,12 @@ Override any value using the `__` (double underscore) separator:
 
 - `FrontendSettings__BaseUrl`
 - `System__DefaultSystemEmail`
-- `RabbitMq__NotificationsExchange`
-- `RabbitMq__WorkflowApprovalRequiredExchange`
-- `RabbitMq__WorkflowChangedExchange`
-- `RabbitMq__WorkflowStatusChangedExchange`
-- `RabbitMq__WorkflowCompletedExchange`
+- `RabbitMq__Exchanges__Notify`
+- `RabbitMq__Exchanges__WorkflowApprovalRequired`
+- `RabbitMq__Exchanges__WorkflowChanged`
+- `RabbitMq__Exchanges__WorkflowStatusChanged`
+- `RabbitMq__Exchanges__WorkflowCompleted`
+- `RabbitMq__Exchanges__WorkflowApprovalRequest`
 
 ## Environment-Specific Overrides
 
@@ -68,11 +72,14 @@ Override any value using the `__` (double underscore) separator:
   ```json
   {
     "RabbitMq": {
-      "NotificationsExchange": "qimerp.core.notify.dev_exchange",
-      "WorkflowApprovalRequiredExchange": "qimerp.workflow.workflow_approval_required.dev_exchange",
-      "WorkflowChangedExchange": "qimerp.workflow.workflow_changed.dev_exchange",
-      "WorkflowStatusChangedExchange": "qimerp.workflow.workflow_status_changed.dev_exchange",
-      "WorkflowCompletedExchange": "qimerp.workflow.workflow_completed.dev_exchange"
+      "Exchanges": {
+        "Notify": "qimerp.core.notify.dev_exchange",
+        "WorkflowApprovalRequired": "qimerp.workflow.workflow_approval_required.dev_exchange",
+        "WorkflowChanged": "qimerp.workflow.workflow_changed.dev_exchange",
+        "WorkflowStatusChanged": "qimerp.workflow.workflow_status_changed.dev_exchange",
+        "WorkflowCompleted": "qimerp.workflow.workflow_completed.dev_exchange",
+        "WorkflowApprovalRequest": "qimerp.workflow.workflow_approval_request.local_exchange"
+      }
     }
   }
   ```
