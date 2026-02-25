@@ -14,6 +14,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Microsoft.Extensions.Configuration;
 using QFace.Sdk.RedisCache.Extensions;
+using QFace.Sdk.RedisCache.Models;
 using QimErp.Shared.Common.Entities;
 using QimErp.Shared.Common.Database;
 using QimErp.Shared.Common.Middlewares;
@@ -355,7 +356,23 @@ public static class SharedServiceCollectionExtensions
         
         // Register SDK Redis Cache services (reads from "RedisCache" configuration section)
         services.AddRedisCache(configuration);
-        
+
+        // use RedisCache:ConnectionString and convert redis:// URLs to StackExchange format.
+        services.PostConfigure<RedisCacheOptions>(opts =>
+        {
+            var useFlatConfig = string.IsNullOrWhiteSpace(opts.StackExchange.ConnectionString) ||
+                               opts.StackExchange.ConnectionString == "localhost:6379";
+            var flatConnectionString = configuration["RedisCache:ConnectionString"];
+            if (useFlatConfig && !string.IsNullOrWhiteSpace(flatConnectionString))
+            {
+                opts.StackExchange.ConnectionString = ToStackExchangeConnectionString(flatConnectionString);
+                opts.StackExchange.Database = configuration.GetValue("RedisCache:Database", opts.StackExchange.Database);
+                opts.StackExchange.ConnectTimeout = configuration.GetValue("RedisCache:ConnectTimeout", opts.StackExchange.ConnectTimeout);
+                opts.StackExchange.SyncTimeout = configuration.GetValue("RedisCache:SyncTimeout", opts.StackExchange.SyncTimeout);
+                opts.StackExchange.AbortOnConnectFail = configuration.GetValue("RedisCache:AbortOnConnectFail", opts.StackExchange.AbortOnConnectFail);
+            }
+        });
+
         // Register cache services (adapter that uses SDK)
         services.AddScoped<IDistributedCacheService, RedisCacheService>();
         services.AddScoped<ICacheService, RedisCacheService>();
@@ -392,7 +409,31 @@ public static class SharedServiceCollectionExtensions
 
         return services;
     }
-    
+
+    /// <summary>
+    /// Converts redis:// URL to StackExchange format (host:port,password=xxx).
+    /// ConfigurationOptions.Parse does not support redis:// URLs.
+    /// </summary>
+    private static string ToStackExchangeConnectionString(string connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+            return connectionString;
+
+        if (!connectionString.StartsWith("redis://", StringComparison.OrdinalIgnoreCase) &&
+            !connectionString.StartsWith("rediss://", StringComparison.OrdinalIgnoreCase))
+            return connectionString;
+
+        var uri = new Uri(connectionString);
+        var port = uri.Port > 0 ? uri.Port : 6379;
+        var password = uri.UserInfo?.Split(':').LastOrDefault();
+        var parts = new List<string> { $"{uri.Host}:{port}" };
+        if (!string.IsNullOrEmpty(password))
+            parts.Add($"password={password}");
+        if (uri.Scheme.Equals("rediss", StringComparison.OrdinalIgnoreCase))
+            parts.Add("ssl=true");
+        return string.Join(",", parts);
+    }
+
     public static IServiceCollection AddAuth(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
