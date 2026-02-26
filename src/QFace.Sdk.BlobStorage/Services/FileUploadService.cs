@@ -502,7 +502,9 @@ public class FileUploadService : IFileUploadService
         do
         {
             response = await _s3Client.ListObjectsV2Async(request, cancellationToken);
+            
             keys.AddRange(response.S3Objects.Select(o => o.Key));
+            
             request.ContinuationToken = response.NextContinuationToken;
         } while (response.IsTruncated);
 
