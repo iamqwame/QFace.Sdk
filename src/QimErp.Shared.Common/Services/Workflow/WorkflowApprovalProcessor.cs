@@ -500,11 +500,11 @@ public class WorkflowApprovalProcessor(
     {
         var templateName = notificationType switch
         {
-            "Approval" => "WorkflowApproval",
-            "Rejection" => "WorkflowRejection",
-            "Completion" => "WorkflowCompletion",
-            "Timeout" => "WorkflowTimeout",
-            _ => "WorkflowApproval"
+            "Approval" => EmailTemplateIds.Workflow.Approval,
+            "Rejection" => EmailTemplateIds.Workflow.Rejection,
+            "Completion" => EmailTemplateIds.Workflow.Completion,
+            "Timeout" => EmailTemplateIds.Workflow.Timeout,
+            _ => EmailTemplateIds.Workflow.Approval
         };
 
         workflowDefinition ??= entity.WorkflowDefinition;
@@ -694,7 +694,7 @@ public class WorkflowApprovalProcessor(
             ["Year"] = DateTime.UtcNow.Year.ToString()
         };
 
-        var emailTemplate = await templateService.RenderEmailTemplateAsync("WorkflowStarted", replacements);
+        var emailTemplate = await templateService.RenderEmailTemplateAsync(EmailTemplateIds.Workflow.Started, replacements);
 
         foreach (var recipient in recipients)
         {
@@ -752,9 +752,9 @@ public class WorkflowApprovalProcessor(
 
         var templateName = notificationType switch
         {
-            "StepApproved" => "WorkflowStepApproved",
-            "WorkflowCompleted" => "WorkflowCompletion",
-            _ => "WorkflowStepApproved"
+            "StepApproved" => EmailTemplateIds.Workflow.StepApproved,
+            "WorkflowCompleted" => EmailTemplateIds.Workflow.Completion,
+            _ => EmailTemplateIds.Workflow.StepApproved
         };
 
         var workflowDefinition = entity.WorkflowDefinition;

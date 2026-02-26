@@ -5,6 +5,7 @@ namespace QimErp.Shared.Common.Services.Workflow;
 
 /// <summary>
 /// Generates dynamic HTML for workflow progress visualization.
+/// Uses email-safe inline styles and Unicode symbols for compatibility with email clients.
 /// </summary>
 /// <param name="logger"></param>
 public class DynamicHtmlGenerator(ILogger<DynamicHtmlGenerator> logger) : IDynamicHtmlGenerator
@@ -35,7 +36,7 @@ public class DynamicHtmlGenerator(ILogger<DynamicHtmlGenerator> logger) : IDynam
         if (isCompleted)
         {
             var html = new StringBuilder();
-            html.AppendLine("<div class=\"grid grid-cols-[32px_1fr] gap-x-3\">");
+            html.AppendLine("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"border-collapse:collapse;\">");
 
             html.Append(RenderRequestSubmittedStep(orderedSteps.Count > 0, initiatedAt));
 
@@ -46,12 +47,12 @@ public class DynamicHtmlGenerator(ILogger<DynamicHtmlGenerator> logger) : IDynam
                 html.Append(RenderCompletedStep(step, isLast));
             }
 
-            html.AppendLine("</div>");
+            html.AppendLine("</table>");
             return html.ToString();
         }
 
         var currentStep = orderedSteps.FirstOrDefault(s => s.StepCode == currentStepCode);
-        
+
         if (currentStep == null && !string.IsNullOrWhiteSpace(currentStepCode))
         {
             logger.LogWarning("⚠️ [DynamicHtmlGenerator] Current step code {StepCode} not found in workflow definition. Using first step as current.",
@@ -65,7 +66,7 @@ public class DynamicHtmlGenerator(ILogger<DynamicHtmlGenerator> logger) : IDynam
         }
 
         var progressHtml = new StringBuilder();
-        progressHtml.AppendLine("<div class=\"grid grid-cols-[32px_1fr] gap-x-3\">");
+        progressHtml.AppendLine("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"border-collapse:collapse;\">");
 
         progressHtml.Append(RenderRequestSubmittedStep(orderedSteps.Count > 0, initiatedAt));
 
@@ -73,7 +74,7 @@ public class DynamicHtmlGenerator(ILogger<DynamicHtmlGenerator> logger) : IDynam
         {
             var step = orderedSteps[i];
             var isLast = i == orderedSteps.Count - 1;
-            
+
             if (step.Order < currentStep.Order)
             {
                 progressHtml.Append(RenderCompletedStep(step, isLast));
@@ -88,7 +89,7 @@ public class DynamicHtmlGenerator(ILogger<DynamicHtmlGenerator> logger) : IDynam
             }
         }
 
-        progressHtml.AppendLine("</div>");
+        progressHtml.AppendLine("</table>");
         return progressHtml.ToString();
     }
 
@@ -100,116 +101,102 @@ public class DynamicHtmlGenerator(ILogger<DynamicHtmlGenerator> logger) : IDynam
     public string GenerateEmptyProgressHtml(DateTime initiatedAt)
     {
         var html = new StringBuilder();
-        html.AppendLine("<div class=\"grid grid-cols-[32px_1fr] gap-x-3\">");
+        html.AppendLine("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"border-collapse:collapse;\">");
         html.Append(RenderRequestSubmittedStep(false, initiatedAt));
-        html.AppendLine("</div>");
+        html.AppendLine("</table>");
         return html.ToString();
     }
 
     private string RenderRequestSubmittedStep(bool hasSteps, DateTime initiatedAt)
     {
         var html = new StringBuilder();
-        html.AppendLine("<div class=\"flex flex-col items-center\">");
-        html.AppendLine("  <div class=\"text-emerald-600 dark:text-emerald-500 z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 1, 'wght' 600, 'opsz' 20\">");
-        html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">check_circle</span>");
-        html.AppendLine("  </div>");
-        
+        html.AppendLine("<tr>");
+        html.AppendLine("  <td style=\"width:32px;vertical-align:top;padding-top:2px;\">");
+        html.AppendLine("    <span style=\"display:inline-block;width:20px;height:20px;background-color:#f8fafc;color:#059669;font-size:16px;text-align:center;line-height:20px;\">&#10003;</span>");
+        html.AppendLine("  </td>");
+        html.AppendLine("  <td style=\"vertical-align:top;padding-bottom:24px;\">");
+        html.AppendLine("    <p style=\"margin:0;font-size:14px;font-weight:600;color:#111318;line-height:1.2;\">Request Submitted</p>");
+        html.AppendLine($"    <p style=\"margin:4px 0 0;font-size:12px;color:#616f89;\">{initiatedAt:MMMM dd, yyyy}</p>");
+        html.AppendLine("  </td>");
+        html.AppendLine("</tr>");
         if (hasSteps)
         {
-            html.AppendLine("  <div class=\"w-[2px] bg-emerald-600 dark:text-emerald-500 h-full min-h-[2.5rem] -mt-1\"></div>");
+            html.AppendLine("<tr>");
+            html.AppendLine("  <td style=\"width:32px;vertical-align:top;padding:0;\"><div style=\"width:2px;height:24px;background-color:#059669;margin-left:9px;\"></div></td>");
+            html.AppendLine("  <td style=\"padding:0;\"></td>");
+            html.AppendLine("</tr>");
         }
-        
-        html.AppendLine("</div>");
-        html.AppendLine("<div class=\"flex flex-col pb-6 pt-0.5\">");
-        html.AppendLine("  <p class=\"text-[#111318] dark:text-white text-sm font-semibold leading-none\">Request Submitted</p>");
-        html.AppendLine($"  <p class=\"text-[#616f89] dark:text-slate-400 text-xs font-normal mt-1\">{initiatedAt:MMMM dd, yyyy}</p>");
-        html.AppendLine("</div>");
-        
         return html.ToString();
     }
 
     private string RenderCompletedStep(WorkflowStep step, bool isLast)
     {
         var html = new StringBuilder();
-        html.AppendLine("<div class=\"flex flex-col items-center\">");
-        html.AppendLine("  <div class=\"text-emerald-600 dark:text-emerald-500 z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 1, 'wght' 600, 'opsz' 20\">");
-        html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">check_circle</span>");
-        html.AppendLine("  </div>");
-        
+        html.AppendLine("<tr>");
+        html.AppendLine("  <td style=\"width:32px;vertical-align:top;padding-top:2px;\">");
+        html.AppendLine("    <span style=\"display:inline-block;width:20px;height:20px;background-color:#f8fafc;color:#059669;font-size:16px;text-align:center;line-height:20px;\">&#10003;</span>");
+        html.AppendLine("  </td>");
+        html.AppendLine("  <td style=\"vertical-align:top;padding-bottom:24px;\">");
+        html.AppendLine($"  <p style=\"margin:0;font-size:14px;font-weight:600;color:#111318;line-height:1.2;\">{EscapeHtml(step.Name)}</p>");
+        html.AppendLine("  </td>");
+        html.AppendLine("</tr>");
         if (!isLast)
         {
-            html.AppendLine("  <div class=\"w-[2px] bg-emerald-600 dark:text-emerald-500 h-full min-h-[2.5rem] -mt-1\"></div>");
+            html.AppendLine("<tr>");
+            html.AppendLine("  <td style=\"width:32px;vertical-align:top;padding:0;\"><div style=\"width:2px;height:24px;background-color:#059669;margin-left:9px;\"></div></td>");
+            html.AppendLine("  <td style=\"padding:0;\"></td>");
+            html.AppendLine("</tr>");
         }
-        
-        html.AppendLine("</div>");
-        html.AppendLine("<div class=\"flex flex-col pb-6 pt-0.5\">");
-        html.AppendLine($"  <p class=\"text-[#111318] dark:text-white text-sm font-semibold leading-none\">{EscapeHtml(step.Name)}</p>");
-        html.AppendLine("</div>");
-        
         return html.ToString();
     }
 
     private string RenderCurrentStep(WorkflowStep step, bool isLast, bool isRequester = false)
     {
         var html = new StringBuilder();
-        html.AppendLine("<div class=\"flex flex-col items-center\">");
-        
-        if (isRequester)
-        {
-            html.AppendLine("  <div class=\"text-amber-600 dark:text-amber-500 z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 1, 'wght' 600, 'opsz' 20\">");
-            html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">schedule</span>");
-        }
-        else
-        {
-            html.AppendLine("  <div class=\"text-primary z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 1, 'wght' 600, 'opsz' 20\">");
-            html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">pending</span>");
-        }
-        
-        html.AppendLine("  </div>");
-        
+        var iconColor = isRequester ? "#d97706" : "#2b6cee";
+        var badgeBg = isRequester ? "#fffbeb" : "#eff6ff";
+        var badgeColor = isRequester ? "#b45309" : "#2563eb";
+        var badgeBorder = isRequester ? "#fde68a" : "#bfdbfe";
+        var badgeText = isRequester ? "Awaiting Approval" : "Pending Your Review";
+
+        html.AppendLine("<tr>");
+        html.AppendLine("  <td style=\"width:32px;vertical-align:top;padding-top:2px;\">");
+        html.AppendLine($"    <span style=\"display:inline-block;width:20px;height:20px;background-color:#f8fafc;color:{iconColor};font-size:16px;text-align:center;line-height:20px;\">&#9679;</span>");
+        html.AppendLine("  </td>");
+        html.AppendLine("  <td style=\"vertical-align:top;padding-bottom:24px;\">");
+        html.AppendLine($"  <p style=\"margin:0;font-size:14px;font-weight:600;color:#111318;line-height:1.2;\">{EscapeHtml(step.Name)}</p>");
+        html.AppendLine($"  <span style=\"display:inline-block;margin-top:8px;padding:4px 8px;border-radius:4px;font-size:12px;font-weight:500;background-color:{badgeBg};color:{badgeColor};border:1px solid {badgeBorder};\">&#9679; {badgeText}</span>");
+        html.AppendLine("  </td>");
+        html.AppendLine("</tr>");
         if (!isLast)
         {
-            html.AppendLine("  <div class=\"w-[2px] bg-[#dbdfe6] dark:bg-slate-600 h-full min-h-[2.5rem] -mt-1\"></div>");
+            html.AppendLine("<tr>");
+            html.AppendLine("  <td style=\"width:32px;vertical-align:top;padding:0;\"><div style=\"width:2px;height:24px;background-color:#e2e8f0;margin-left:9px;\"></div></td>");
+            html.AppendLine("  <td style=\"padding:0;\"></td>");
+            html.AppendLine("</tr>");
         }
-        
-        html.AppendLine("</div>");
-        html.AppendLine("<div class=\"flex flex-col pb-6 pt-0.5\">");
-        html.AppendLine($"  <p class=\"text-[#111318] dark:text-white text-sm font-semibold leading-none\">{EscapeHtml(step.Name)}</p>");
-        html.AppendLine("  <div class=\"flex items-center gap-2 mt-2\">");
-        
-        if (isRequester)
-        {
-            html.AppendLine("    <div class=\"flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800/50\">");
-            html.AppendLine("      <span class=\"w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse\"></span>");
-            html.AppendLine("      <p class=\"text-amber-700 dark:text-amber-300 text-xs font-medium\">Awaiting Approval</p>");
-        }
-        else
-        {
-            html.AppendLine("    <div class=\"flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50\">");
-            html.AppendLine("      <span class=\"w-1.5 h-1.5 rounded-full bg-primary animate-pulse\"></span>");
-            html.AppendLine("      <p class=\"text-primary dark:text-blue-300 text-xs font-medium\">Pending Your Review</p>");
-        }
-        
-        html.AppendLine("    </div>");
-        html.AppendLine("  </div>");
-        html.AppendLine("</div>");
-        
         return html.ToString();
     }
 
     private string RenderPendingStep(WorkflowStep step, bool isLast)
     {
         var html = new StringBuilder();
-        html.AppendLine("<div class=\"flex flex-col items-center\">");
-        html.AppendLine("  <div class=\"text-[#9ca3af] dark:text-slate-500 z-10 bg-slate-50 dark:bg-slate-800\" style=\"font-variation-settings: 'FILL' 0, 'wght' 400, 'opsz' 20\">");
-        html.AppendLine("    <span class=\"material-symbols-outlined text-[20px]\">radio_button_unchecked</span>");
-        html.AppendLine("  </div>");
-        html.AppendLine("</div>");
-        html.AppendLine("<div class=\"flex flex-col pt-0.5\">");
-        html.AppendLine($"  <p class=\"text-[#111318] dark:text-white text-sm font-medium leading-none opacity-60\">{EscapeHtml(step.Name)}</p>");
-        html.AppendLine("  <p class=\"text-[#616f89] dark:text-slate-400 text-xs font-normal mt-1 italic\">Waiting for approval</p>");
-        html.AppendLine("</div>");
-        
+        html.AppendLine("<tr>");
+        html.AppendLine("  <td style=\"width:32px;vertical-align:top;padding-top:2px;\">");
+        html.AppendLine("    <span style=\"display:inline-block;width:20px;height:20px;background-color:#f8fafc;color:#9ca3af;font-size:14px;text-align:center;line-height:20px;\">&#9675;</span>");
+        html.AppendLine("  </td>");
+        html.AppendLine("  <td style=\"vertical-align:top;padding-bottom:24px;\">");
+        html.AppendLine($"  <p style=\"margin:0;font-size:14px;font-weight:500;color:#111318;opacity:0.7;line-height:1.2;\">{EscapeHtml(step.Name)}</p>");
+        html.AppendLine("  <p style=\"margin:4px 0 0;font-size:12px;color:#616f89;font-style:italic;\">Waiting for approval</p>");
+        html.AppendLine("  </td>");
+        html.AppendLine("</tr>");
+        if (!isLast)
+        {
+            html.AppendLine("<tr>");
+            html.AppendLine("  <td style=\"width:32px;vertical-align:top;padding:0;\"><div style=\"width:2px;height:24px;background-color:#e2e8f0;margin-left:9px;\"></div></td>");
+            html.AppendLine("  <td style=\"padding:0;\"></td>");
+            html.AppendLine("</tr>");
+        }
         return html.ToString();
     }
 
@@ -228,4 +215,3 @@ public class DynamicHtmlGenerator(ILogger<DynamicHtmlGenerator> logger) : IDynam
             .Replace("'", "&#39;");
     }
 }
-
