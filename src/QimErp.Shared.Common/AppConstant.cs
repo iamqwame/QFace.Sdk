@@ -735,6 +735,7 @@ public static class AppConstant
                 public const string Dashboard = "/api/hr/dashboard";
                 public const string News = "/api/hr/news";
                 public const string Contributions = "/api/hr/contributions";
+                public const string EmailTemplates = "/api/hr/email-templates";
                 public const string AdminDashboard = "/api/hr/admin/dashboard";
                 public const string AdminActivities = "/api/hr/admin/activities";
                 public const string AdminLeaveRequests = "/api/hr/admin/leave-requests";

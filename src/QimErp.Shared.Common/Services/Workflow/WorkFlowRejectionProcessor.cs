@@ -353,7 +353,7 @@ public class WorkflowRejectionProcessor(
             ["Year"] = DateTime.UtcNow.Year.ToString()
         };
 
-        var emailTemplate = await templateService.RenderEmailTemplateAsync("WorkflowRejection", replacements);
+        var emailTemplate = await templateService.RenderEmailTemplateAsync(EmailTemplateIds.Workflow.Rejection, replacements);
 
         foreach (var recipient in recipients)
         {
