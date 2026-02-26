@@ -93,4 +93,29 @@ public interface IFileUploadService
     /// <param name="contentType">The content type of the image (e.g., "image/jpeg", "image/png")</param>
     /// <returns>CDN URL of the uploaded file (requires pre-signed URL for access)</returns>
     Task<FileUploadResponse> UploadPrivateBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null);
+
+    /// <summary>
+    /// Gets the text content of an object from blob storage.
+    /// </summary>
+    /// <param name="s3Key">The S3 object key (e.g. "templates/emails/WorkflowApproval.html")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The object content as string, or null if not found</returns>
+    Task<string?> GetObjectContentAsync(string s3Key, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uploads text content to blob storage.
+    /// </summary>
+    /// <param name="content">The content to upload</param>
+    /// <param name="s3Key">The S3 object key</param>
+    /// <param name="contentType">Content type (default: text/html)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task UploadContentAsync(string content, string s3Key, string contentType = "text/html", CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists object keys under the given prefix.
+    /// </summary>
+    /// <param name="prefix">The S3 prefix (e.g. "templates/emails")</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of full S3 keys under the prefix</returns>
+    Task<IReadOnlyList<string>> ListObjectKeysAsync(string prefix, CancellationToken cancellationToken = default);
 }
