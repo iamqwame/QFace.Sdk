@@ -432,4 +432,80 @@ public class FileUploadService : IFileUploadService
     {
         return await UploadBase64ImageAsync(base64Image, folder, fileName, contentType, isPublic: false);
     }
+
+    /// <inheritdoc />
+    public async Task<string?> GetObjectContentAsync(string s3Key, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(s3Key))
+            throw new ArgumentException("S3 key cannot be null or empty", nameof(s3Key));
+
+        try
+        {
+            var request = new GetObjectRequest
+            {
+                BucketName = _bucketName,
+                Key = s3Key
+            };
+            using var response = await _s3Client.GetObjectAsync(request, cancellationToken);
+            using var reader = new StreamReader(response.ResponseStream);
+            return await reader.ReadToEndAsync();
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _logger.LogDebug("Object not found: {S3Key}", s3Key);
+            return null;
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error getting object {S3Key}: {Message}", s3Key, ex.Message);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task UploadContentAsync(string content, string s3Key, string contentType = "text/html", CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(s3Key))
+            throw new ArgumentException("S3 key cannot be null or empty", nameof(s3Key));
+
+        try
+        {
+            var request = new PutObjectRequest
+            {
+                BucketName = _bucketName,
+                Key = s3Key,
+                ContentBody = content,
+                ContentType = contentType
+            };
+            await _s3Client.PutObjectAsync(request, cancellationToken);
+            _logger.LogInformation("Uploaded content to S3 with key: {S3Key}", s3Key);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error uploading content to {S3Key}: {Message}", s3Key, ex.Message);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> ListObjectKeysAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        var keys = new List<string>();
+        var normalizedPrefix = string.IsNullOrEmpty(prefix) ? "" : prefix.TrimEnd('/') + "/";
+        var request = new ListObjectsV2Request
+        {
+            BucketName = _bucketName,
+            Prefix = normalizedPrefix
+        };
+
+        ListObjectsV2Response response;
+        do
+        {
+            response = await _s3Client.ListObjectsV2Async(request, cancellationToken);
+            keys.AddRange(response.S3Objects.Select(o => o.Key));
+            request.ContinuationToken = response.NextContinuationToken;
+        } while (response.IsTruncated);
+
+        return keys;
+    }
 }
