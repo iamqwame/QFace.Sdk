@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using QFace.Sdk.BlobStorage.Models;
 using QFace.Sdk.BlobStorage.Services;
-using QimErp.Shared.Common.Options;
 using QimErp.Shared.Common.Services.Cache;
 
 namespace QimErp.Shared.Common.Services;
@@ -18,7 +18,7 @@ public interface ITemplateService
 /// </summary>
 public class TemplateService(
     IFileUploadService storage,
-    IOptions<TemplateStorageOptions> options,
+    IOptions<BlobStorageOptions> options,
     IDistributedCacheService cache,
     IConfiguration configuration,
     ILogger<TemplateService> logger) : ITemplateService
@@ -71,16 +71,15 @@ public class TemplateService(
             return cached;
         }
 
-        var prefix = options.Value.Prefix.TrimEnd('/');
+        var prefix = options.Value.GetTemplateStoragePrefix();
         var s3Key = $"{prefix}/{Path.GetFileName(templatePath)}";
         var content = await storage.GetObjectContentAsync(s3Key);
 
         if (content == null)
             throw new FileNotFoundException($"Template file not found: {templatePath}");
 
-        var effectiveTtl = options.Value.CacheMinutes > 0
-            ? TimeSpan.FromMinutes(options.Value.CacheMinutes)
-            : TimeSpan.FromMinutes(15);
+        var cacheMinutes = options.Value.TemplateStorage?.CacheMinutes ?? 15;
+        var effectiveTtl = cacheMinutes > 0 ? TimeSpan.FromMinutes(cacheMinutes) : TimeSpan.FromMinutes(15);
 
         await cache.SetAsync(key, content, effectiveTtl);
         logger.LogDebug("Template cached: {TemplatePath}", templatePath);
