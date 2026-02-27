@@ -25,5 +25,6 @@ public static class EmailTemplateIds
         public const string ForgotPassword = "ForgotPassword";
         public const string PasswordResetConfirmation = "PasswordResetConfirmation";
         public const string LoginSuccess = "LoginSuccess";
+        
     }
 }
