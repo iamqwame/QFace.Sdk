@@ -1,22 +1,23 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using QimErp.Shared.Common.Options;
+using QFace.Sdk.BlobStorage.Extensions;
 using QimErp.Shared.Common.Services;
 
 namespace QimErp.Shared.Common.Extensions;
 
 /// <summary>
 /// Extension methods for registering template services.
+/// Requires AddBlobStorageServices to be called first. Registers ITemplateService.
 /// </summary>
 public static class TemplateServiceExtensions
 {
     /// <summary>
-    /// Registers TemplateStorageOptions and ITemplateService.
-    /// Requires AddBlobStorageServices and IDistributedCacheService (Redis) to be registered.
+    /// Registers ITemplateService. Requires AddBlobStorageServices and IDistributedCacheService (Redis) to be registered.
     /// </summary>
     public static IServiceCollection AddTemplateServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<TemplateStorageOptions>(configuration.GetSection(TemplateStorageOptions.SectionName));
+        if (!services.Any(d => d.ServiceType == typeof(BlobStorageServicesMarker)))
+            throw new InvalidOperationException("AddBlobStorageServices must be called before AddTemplateServices.");
+
         services.AddScoped<ITemplateService, TemplateService>();
         return services;
     }
