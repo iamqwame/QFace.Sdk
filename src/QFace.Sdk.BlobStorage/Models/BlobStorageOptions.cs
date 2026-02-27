@@ -30,12 +30,18 @@ public class BlobStorageOptions
     /// <summary>
     /// Credentials for accessing the blob storage
     /// </summary>
-    public BlobStorageCredentials Credentials { get; set; } = new BlobStorageCredentials();
+    public BlobStorageCredentials Credentials { get; set; } = new();
 
     /// <summary>
     /// Bucket configuration
     /// </summary>
-    public BlobStorageBucketOptions Bucket { get; set; } = new BlobStorageBucketOptions();
+    public BlobStorageBucketOptions Bucket { get; set; } = new();
+
+    /// <summary>
+    /// Configuration options for template storage, which is used to load templates from blob storage with caching.
+    /// </summary>
+    public TemplateStorage TemplateStorage { get; set; } = new();
+
 }
 
 public class BlobStorageCredentials
@@ -63,7 +69,14 @@ public class BlobStorageBucketOptions
     /// </summary>
     public string CdnBaseDomain { get; set; } = "cdn.digitaloceanspaces.com";
 }
-
+/// <summary>
+/// Configuration options for template storage, which is used to load templates from blob storage with caching.
+/// </summary>
+public class TemplateStorage
+{
+    public string Prefix { get; set; }
+    public int CacheMinutes { get; set; }
+}
 public enum S3Provider
 {
     /// <summary>
