@@ -2,17 +2,19 @@ using Amazon;
 using Amazon.Runtime;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using QFace.Sdk.BlobStorage.Models;
 
 namespace QFace.Sdk.BlobStorage.Extensions;
 
- public static class BlobStorageExtensions
+public static class BlobStorageExtensions
+{
+    public static IServiceCollection AddBlobStorageServices(this IServiceCollection services, IConfiguration configuration)
     {
-        public static IServiceCollection AddBlobStorageServices(this IServiceCollection services, IConfiguration configuration)
-        {
-            // Register options
-            services.Configure<BlobStorageOptions>(configuration.GetSection("BlobStorage"));
-            
-            // Register services
+        // Register options
+        services.Configure<BlobStorageOptions>(configuration.GetSection("BlobStorage"));
+        services.AddSingleton<BlobStorageServicesMarker>();
+
+        // Register services
             services.AddSingleton<IAmazonS3>(sp => CreateS3Client(sp));
             services.AddScoped<IFileUploadService, FileUploadService>();
             
@@ -140,4 +142,9 @@ namespace QFace.Sdk.BlobStorage.Extensions;
             logger.LogWarning("Unknown S3 provider '{Provider}', defaulting to DigitalOcean", providerString);
             return S3Provider.DigitalOcean;
         }
-    }
+}
+
+/// <summary>
+/// Marker service used to verify AddBlobStorageServices was called before AddTemplateServices.
+/// </summary>
+public sealed class BlobStorageServicesMarker { }
