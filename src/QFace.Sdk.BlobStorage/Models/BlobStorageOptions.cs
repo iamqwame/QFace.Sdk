@@ -74,8 +74,8 @@ public class BlobStorageBucketOptions
 /// </summary>
 public class TemplateStorage
 {
-    public string Prefix { get; set; }
-    public int CacheMinutes { get; set; }
+    public string Prefix { get; set; } = null!;
+    public int CacheMinutes { get; set; } = 60;
 }
 public enum S3Provider
 {
