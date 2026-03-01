@@ -1,3 +1,4 @@
+using System.Text;
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
 using Microsoft.AspNetCore.Http;
@@ -38,6 +39,20 @@ public class FileUploadService : IFileUploadService
             _options.ServiceURL, _bucketName, _region, _cdnBaseDomain);
     }
 
+    private bool SupportsCannedAcl()
+    {
+        var provider = _options.Provider ?? "";
+        return !provider.Equals("MinIO", StringComparison.OrdinalIgnoreCase) &&
+               !provider.Equals("Generic", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsMinIOOrGeneric()
+    {
+        var provider = _options.Provider ?? "";
+        return provider.Equals("MinIO", StringComparison.OrdinalIgnoreCase) ||
+               provider.Equals("Generic", StringComparison.OrdinalIgnoreCase);
+    }
+
     public async Task<FileUploadResponse> UploadFileAsync(IFormFile file, string folder, string fileName = null, bool isPublic = false)
     {
         if (file == null || file.Length == 0)
@@ -57,22 +72,42 @@ public class FileUploadService : IFileUploadService
 
             _logger.LogInformation("Attempting to upload file to S3 with key: {S3Key}", s3Key);
 
-            // Use TransferUtility which manages large files better
-            using var transferUtility = new TransferUtility(_s3Client);
             using var memoryStream = new MemoryStream();
             await file.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
 
-            var uploadRequest = new TransferUtilityUploadRequest
+            if (IsMinIOOrGeneric())
             {
-                InputStream = memoryStream,
-                BucketName = _bucketName,
-                Key = s3Key,
-                ContentType = file.ContentType,
-                CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private
-            };
+                var putRequest = new PutObjectRequest
+                {
+                    BucketName = _bucketName,
+                    Key = s3Key,
+                    InputStream = memoryStream,
+                    ContentType = file.ContentType ?? "application/octet-stream"
+                };
+                if (SupportsCannedAcl())
+                {
+                    putRequest.CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private;
+                }
+                await _s3Client.PutObjectAsync(putRequest);
+            }
+            else
+            {
+                using var transferUtility = new TransferUtility(_s3Client);
+                var uploadRequest = new TransferUtilityUploadRequest
+                {
+                    InputStream = memoryStream,
+                    BucketName = _bucketName,
+                    Key = s3Key,
+                    ContentType = file.ContentType ?? "application/octet-stream"
+                };
+                if (SupportsCannedAcl())
+                {
+                    uploadRequest.CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private;
+                }
+                await transferUtility.UploadAsync(uploadRequest);
+            }
 
-            await transferUtility.UploadAsync(uploadRequest);
             _logger.LogInformation("Successfully uploaded file to S3 with key: {S3Key}", s3Key);
 
 
@@ -89,10 +124,11 @@ public class FileUploadService : IFileUploadService
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "AWS S3 Error uploading file to S3. StatusCode: {StatusCode}, Message: {Message}, ErrorCode: {ErrorCode}", 
-                ex.StatusCode, ex.Message, ex.ErrorCode);
+            _logger.LogError(ex, "AWS S3 Error uploading file to S3. StatusCode: {StatusCode}, Message: {Message}, ErrorCode: {ErrorCode}, ResponseBody: {ResponseBody}",
+                ex.StatusCode, ex.Message, ex.ErrorCode, ex.ResponseBody ?? "(none)");
             throw new Exception($"Error uploading file to S3: {ex.Message}", ex);
         }
+        
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error uploading file to S3: {Message}", ex.Message);
@@ -330,20 +366,40 @@ public class FileUploadService : IFileUploadService
                     throw new ArgumentException("Invalid Base64 string format", nameof(base64Image), ex);
                 }
 
-                // Use TransferUtility which manages large files better
-                using var transferUtility = new TransferUtility(_s3Client);
                 using var memoryStream = new MemoryStream(imageBytes);
 
-                var uploadRequest = new TransferUtilityUploadRequest
+                if (IsMinIOOrGeneric())
                 {
-                    InputStream = memoryStream,
-                    BucketName = _bucketName,
-                    Key = s3Key,
-                    ContentType = contentType,
-                    CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private
-                };
+                    var putRequest = new PutObjectRequest
+                    {
+                        BucketName = _bucketName,
+                        Key = s3Key,
+                        InputStream = memoryStream,
+                        ContentType = contentType
+                    };
+                    if (SupportsCannedAcl())
+                    {
+                        putRequest.CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private;
+                    }
+                    await _s3Client.PutObjectAsync(putRequest);
+                }
+                else
+                {
+                    using var transferUtility = new TransferUtility(_s3Client);
+                    var uploadRequest = new TransferUtilityUploadRequest
+                    {
+                        InputStream = memoryStream,
+                        BucketName = _bucketName,
+                        Key = s3Key,
+                        ContentType = contentType
+                    };
+                    if (SupportsCannedAcl())
+                    {
+                        uploadRequest.CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private;
+                    }
+                    await transferUtility.UploadAsync(uploadRequest);
+                }
 
-                await transferUtility.UploadAsync(uploadRequest);
                 _logger.LogInformation("Successfully uploaded Base64 image to S3 with key: {S3Key}", s3Key);
 
                 var s3KeyUrl = GetCdnUrl(s3Key);
@@ -358,8 +414,8 @@ public class FileUploadService : IFileUploadService
             }
             catch (AmazonS3Exception ex)
             {
-                _logger.LogError(ex, "AWS S3 Error uploading Base64 image to S3. StatusCode: {StatusCode}, Message: {Message}, ErrorCode: {ErrorCode}", 
-                    ex.StatusCode, ex.Message, ex.ErrorCode);
+                _logger.LogError(ex, "AWS S3 Error uploading Base64 image to S3. StatusCode: {StatusCode}, Message: {Message}, ErrorCode: {ErrorCode}, ResponseBody: {ResponseBody}",
+                    ex.StatusCode, ex.Message, ex.ErrorCode, ex.ResponseBody ?? "(none)");
                 throw new Exception($"Error uploading Base64 image to S3: {ex.Message}", ex);
             }
             catch (Exception ex)
@@ -447,12 +503,14 @@ public class FileUploadService : IFileUploadService
                 Key = s3Key
             };
             using var response = await _s3Client.GetObjectAsync(request, cancellationToken);
-            using var reader = new StreamReader(response.ResponseStream);
+            using var reader = new StreamReader(response.ResponseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false);
             return await reader.ReadToEndAsync();
         }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                                           ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
         {
-            _logger.LogDebug("Object not found: {S3Key}", s3Key);
+            // AWS returns 404 for NoSuchKey; MinIO may return 400 for non-existent objects
+            _logger.LogDebug("Object not found: {S3Key} (StatusCode: {StatusCode})", s3Key, ex.StatusCode);
             return null;
         }
         catch (AmazonS3Exception ex)
