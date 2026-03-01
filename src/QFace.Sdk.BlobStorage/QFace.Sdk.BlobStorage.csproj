@@ -9,7 +9,7 @@
         <Authors>IAmQwame</Authors>
         <Company>QFace</Company>
         <Description>A library for handling blob storage operations in .NET applications.</Description>
-        <PackageTags>blobstorage;s3;digitalocean;qface</PackageTags>
+        <PackageTags>blobstorage;s3;digitalocean;qface; minio</PackageTags>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/iamqwame/qface-sdk</PackageProjectUrl>
