@@ -14,6 +14,7 @@ public static class EmailTemplateIds
         public const string Completion = "WorkflowCompletion";
         public const string Timeout = "WorkflowTimeout";
         public const string StepApproved = "WorkflowStepApproved";
+        
     }
 
     public static class Iam
