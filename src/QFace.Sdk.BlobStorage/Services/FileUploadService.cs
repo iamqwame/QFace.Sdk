@@ -128,6 +128,7 @@ public class FileUploadService : IFileUploadService
                 ex.StatusCode, ex.Message, ex.ErrorCode, ex.ResponseBody ?? "(none)");
             throw new Exception($"Error uploading file to S3: {ex.Message}", ex);
         }
+        
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error uploading file to S3: {Message}", ex.Message);
