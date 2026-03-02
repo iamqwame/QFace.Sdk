@@ -567,20 +567,40 @@ public class AuditEntitySaveChangesInterceptor(
                     logger.LogDebug("[CaptureWorkflowEvents] Created WorkflowEventMessage for {EntityType} {EntityId}. WorkflowId={WorkflowId}, WorkflowCode={WorkflowCode}, TenantId={TenantId} (source: {TenantIdSource})",
                         entity.EntityType, GetEntityId(entity), workflowHistoryId, workflowCode, resolvedTenantId, tenantIdSource);
                     
-                    try
+                    var bridge = serviceProvider.GetService<IWorkflowTriggerBridge>();
+                    var handledByTemporal = false;
+                    if (bridge != null)
                     {
-                        logger.LogDebug("[CaptureWorkflowEvents] Calling actorService.Tell<WorkflowEventPublisherActor> for {EntityType} {EntityId}",
-                            entity.EntityType, GetEntityId(entity));
-                        
-                        actorService.Tell<WorkflowEventPublisherActor>(workflowMessage);
-                        
-                        logger.LogInformation("✅ [CaptureWorkflowEvents] Successfully told WorkflowEventPublisherActor to publish workflow approval required event for {EntityType} {EntityId} with WorkflowId={WorkflowId}",
-                            entity.EntityType, GetEntityId(entity), workflowHistoryId);
+                        try
+                        {
+                            handledByTemporal = await bridge.TryTriggerTemporalWorkflowAsync(workflowMessage, cancellationToken);
+                            if (handledByTemporal)
+                                logger.LogInformation("✅ [CaptureWorkflowEvents] Temporal workflow triggered for {EntityType} {EntityId} (skipping event publish)", entity.EntityType, GetEntityId(entity));
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "❌ [CaptureWorkflowEvents] WorkflowTriggerBridge failed for {EntityType} {EntityId}. Falling back to event publish. Error: {ErrorMessage}",
+                                entity.EntityType, GetEntityId(entity), ex.Message);
+                        }
                     }
-                    catch (Exception ex)
+                    
+                    if (!handledByTemporal)
                     {
-                        logger.LogError(ex, "❌ [CaptureWorkflowEvents] Failed to tell WorkflowEventPublisherActor for {EntityType} {EntityId}. Event will not be published. Error: {ErrorMessage}",
-                            entity.EntityType, GetEntityId(entity), ex.Message);
+                        try
+                        {
+                            logger.LogDebug("[CaptureWorkflowEvents] Calling actorService.Tell<WorkflowEventPublisherActor> for {EntityType} {EntityId}",
+                                entity.EntityType, GetEntityId(entity));
+                            
+                            actorService.Tell<WorkflowEventPublisherActor>(workflowMessage);
+                            
+                            logger.LogInformation("✅ [CaptureWorkflowEvents] Successfully told WorkflowEventPublisherActor to publish workflow approval required event for {EntityType} {EntityId} with WorkflowId={WorkflowId}",
+                                entity.EntityType, GetEntityId(entity), workflowHistoryId);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "❌ [CaptureWorkflowEvents] Failed to tell WorkflowEventPublisherActor for {EntityType} {EntityId}. Event will not be published. Error: {ErrorMessage}",
+                                entity.EntityType, GetEntityId(entity), ex.Message);
+                        }
                     }
                 }
                 else
