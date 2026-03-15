@@ -518,7 +518,38 @@ public static class SharedServiceCollectionExtensions
         }
         catch (Exception ex)
         {
-            // Log the error
+            // 42P04 = database already exists (Postgres error code).
+            // This is a benign race condition: on the very first container boot the DB
+            // may not yet exist when Migrate() checks, but by the time CREATE DATABASE
+            // executes another process has already created it.  The DB is usable — skip
+            // the creation step and apply only pending migrations on the next restart.
+            var isDbAlreadyExists = ex.Message.Contains("42P04")
+                || (ex.InnerException?.Message?.Contains("42P04") ?? false);
+
+            if (isDbAlreadyExists)
+            {
+                Console.WriteLine($"[Migration] Database already exists — skipping database creation.");
+                try
+                {
+                    var pending = dbContext.Database.GetPendingMigrations().ToList();
+                    if (pending.Count > 0)
+                    {
+                        Console.WriteLine($"[Migration] Applying {pending.Count} pending migration(s)...");
+                        dbContext.Database.Migrate();
+                    }
+                    else
+                    {
+                        Console.WriteLine("[Migration] No pending migrations.");
+                    }
+                }
+                catch (Exception innerEx)
+                {
+                    Console.WriteLine($"[Migration] Pending migration apply failed: {innerEx.Message}");
+                    // Non-fatal on second attempt — let the app start; schema should already be current.
+                }
+                return;
+            }
+
             Console.WriteLine($"Migration failed: {ex.Message}");
             throw;
         }
