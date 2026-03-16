@@ -19,7 +19,7 @@ public sealed class TemporalWorkflowTriggerBridge(ITemporalClient client) : IWor
         WorkflowEventMessage message,
         CancellationToken cancellationToken = default)
     {
-        var workflowId = $"approval-{message.EntityType}-{message.EntityId}";
+        var workflowId = TemporalConstants.WorkflowId(message.EntityType, message.EntityId);
 
         await client.StartWorkflowAsync<IApprovalWorkflow>(
             wf => wf.RunAsync(ApprovalWorkflowInput.From(message)),

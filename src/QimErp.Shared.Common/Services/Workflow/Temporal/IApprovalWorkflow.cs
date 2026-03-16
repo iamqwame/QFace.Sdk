@@ -2,9 +2,9 @@ namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 
 /// <summary>
 /// Temporal workflow interface.
-/// Implemented by ApprovalWorkflow in QimErp.Platform.Orchestration.WebApi.
-/// Referenced here so the bridge and the WebApi signal call share the same contract
-/// without taking a dependency on the Orchestration project.
+/// Implemented by ApprovalWorkflow in QimErp.Platform.Workflow.Worker.
+/// Referenced here so the trigger bridge, module signal endpoints, and the Worker
+/// share the same contract without cross-project dependencies.
 /// </summary>
 public interface IApprovalWorkflow
 {

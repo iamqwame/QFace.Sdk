@@ -12,9 +12,9 @@ namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 ///   - WorkflowRejectionProcessor.ProcessRejectionRequestAsync
 ///
 /// Implementations live in each module's Consumer project and are registered
-/// in the module's Program.cs via services.AddModuleApprovalActivity&lt;T&gt;(entityTypes).
-/// The Temporal Worker resolves the correct implementation at runtime via
-/// IModuleApprovalActivityRegistry.
+/// in the module's Program.cs via services.AddModuleApprovalActivity&lt;T&gt;(configuration, module, entityTypes).
+/// Each module Consumer runs its own Temporal worker polling "qimerp-{module}-approvals",
+/// so activity type names never collide across modules.
 /// </summary>
 public interface IModuleApprovalActivity
 {

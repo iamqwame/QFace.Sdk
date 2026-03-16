@@ -2,7 +2,7 @@ namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 
 /// <summary>
 /// Activity interface for platform-level workflow operations (Platform Workflow DB).
-/// Implemented by WorkflowPlatformActivity in QimErp.Platform.Orchestration.WebApi.
+/// Implemented by WorkflowPlatformActivity in QimErp.Platform.Workflow.Worker.
 /// </summary>
 public interface IWorkflowPlatformActivity
 {
@@ -15,14 +15,20 @@ public interface IWorkflowPlatformActivity
     Task<WorkflowInitResult> InitializeWorkflowRecordAsync(ApprovalWorkflowInput input);
 
     /// <summary>
-    /// Records a single step approval in the Platform DB (WorkflowHistoryEntry).
+    /// Records a single step approval in the Platform DB (WorkflowHistoryEntry)
+    /// and advances CurrentState / NextStep on the workflow record.
     /// Replaces: WorkflowCoreConsumer.ProcessWorkflowApprovalProcessed (step transition path)
     /// </summary>
+    /// <param name="nextStepCode">
+    /// The step code the workflow moves to after this approval.
+    /// Null when isLastStep is true.
+    /// </param>
     Task RecordStepApprovalAsync(
         Guid platformRecordId,
         WorkflowStep step,
         ApprovalSignal signal,
-        bool isLastStep);
+        bool isLastStep,
+        string? nextStepCode);
 
     /// <summary>
     /// Marks the Platform Workflow record as Approved and sets completion fields.
