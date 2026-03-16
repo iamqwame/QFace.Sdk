@@ -122,6 +122,12 @@
         <PackageReference Include="QFace.Sdk.RedisCache" Version="1.0.0" />
     </ItemGroup>
 
+    <!-- Temporal workflow orchestration -->
+    <ItemGroup>
+        <PackageReference Include="Temporalio" Version="1.11.1" />
+        <PackageReference Include="Temporalio.Extensions.Hosting" Version="1.11.1" />
+    </ItemGroup>
+
 
     <ItemGroup>
 

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using QFace.Sdk.BlobStorage.Models;
 using QFace.Sdk.BlobStorage.Services;

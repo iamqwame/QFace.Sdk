@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using QFace.Sdk.RabbitMq.Services;
 using QimErp.Shared.Common.Options;

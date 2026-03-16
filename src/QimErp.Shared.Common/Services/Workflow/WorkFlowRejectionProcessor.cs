@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using QFace.Sdk.RabbitMq.Services;
-using QimErp.Shared.Common.Entities;
 using QimErp.Shared.Common.Options;
 
 namespace QimErp.Shared.Common.Services.Workflow;

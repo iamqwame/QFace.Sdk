@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 namespace QimErp.Shared.Common.Services.Workflow;
 
 /// <summary>

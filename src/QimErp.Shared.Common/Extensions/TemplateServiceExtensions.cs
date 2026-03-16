@@ -1,6 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
 using QFace.Sdk.BlobStorage.Extensions;
-using QimErp.Shared.Common.Services;
 
 namespace QimErp.Shared.Common.Extensions;
 
