@@ -1,84 +1,76 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using QFace.Sdk.Temporal.Extensions;
 using QimErp.Shared.Common.Services.Workflow;
 using QimErp.Shared.Common.Services.Workflow.Temporal;
-using Temporalio.Extensions.Hosting;
+using QimErp.Shared.Common.Services.Workflow.Temporal.Approval;
 
 namespace QimErp.Shared.Common.Extensions;
 
 public static class TemporalServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the Temporal client and the IWorkflowTriggerBridge implementation.
+    /// Registers the Temporal client, all SDK generic abstractions, and all
+    /// QimErp approval-specific domain wrappers.
     ///
-    /// Call explicitly in any module WebApi that opts into Temporal:
-    ///   services.AddTemporalWorkflow(configuration);
+    /// Called automatically from AddDbContextWithOutboxAndTemporal when
+    /// "Temporal:Address" is present. Safe to call explicitly when finer control
+    /// is needed (e.g. WebApi that signals but does not host a worker).
     ///
-    /// Safe to call multiple times — uses TryAdd semantics.
-    /// No-op when "Temporal:Address" is absent (falls back to actor path).
+    /// Registers (all TryAdd — safe to call multiple times):
+    ///   SDK layer (QFace.Sdk.Temporal):
+    ///     ITemporalClient, IWorkflowStarter, IWorkflowSignaller,
+    ///     IWorkflowQueryClient, IWorkflowTerminator
+    ///   Domain layer (QimErp.Shared.Common):
+    ///     IApprovalWorkflowStarter, IApprovalWorkflowSignaller,
+    ///     IApprovalWorkflowQueryClient, IApprovalWorkflowTerminator
     /// </summary>
     public static IServiceCollection AddTemporalWorkflow(
         this IServiceCollection services,
         IConfiguration configuration)
     {
         var address = configuration["Temporal:Address"];
-        var ns      = configuration["Temporal:Namespace"] ?? TemporalConstants.DefaultNamespace;
-
         if (string.IsNullOrWhiteSpace(address))
-            return services; // Temporal not configured — fall through to actor path
+            return services; // Temporal not configured — skip entirely, actor fallback remains
 
-        // Lazy connection via AddTemporalClient — does not block the startup thread
-        services.AddTemporalClient(opts =>
-        {
-            opts.TargetHost = address;
-            opts.Namespace  = ns;
-        });
+        // SDK layer — client + generic abstractions
+        services.AddTemporalClient(configuration);
 
-        // Bridge — replaces WorkflowEventPublisherActor path in the interceptor
+        // Domain layer — typed approval wrappers
+        services.TryAddSingleton<IApprovalWorkflowStarter,     ApprovalWorkflowStarter>();
+        services.TryAddSingleton<IApprovalWorkflowSignaller,   ApprovalWorkflowSignaller>();
+        services.TryAddSingleton<IApprovalWorkflowQueryClient, ApprovalWorkflowQueryClient>();
+        services.TryAddSingleton<IApprovalWorkflowTerminator,  ApprovalWorkflowTerminator>();
+
+        // Bridge — replaces WorkflowEventPublisherActor in the interceptor
         services.TryAddSingleton<IWorkflowTriggerBridge, TemporalWorkflowTriggerBridge>();
 
         return services;
     }
 
     /// <summary>
-    /// Registers a module's IModuleApprovalActivity implementation AND starts a
-    /// Temporal worker that polls the module's dedicated task queue.
+    /// Registers a module's IModuleApprovalActivity implementation for the given entity types.
+    /// Called once per module consumer in that module's Program.cs:
     ///
-    /// Each module Consumer must call this once in Program.cs:
+    ///   services.AddModuleApprovalActivity&lt;HrApprovalActivity&gt;(
+    ///       "Employee", "Department", "Rank", "Station");
     ///
-    ///   services.AddModuleApprovalActivity&lt;PayrollApprovalActivity&gt;(
-    ///       context.Configuration, "Payroll",
-    ///       "PayrollRun", "SalaryAdjustment", "BonusRequest");
-    ///
-    /// The <paramref name="module"/> name MUST exactly match the value of
-    /// ApprovalWorkflowInput.Module for the entity types handled by this consumer.
-    /// The Temporal worker polls "qimerp-{module}-approvals".
-    ///
-    /// When "Temporal:Address" is not configured, this is a safe no-op —
-    /// the activity class is still registered in DI for any direct usage,
-    /// but no Temporal worker is started.
+    /// Registers the activity as Scoped (Temporal executes each activity invocation
+    /// in a new scope). Also registers a ModuleApprovalActivityRegistration singleton
+    /// so the Platform Worker can populate IModuleApprovalActivityRegistry on startup.
     /// </summary>
     public static IServiceCollection AddModuleApprovalActivity<TActivity>(
         this IServiceCollection services,
-        IConfiguration configuration,
-        string module,
         params string[] entityTypes)
         where TActivity : class, IModuleApprovalActivity
     {
-        // Always register the activity class in DI for direct resolution if needed
-        services.TryAddScoped<TActivity>();
+        // Scoped — Temporal worker creates a new scope per activity execution
+        services.AddScoped<TActivity>();
 
-        var address   = configuration["Temporal:Address"];
-        var ns        = configuration["Temporal:Namespace"] ?? TemporalConstants.DefaultNamespace;
-        var taskQueue = TemporalConstants.ModuleTaskQueue(module);
-
-        if (string.IsNullOrWhiteSpace(address))
-            return services; // Temporal not configured — no worker needed
-
-        // Start a dedicated Temporal worker for this module.
-        // Polls qimerp-{module}-approvals, so activity type name collisions between
-        // modules (all implement the same IModuleApprovalActivity methods) are impossible.
-        services.AddHostedTemporalWorker(address, ns, taskQueue)
-            .AddScopedActivities<TActivity>();
+        // Registration marker — read by the Platform Worker to populate the registry
+        services.AddSingleton<ModuleApprovalActivityRegistration>(
+            _ => new ModuleApprovalActivityRegistration(entityTypes, typeof(TActivity)));
 
         return services;
     }

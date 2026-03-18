@@ -1,35 +1,47 @@
-using Temporalio.Api.Enums.V1;
-using Temporalio.Client;
+using Microsoft.Extensions.Logging;
+using QimErp.Shared.Common.Services.Workflow.Temporal.Approval;
 
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 
 /// <summary>
 /// Implements IWorkflowTriggerBridge using Temporal.
-/// When registered (i.e. Temporal:Address is configured), the interceptor
-/// calls this instead of publishing via WorkflowEventPublisherActor.
-/// Returning true tells the interceptor to skip the actor path entirely.
+/// Called by AuditEntitySaveChangesInterceptor when an IWorkflowEnabled entity is saved.
+/// Returning true tells the interceptor to skip WorkflowEventPublisherActor entirely.
 ///
-/// Registration: call services.AddTemporalWorkflow(configuration) explicitly in the module's
-/// Program.cs, or use the AddDbContextWithOutboxAndTemporal convenience wrapper.
-/// Note: AddDbContextWithOutbox does NOT call this automatically.
+/// Uses IApprovalWorkflowStarter (not raw ITemporalClient) for:
+///   - Stable workflow ID format (TemporalNaming.WorkflowId — no string drift)
+///   - Idempotent start (StartOrIgnoreAsync — duplicate saves don't throw)
+///   - Structured result (AlreadyRunning=true, not an exception)
 /// </summary>
-public sealed class TemporalWorkflowTriggerBridge(ITemporalClient client) : IWorkflowTriggerBridge
+public sealed class TemporalWorkflowTriggerBridge(
+    IApprovalWorkflowStarter starter,
+    ILogger<TemporalWorkflowTriggerBridge> logger) : IWorkflowTriggerBridge
 {
     public async Task<bool> TryTriggerTemporalWorkflowAsync(
         WorkflowEventMessage message,
         CancellationToken cancellationToken = default)
     {
-        var workflowId = TemporalConstants.WorkflowId(message.EntityType, message.EntityId);
+        var input = ApprovalWorkflowInput.From(message);
+        var result = await starter.StartAsync(input, cancellationToken);
 
-        await client.StartWorkflowAsync<IApprovalWorkflow>(
-            wf => wf.RunAsync(ApprovalWorkflowInput.From(message)),
-            new WorkflowOptions(workflowId, TemporalConstants.TaskQueue)
-            {
-                // IdConflictPolicy.Fail means a second save on the same entity
-                // while a workflow is already running will throw — intentional:
-                // the entity should not be re-editable while InProgress.
-                IdConflictPolicy = WorkflowIdConflictPolicy.Fail
-            });
+        if (!result.Started && !result.AlreadyRunning)
+        {
+            // StartAsync caught an exception and returned a failure result.
+            // Log and return false — interceptor falls back to the actor path.
+            logger.LogError(
+                "[TemporalWorkflowTriggerBridge] Failed to start workflow. " +
+                "EntityType={EntityType}, EntityId={EntityId}, Error={Error}. " +
+                "Falling back to WorkflowEventPublisherActor.",
+                message.EntityType, message.EntityId, result.ErrorMessage);
+
+            return false;
+        }
+
+        logger.LogInformation(
+            "[TemporalWorkflowTriggerBridge] Temporal workflow {Status}. " +
+            "WorkflowId={WorkflowId}, EntityType={EntityType}, EntityId={EntityId}",
+            result.AlreadyRunning ? "already running (skipped)" : "started",
+            result.WorkflowId, message.EntityType, message.EntityId);
 
         return true; // interceptor skips WorkflowEventPublisherActor
     }
