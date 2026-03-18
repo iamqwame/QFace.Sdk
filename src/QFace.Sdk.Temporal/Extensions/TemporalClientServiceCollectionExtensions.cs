@@ -73,22 +73,28 @@ public static class TemporalClientServiceCollectionExtensions
             var opts   = optionsFactory(sp);
             var logger = sp.GetRequiredService<ILogger<ITemporalClient>>();
 
-            var address   = (opts.Address ?? "localhost:7233").Trim();
-            var @namespace = (opts.Namespace ?? "default").Trim();
+            // Prefer config; fall back to TEMPORAL_* env vars (Temporal Cloud convention).
+            var address = (opts.Address ?? Environment.GetEnvironmentVariable("TEMPORAL_ADDRESS") ?? "localhost:7233").Trim();
+            var @namespace = (opts.Namespace ?? Environment.GetEnvironmentVariable("TEMPORAL_NAMESPACE") ?? "default").Trim();
+            var apiKey = !string.IsNullOrWhiteSpace(opts.ApiKey)
+                ? opts.ApiKey.Trim()
+                : Environment.GetEnvironmentVariable("TEMPORAL_API_KEY")?.Trim();
 
-            // Auto-enable TLS for non-local addresses even if not explicitly configured.
-            // Prevents accidental plaintext connections to cloud Temporal.
-            var useTls = opts.EnableTls || !TemporalNaming.IsLocalAddress(address);
+            // Auto-enable TLS for non-local addresses or when API key is set (Temporal Cloud).
+            var useTls = opts.EnableTls || !string.IsNullOrEmpty(apiKey) || !TemporalNaming.IsLocalAddress(address);
 
             logger.LogInformation(
-                "[QFace.Sdk.Temporal] Connecting. Address={Address}, Namespace={Namespace}, TLS={UseTls}",
-                address, @namespace, useTls);
+                "[QFace.Sdk.Temporal] Connecting. Address={Address}, Namespace={Namespace}, TLS={UseTls}, ApiKey={HasApiKey}",
+                address, @namespace, useTls, !string.IsNullOrEmpty(apiKey));
 
             var connectOptions = new TemporalClientConnectOptions
             {
                 TargetHost = address,
                 Namespace  = @namespace
             };
+
+            if (!string.IsNullOrEmpty(apiKey))
+                connectOptions.ApiKey = apiKey;
 
             if (useTls)
             {

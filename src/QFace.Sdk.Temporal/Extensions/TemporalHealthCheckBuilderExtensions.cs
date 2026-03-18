@@ -7,6 +7,17 @@ namespace QFace.Sdk.Temporal.Extensions;
 public static class TemporalHealthCheckBuilderExtensions
 {
     /// <summary>
+    /// Adds the standard health checks for an app that uses Temporal: a liveness check
+    /// (tag "live") and a Temporal connectivity check (tag "ready").
+    /// Map /health/live to tag "live" and /health/ready to tag "ready".
+    /// </summary>
+    public static IHealthChecksBuilder AddTemporalHealthChecks(this IHealthChecksBuilder builder)
+    {
+        builder.AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"]);
+        return builder.AddTemporalHealthCheck();
+    }
+
+    /// <summary>
     /// Adds a Temporal connectivity health check using GetSystemInfoAsync.
     /// Reports Unhealthy when Temporal is unreachable — stops readiness probe
     /// so load balancers and orchestration platforms pull the instance from rotation.
@@ -14,10 +25,7 @@ public static class TemporalHealthCheckBuilderExtensions
     /// Tag defaults to "ready" so it appears on /ready but not /alive.
     /// Liveness (/alive) should not depend on external service connectivity.
     ///
-    /// Usage:
-    ///   builder.Services.AddHealthChecks()
-    ///       .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
-    ///       .AddTemporalHealthCheck();
+    /// For the usual setup (live + ready), use AddTemporalHealthChecks() instead.
     /// </summary>
     public static IHealthChecksBuilder AddTemporalHealthCheck(
         this IHealthChecksBuilder builder,

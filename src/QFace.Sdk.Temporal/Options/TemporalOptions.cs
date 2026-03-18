@@ -11,14 +11,13 @@ namespace QFace.Sdk.Temporal.Options;
 ///   Orchestration: Orchestration:TemporalAddress, TemporalNamespace, EnableTemporalTls, TaskQueue
 ///   Workflow.Consumer: Temporal:Address, Temporal:Namespace
 ///
-/// Example appsettings.json:
+/// Example appsettings.json (local):
 /// <code>
-/// "Temporal": {
-///   "Address":   "localhost:7233",
-///   "Namespace": "qimerp",
-///   "EnableTls": false,
-///   "TaskQueue": "qimerp-workflow-approvals"
-/// }
+/// "Temporal": { "Address": "localhost:7233", "Namespace": "default", "TaskQueue": "..." }
+/// </code>
+/// Example for Temporal Cloud (or set env TEMPORAL_API_KEY, TEMPORAL_NAMESPACE, TEMPORAL_ADDRESS):
+/// <code>
+/// "Temporal": { "Address": "asia-south1.gcp.api.temporal.io:7233", "Namespace": "quickstart-qimerp-svr.hl82t", "ApiKey": "your-jwt-api-key" }
 /// </code>
 /// </summary>
 public sealed class TemporalOptions
@@ -37,6 +36,12 @@ public sealed class TemporalOptions
     /// <summary>Temporal namespace. Defaults to "default".</summary>
     [Required]
     public string Namespace { get; set; } = "default";
+
+    /// <summary>
+    /// API key for Temporal Cloud. When set, TLS is enabled and the key is sent as Bearer token.
+    /// Can be set via config "Temporal:ApiKey" or environment variable TEMPORAL_API_KEY.
+    /// </summary>
+    public string? ApiKey { get; set; }
 
     /// <summary>
     /// Enable TLS for the Temporal connection.
