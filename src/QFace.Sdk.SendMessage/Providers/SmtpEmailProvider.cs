@@ -114,17 +114,25 @@ public class SmtpEmailProvider : IEmailProvider
         }
         catch (SmtpCommandException ex)
         {
-            _logger.LogError("❌ SMTP Error: failed with response {ResponseCode}. Message: {Message}", 
-                ex.StatusCode, ex.Message);
+            // Permanent recipient/address rejection (e.g. 550 unknown user) — soft fail, no retry
+            _logger.LogError("❌ SMTP recipient error {StatusCode}: {Message}", ex.StatusCode, ex.Message);
             return false;
         }
         catch (SmtpProtocolException ex)
         {
-            _logger.LogError("❌ SMTP Protocol Error: {Message}", ex.Message);
-            return false;
+            // Protocol / handshake failure — connection problem, let Temporal retry
+            _logger.LogError("❌ SMTP protocol error (connection problem): {Message}", ex.Message);
+            throw;
+        }
+        catch (Exception ex) when (ex is System.Net.Sockets.SocketException or IOException or TimeoutException)
+        {
+            // Network / connection failure — let Temporal retry
+            _logger.LogError(ex, "❌ SMTP connection failure: {Message}", ex.Message);
+            throw;
         }
         catch (Exception ex)
         {
+            // Parse errors, config issues, unexpected — soft fail
             _logger.LogError(ex, "❌ Unexpected error sending email to {ToEmail}", toEmail);
             return false;
         }
