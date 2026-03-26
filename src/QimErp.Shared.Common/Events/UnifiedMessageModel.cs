@@ -16,6 +16,9 @@ public class UnifiedMessageModel
     
     // Template properties
     public string Template { get; set; }
+    /// <summary>Template name (no extension). Notifications module resolves + renders it.
+    /// Ignored when <see cref="Template"/> already contains pre-rendered HTML.</summary>
+    public string? TemplateCode { get; set; }
     public Dictionary<string, string> Replacements { get; set; }
     
     // SMS properties
