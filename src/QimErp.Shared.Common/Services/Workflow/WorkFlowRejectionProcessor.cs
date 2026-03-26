@@ -9,7 +9,6 @@ namespace QimErp.Shared.Common.Services.Workflow;
 /// </summary>
 public class WorkflowRejectionProcessor(
     IRabbitMqPublisher publisher,
-    ITemplateService templateService,
     IOptions<FrontendSettings> frontendSettings,
     IOptions<SystemOptions> systemOptions,
     IOptions<RabbitMqOptions> rabbitMqOptions,
@@ -352,8 +351,6 @@ public class WorkflowRejectionProcessor(
             ["Year"] = DateTime.UtcNow.Year.ToString()
         };
 
-        var emailTemplate = await templateService.RenderEmailTemplateAsync(EmailTemplateIds.Workflow.Rejection, replacements);
-
         foreach (var recipient in recipients)
         {
             try
@@ -363,7 +360,7 @@ public class WorkflowRejectionProcessor(
                     MessageType = "templated_email",
                     ToEmail = recipient,
                     Subject = $"Request Needs Attention: {entityDisplayName} - Rejected",
-                    Template = emailTemplate,
+                    TemplateCode = "WorkflowRejection",
                     Replacements = replacements,
                     MessageId = Guid.NewGuid().ToString(),
                     CorrelationId = @event.WorkflowId,

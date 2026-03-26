@@ -9,7 +9,6 @@ namespace QimErp.Shared.Common.Services.Workflow;
 /// </summary>
 public class WorkflowApprovalProcessor(
     IRabbitMqPublisher publisher,
-    ITemplateService templateService,
     IOptions<FrontendSettings> frontendSettings,
     IOptions<SystemOptions> systemOptions,
     IOptions<RabbitMqOptions> rabbitMqOptions,
@@ -451,7 +450,7 @@ public class WorkflowApprovalProcessor(
 
                 if (recipients.Count > 0)
                 {
-                    var emailMessage = await BuildEmailNotificationAsync(@event, notificationType, stepName, recipients, entity, workflowDefinition);
+                    var emailMessage = BuildEmailNotification(@event, notificationType, stepName, recipients, entity, workflowDefinition);
                     await publisher.PublishAsync(emailMessage, _rabbitMqOptions.Exchanges.Notification);
                     logger.LogInformation("📧 [WorkflowNotification] Published Email notification for {NotificationType} to {RecipientCount} recipients",
                         notificationType, recipients.Count);
@@ -489,7 +488,7 @@ public class WorkflowApprovalProcessor(
         };
     }
 
-    private async Task<UnifiedMessageModel> BuildEmailNotificationAsync(
+    private UnifiedMessageModel BuildEmailNotification(
         WorkflowApprovalRequestEvent @event,
         string notificationType,
         string stepName,
@@ -499,11 +498,11 @@ public class WorkflowApprovalProcessor(
     {
         var templateName = notificationType switch
         {
-            "Approval" => EmailTemplateIds.Workflow.Approval,
-            "Rejection" => EmailTemplateIds.Workflow.Rejection,
-            "Completion" => EmailTemplateIds.Workflow.Completion,
-            "Timeout" => EmailTemplateIds.Workflow.Timeout,
-            _ => EmailTemplateIds.Workflow.Approval
+            "Approval" => "WorkflowApproval",
+            "Rejection" => "WorkflowRejection",
+            "Completion" => "WorkflowCompletion",
+            "Timeout" => "WorkflowTimeout",
+            _ => "WorkflowApproval"
         };
 
         workflowDefinition ??= entity.WorkflowDefinition;
@@ -592,14 +591,12 @@ public class WorkflowApprovalProcessor(
             replacements[detail.Key] = detail.Value;
         }
 
-        var emailTemplate = await templateService.RenderEmailTemplateAsync(templateName, replacements);
-
         return new UnifiedMessageModel
         {
             MessageType = "templated_email",
             ToEmails = emails,
             Subject = $"Workflow {notificationType}: {entityDisplayName}",
-            Template = emailTemplate,
+            TemplateCode = templateName,
             Replacements = replacements,
             MessageId = Guid.NewGuid().ToString(),
             CorrelationId = @event.WorkflowId,
@@ -693,8 +690,6 @@ public class WorkflowApprovalProcessor(
             ["Year"] = DateTime.UtcNow.Year.ToString()
         };
 
-        var emailTemplate = await templateService.RenderEmailTemplateAsync(EmailTemplateIds.Workflow.Started, replacements);
-
         foreach (var recipient in recipients)
         {
             try
@@ -704,7 +699,7 @@ public class WorkflowApprovalProcessor(
                     MessageType = "templated_email",
                     ToEmail = recipient,
                     Subject = $"Action Required: {entityDisplayName} - Review Request",
-                    Template = emailTemplate,
+                    TemplateCode = "WorkflowStarted",
                     Replacements = replacements,
                     MessageId = Guid.NewGuid().ToString(),
                     CorrelationId = @event.WorkflowId,
@@ -751,9 +746,9 @@ public class WorkflowApprovalProcessor(
 
         var templateName = notificationType switch
         {
-            "StepApproved" => EmailTemplateIds.Workflow.StepApproved,
-            "WorkflowCompleted" => EmailTemplateIds.Workflow.Completion,
-            _ => EmailTemplateIds.Workflow.StepApproved
+            "StepApproved" => "WorkflowStepApproved",
+            "WorkflowCompleted" => "WorkflowCompletion",
+            _ => "WorkflowStepApproved"
         };
 
         var workflowDefinition = entity.WorkflowDefinition;
@@ -865,14 +860,12 @@ public class WorkflowApprovalProcessor(
 
         try
         {
-            var emailTemplate = await templateService.RenderEmailTemplateAsync(templateName, replacements);
-
             var message = new UnifiedMessageModel
             {
                 MessageType = "templated_email",
                 ToEmail = entity.WorkflowInitiatedByEmail,
                 Subject = $"Workflow {notificationType}: {entityDisplayName}",
-                Template = emailTemplate,
+                TemplateCode = templateName,
                 Replacements = replacements,
                 MessageId = Guid.NewGuid().ToString(),
                 CorrelationId = @event.WorkflowId,

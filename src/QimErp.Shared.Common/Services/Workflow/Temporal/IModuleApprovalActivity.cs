@@ -49,4 +49,18 @@ public interface IModuleApprovalActivity
     /// Behaviour (auto-reject vs escalate) is module-specific.
     /// </summary>
     Task TimeoutEntityAsync(ApprovalWorkflowInput input, WorkflowStep timedOutStep);
+
+    /// <summary>
+    /// Resolves the concrete approvers for a workflow step by querying the module's own database.
+    ///
+    /// Each module knows how to map WorkflowApprover types (role, department, rank, ou,
+    /// direct_employee) to actual employees with their contact details.
+    ///
+    /// Called by ApprovalWorkflow before NotifyStepApproversAsync so that the
+    /// NotificationActivity receives rich, ready-to-use approver objects instead of
+    /// having to guess from email strings alone.
+    /// </summary>
+    Task<List<ResolvedApprover>> ResolveApproversAsync(
+        ApprovalWorkflowInput input,
+        WorkflowStep step);
 }

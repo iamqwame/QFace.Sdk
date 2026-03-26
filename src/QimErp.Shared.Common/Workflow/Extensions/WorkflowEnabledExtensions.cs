@@ -57,17 +57,6 @@ public static class WorkflowEnabledExtensions
             entity.WorkflowComments = comments;
     }
     
-    public static bool CanBeEdited(this IWorkflowEnabled entity)
-    {
-        return entity.WorkflowStatus == WorkflowStatus.NotStarted || 
-               entity.WorkflowStatus == WorkflowStatus.Rejected;
-    }
-    
-    public static bool CanBeDeleted(this IWorkflowEnabled entity)
-    {
-        return entity.WorkflowStatus != WorkflowStatus.Approved;
-    }
-    
     public static bool RequiresApproval(this IWorkflowEnabled entity)
     {
         return entity.WorkflowStatus == WorkflowStatus.InProgress;

@@ -30,6 +30,9 @@ public interface IWorkflowEnabled
     bool IsPendingApproval { get; }
     bool IsRejected { get; }
     bool IsWorkflowComplete { get; }
+
+    bool CanBeEdited();
+    bool CanBeDeleted();
 }
 
 public interface IWorkflowService

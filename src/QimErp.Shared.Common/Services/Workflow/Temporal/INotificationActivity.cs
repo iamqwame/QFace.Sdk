@@ -1,3 +1,5 @@
+using QimErp.Shared.Common.Workflow.Entities;
+
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 
 /// <summary>
@@ -17,11 +19,17 @@ public interface INotificationActivity
     /// <summary>
     /// Notifies the approvers for the given step that their action is required.
     /// Called at the start of every step iteration in the workflow loop.
+    ///
+    /// <paramref name="resolvedApprovers"/> is pre-resolved by the module via
+    /// IModuleApprovalActivity.ResolveApproversAsync — it carries name, email,
+    /// employee code, and profile picture so personalised emails can be sent without
+    /// a second database round-trip inside the notification activity.
     /// </summary>
     Task NotifyStepApproversAsync(
         ApprovalWorkflowInput input,
         WorkflowStep step,
-        WorkflowDefinition definition);
+        WorkflowDefinition definition,
+        List<ResolvedApprover> resolvedApprovers);
 
     /// <summary>
     /// Notifies the original requester that a step was approved and the workflow moved forward.
