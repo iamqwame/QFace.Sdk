@@ -102,7 +102,6 @@ public class WorkflowApprovalProcessor(
         {
             newStatus = WorkflowStatus.Approved;
             entity.WorkflowStatus = newStatus;
-            entity.CurrentWorkflowState = AppConstant.Workflow.States.Completed;
             entity.WorkflowCompletedAt = @event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow;
             entity.WorkflowCompletedByEmail = @event.ApprovedBy;
             entity.WorkflowCompletedByEmployeeId = @event.TriggeredBy;
@@ -132,7 +131,6 @@ public class WorkflowApprovalProcessor(
         else if (!string.IsNullOrWhiteSpace(nextStepCode))
         {
             newStatus = WorkflowStatus.InProgress;
-            entity.CurrentWorkflowState = nextStepCode;
             entity.WorkflowStatus = newStatus;
             logger.LogInformation("➡️ Moving {EntityType} {EntityId} to next step: {NextStep}. Approved step: {ApprovedStep}",
                 @event.EntityType, entityId, nextStepCode, approvedStepCode);
@@ -164,7 +162,6 @@ public class WorkflowApprovalProcessor(
         {
             newStatus = WorkflowStatus.InProgress;
             entity.WorkflowStatus = newStatus;
-            entity.CurrentWorkflowState = @event.CurrentState;
             logger.LogInformation("✅ Step completed for {EntityType} {EntityId} - no next step defined. Approved step: {ApprovedStep}",
                 @event.EntityType, entityId, approvedStepCode);
 
@@ -183,7 +180,6 @@ public class WorkflowApprovalProcessor(
         {
             newStatus = WorkflowStatus.InProgress;
             entity.WorkflowStatus = newStatus;
-            entity.CurrentWorkflowState = @event.CurrentState;
             logger.LogInformation("✅ Step approved for {EntityType} {EntityId} - no transition defined. Approved step: {ApprovedStep}",
                 @event.EntityType, entityId, approvedStepCode);
 
@@ -211,8 +207,8 @@ public class WorkflowApprovalProcessor(
 
         await context.SaveChangesAsync(cancellationToken);
         
-        logger.LogInformation("✅ [WorkflowApprovalProcessor] Successfully processed approval request for WorkflowId={WorkflowId}, Status={Status}, CurrentState={CurrentState}",
-            @event.WorkflowId, newStatus, entity.CurrentWorkflowState);
+        logger.LogInformation("✅ [WorkflowApprovalProcessor] Successfully processed approval request for WorkflowId={WorkflowId}, Status={Status}",
+            @event.WorkflowId, newStatus);
     }
 
     private async Task<IWorkflowEnabled?> GetEntityByTypeAsync<TContext>(
@@ -505,8 +501,6 @@ public class WorkflowApprovalProcessor(
             _ => "WorkflowApproval"
         };
 
-        workflowDefinition ??= entity.WorkflowDefinition;
-        
         var entityDetails = ExtractEntityDetails(entity);
         var entityDisplayName = GetEntityDisplayName(entity);
         var baseUrl = _frontendSettings.BaseUrl;
@@ -514,9 +508,9 @@ public class WorkflowApprovalProcessor(
         var approvedDate = @event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow;
         var initiatedAt = entity.WorkflowInitiatedAt ?? DateTime.UtcNow;
 
-        var currentStep = workflowDefinition.Steps.FirstOrDefault(s => s.Name == stepName);
+        var currentStep = workflowDefinition?.Steps.FirstOrDefault(s => s.Name == stepName);
         var currentStepNumber = currentStep?.Order ?? 0;
-        var totalSteps = workflowDefinition.Steps?.Count ?? 0;
+        var totalSteps = workflowDefinition?.Steps?.Count ?? 0;
         var stageInfo = totalSteps > 0 && currentStepNumber > 0
             ? $"Stage {currentStepNumber} of {totalSteps}: Action Required"
             : "Action Required";
@@ -751,21 +745,17 @@ public class WorkflowApprovalProcessor(
             _ => "WorkflowStepApproved"
         };
 
-        var workflowDefinition = entity.WorkflowDefinition;
         var entityDetails = ExtractEntityDetails(entity);
         var entityDisplayName = GetEntityDisplayName(entity);
         var baseUrl = _frontendSettings.BaseUrl;
         var reviewUrl = $"{baseUrl.TrimEnd('/')}/workflow/entity/{@event.EntityType}/{@event.EntityId}/review";
         var initiatedAt = entity.WorkflowInitiatedAt ?? DateTime.UtcNow;
 
-        var isCompleted = notificationType == "WorkflowCompleted"
-            || (!string.IsNullOrWhiteSpace(entity.CurrentWorkflowState) 
-                && string.Equals(entity.CurrentWorkflowState.Trim(), AppConstant.Workflow.States.Completed, StringComparison.OrdinalIgnoreCase));
+        var isCompleted = notificationType == "WorkflowCompleted";
 
         if (isCompleted)
         {
-            logger.LogDebug("✅ [SendRequesterNotification] Detected completed workflow. CurrentWorkflowState={State}, NotificationType={Type}", 
-                entity.CurrentWorkflowState, notificationType);
+            logger.LogDebug("✅ [SendRequesterNotification] Detected completed workflow. NotificationType={Type}", notificationType);
         }
 
         var completedDate = isCompleted && entity.WorkflowCompletedAt.HasValue
@@ -773,30 +763,13 @@ public class WorkflowApprovalProcessor(
             : (@event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow);
         var approvedDate = completedDate;
 
-        var approvedStep = workflowDefinition?.Steps?.FirstOrDefault(s => s.Name == stepName);
-        var approvedStepNumber = approvedStep?.Order ?? 0;
-        var totalSteps = workflowDefinition?.Steps?.Count ?? 0;
-        
+        var approvedStepNumber = 0;
+        var totalSteps = 0;
+
         var nextStepCode = isCompleted
             ? AppConstant.Workflow.States.Completed
             : (@event.CurrentState ?? @event.NextStepCode ?? "");
         var nextStepName = _systemOptions.DefaultNextStepName;
-        if (!isCompleted && !string.IsNullOrWhiteSpace(nextStepCode) && workflowDefinition?.Steps != null)
-        {
-            var nextStep = workflowDefinition.Steps.FirstOrDefault(s => s.StepCode == nextStepCode);
-            if (nextStep != null)
-            {
-                nextStepName = nextStep.Name;
-            }
-        }
-        else if (!isCompleted && approvedStepNumber > 0 && totalSteps > approvedStepNumber && workflowDefinition?.Steps != null)
-        {
-            var nextStep = workflowDefinition.Steps.OrderBy(s => s.Order).Skip(approvedStepNumber).FirstOrDefault();
-            if (nextStep != null)
-            {
-                nextStepName = nextStep.Name;
-            }
-        }
 
         var stageInfo = isCompleted
             ? (totalSteps > 1 
@@ -818,9 +791,7 @@ public class WorkflowApprovalProcessor(
 
         var requesterLabel = entityDetails.ContainsKey("FullName") ? "Employee Name" : $"{_systemOptions.DefaultRequesterName} Name";
 
-        var workflowProgressHtml = workflowDefinition != null
-            ? dynamicHtmlGenerator.GenerateWorkflowProgressHtml(workflowDefinition, nextStepCode, initiatedAt, isRequester: true, isCompleted: isCompleted)
-            : dynamicHtmlGenerator.GenerateEmptyProgressHtml(initiatedAt);
+        var workflowProgressHtml = dynamicHtmlGenerator.GenerateEmptyProgressHtml(initiatedAt);
 
         var actorName = isCompleted
             ? (entity.WorkflowCompletedByName ?? @event.UserName ?? _systemOptions.DefaultUserName)

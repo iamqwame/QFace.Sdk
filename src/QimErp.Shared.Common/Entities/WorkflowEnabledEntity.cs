@@ -22,23 +22,6 @@ public abstract class WorkflowEnabledEntity : AuditableEntity, IWorkflowEnabled
     /// </summary>
     public string? WorkflowCode { get; set; }
 
-    // ── Step tracking (maintained by old processors for non-Temporal modules) ─
-    //
-    // NOTE: For modules on the Temporal path (CoreHR, Platform), the authoritative
-    // current step lives in ApprovalWorkflow._currentState (Temporal event history).
-    // These fields are still written by WorkflowApprovalProcessor /
-    // WorkflowRejectionProcessor for HROperations modules that have not yet migrated
-    // to Temporal.
-
-    public string? CurrentWorkflowState { get; set; }
-
-    /// <summary>
-    /// Snapshot of the workflow definition set at workflow-start time.
-    /// Authoritative copy lives in the Platform workflow DB (EntityWorkflowStep).
-    /// Kept here as a fallback for processors on the old RabbitMQ path.
-    /// </summary>
-    public WorkflowDefinition WorkflowDefinition { get; set; } = new();
-
     // ── Audit fields ──────────────────────────────────────────────────────────
 
     public string? WorkflowComments { get; set; }

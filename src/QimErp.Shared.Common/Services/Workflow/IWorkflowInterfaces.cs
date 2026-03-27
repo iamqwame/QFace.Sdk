@@ -4,12 +4,10 @@ public interface IWorkflowEnabled
 {
     WorkflowStatus WorkflowStatus { get; set; }
     Guid? CurrentWorkflowHistoryId { get; set; }
-    string? CurrentWorkflowState { get; set; }
     string? WorkflowCode { get; set; }
     string? WorkflowComments { get; set; }
     DateTime? WorkflowInitiatedAt { get; set; }
-    WorkflowDefinition WorkflowDefinition { get; set; }
-    
+
     // Workflow Initiation Details
     string? WorkflowInitiatedByEmail { get; set; }
     string? WorkflowInitiatedByEmployeeId { get; set; }

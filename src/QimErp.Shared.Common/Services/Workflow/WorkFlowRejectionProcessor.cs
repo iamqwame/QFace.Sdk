@@ -93,8 +93,6 @@ public class WorkflowRejectionProcessor(
             @event.UserName,
             @event.RejectionReason);
 
-        entity.CurrentWorkflowState = currentState ?? "Rejected";
-
         logger.LogInformation("❌ Rejecting workflow for {EntityType} {EntityId} at step {StepName}",
             @event.EntityType, entityId, currentStep.Name);
 
@@ -117,8 +115,8 @@ public class WorkflowRejectionProcessor(
 
         await context.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("✅ [WorkflowRejectionProcessor] Successfully processed rejection request for WorkflowId={WorkflowId}, Status=Rejected, CurrentState={CurrentState}",
-            @event.WorkflowId, entity.CurrentWorkflowState);
+        logger.LogInformation("✅ [WorkflowRejectionProcessor] Successfully processed rejection request for WorkflowId={WorkflowId}, Status=Rejected",
+            @event.WorkflowId);
     }
 
     private async Task<IWorkflowEnabled?> GetEntityByTypeAsync<TContext>(

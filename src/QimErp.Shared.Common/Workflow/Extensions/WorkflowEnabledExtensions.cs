@@ -28,13 +28,6 @@ public static class WorkflowEnabledExtensions
             entity.WorkflowRejectionReason = comments;
     }
 
-    public static void UpdateWorkflowState(this IWorkflowEnabled entity, string newState, string? comments = null)
-    {
-        entity.CurrentWorkflowState = newState;
-        if (!comments.IsEmpty())
-            entity.WorkflowComments = comments;
-    }
-    
     public static void RejectWorkflow(this IWorkflowEnabled entity, string rejectedByEmail, string? rejectedByEmployeeId = null, string? rejectedByName = null, string reason = "")
     {
         entity.WorkflowStatus = WorkflowStatus.Rejected;

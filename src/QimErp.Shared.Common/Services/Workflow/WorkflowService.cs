@@ -96,38 +96,9 @@ public class WorkflowService(
             
             entity.CurrentWorkflowHistoryId = workflowHistoryId;
             
-            // Set workflow properties if workflowDefinition is provided
-            if (workflowDefinition != null)
+            if (!string.IsNullOrWhiteSpace(workflowCode))
             {
-                logger.LogDebug("Setting workflow properties on {EntityType}. WorkflowCode={WorkflowCode}, StepsCount={StepsCount}", 
-                    entity.EntityType, workflowCode, workflowDefinition.Steps.Count);
-                
                 entity.WorkflowCode = workflowCode;
-                entity.WorkflowDefinition = workflowDefinition;
-                
-                var firstStep = workflowDefinition.Steps.MinBy(s => s.Order);
-                
-                if (firstStep != null)
-                {
-                    entity.CurrentWorkflowState = firstStep.StepCode;
-                    logger.LogDebug("Set CurrentWorkflowState to first step: {StepCode} for {EntityType}", 
-                        firstStep.StepCode, entity.EntityType);
-                }
-                else
-                {
-                    logger.LogWarning("WorkflowDefinition has no steps for {EntityType} WorkflowCode={WorkflowCode}", 
-                        entity.EntityType, workflowCode);
-                }
-            }
-            else
-            {
-                // Even without workflowDefinition, set the WorkflowCode if we have it
-                if (!string.IsNullOrWhiteSpace(workflowCode))
-                {
-                    entity.WorkflowCode = workflowCode;
-                    logger.LogDebug("Set WorkflowCode={WorkflowCode} on {EntityType} without WorkflowDefinition", 
-                        workflowCode, entity.EntityType);
-                }
             }
             
             logger.LogDebug("Calling InitiateWorkflow extension method for {EntityType}. User={UserEmail}, Operation={Operation}", 
@@ -135,8 +106,8 @@ public class WorkflowService(
             
             entity.InitiateWorkflow(currentUserEmail, currentUser, currentUserName, $"Workflow initiated for {operation}");
 
-            logger.LogInformation("Successfully initiated workflow {WorkflowCode} for {EntityType} {EntityId}. WorkflowStatus={WorkflowStatus}, CurrentWorkflowState={CurrentWorkflowState}, CurrentWorkflowHistoryId={WorkflowHistoryId}",
-                workflowCode, entity.EntityType, entity.GetType().GetProperty("Id")?.GetValue(entity), entity.WorkflowStatus, entity.CurrentWorkflowState, entity.CurrentWorkflowHistoryId);
+            logger.LogInformation("Successfully initiated workflow {WorkflowCode} for {EntityType} {EntityId}. WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}",
+                workflowCode, entity.EntityType, entity.GetType().GetProperty("Id")?.GetValue(entity), entity.WorkflowStatus, entity.CurrentWorkflowHistoryId);
         }
         catch (Exception ex)
         {
