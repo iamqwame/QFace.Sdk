@@ -191,30 +191,7 @@ public class AuditEntitySaveChangesInterceptor(
         }
     }
 
-    private async Task PublishWorkflowEventsWithDbTransactionAsync(
-        List<IDomainEvent> events,
-        DbContext context,
-        CancellationToken cancellationToken)
-    {
-        if (publisher == null || events.Count == 0) return;
-
-        logger.LogDebug("Publishing {EventCount} workflow events with DB transaction", events.Count);
-
-        using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-
-        try
-        {
-            await PublishWorkflowEventsAsync(events, cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            logger.LogDebug("Successfully published {EventCount} workflow events with DB transaction", events.Count);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to publish workflow events with DB transaction, rolling back");
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
-    }
+    
 
     private async Task PublishWorkflowEventsAsync(List<IDomainEvent> events, CancellationToken cancellationToken)
     {
