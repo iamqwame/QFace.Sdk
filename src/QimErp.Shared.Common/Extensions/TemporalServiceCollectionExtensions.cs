@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using QFace.Sdk.Temporal.Extensions;
+using QimErp.Shared.Common.Services.Notifications;
 using QimErp.Shared.Common.Services.Workflow;
 using QimErp.Shared.Common.Services.Workflow.Temporal;
 using QimErp.Shared.Common.Services.Workflow.Temporal.Approval;
@@ -25,6 +26,7 @@ public static class TemporalServiceCollectionExtensions
     ///   Domain layer (QimErp.Shared.Common):
     ///     IApprovalWorkflowStarter, IApprovalWorkflowSignaller,
     ///     IApprovalWorkflowQueryClient, IApprovalWorkflowTerminator
+    ///     INotificationWorkflowStarter
     /// </summary>
     public static IServiceCollection AddTemporalWorkflow(
         this IServiceCollection services,
@@ -45,6 +47,9 @@ public static class TemporalServiceCollectionExtensions
 
         // Bridge — replaces WorkflowEventPublisherActor in the interceptor
         services.TryAddSingleton<IWorkflowTriggerBridge, TemporalWorkflowTriggerBridge>();
+
+        // Notification starter — any service injects INotificationWorkflowStarter to fire emails/SMS
+        services.TryAddSingleton<INotificationWorkflowStarter, NotificationWorkflowStarter>();
 
         return services;
     }

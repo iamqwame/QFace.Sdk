@@ -1,17 +1,18 @@
-using QFace.Sdk.RabbitMq.Services;
-
 namespace QimErp.Shared.Common.Services.Notifications;
 
 public interface IMessagingService
 {
-
+    Task SendLoginNotificationAsync(string username, string? phoneNumber, string? email);
+    Task SendRegistrationNotificationAsync(string username, string? phoneNumber, string? email);
+    Task SendPasswordResetEmailAsync(string email, string token);
+    Task SendEmailVerificationAsync(string email, string token);
 }
 
-public class MessagingService(IRabbitMqPublisher publisher, ILogger<MessagingService> logger)
+public class MessagingService(
+    INotificationWorkflowStarter notificationStarter,
+    ILogger<MessagingService> logger)
     : IMessagingService
 {
-    private const string ExchangeName = "umat.core.notify.prod_exchange";
-
     public async Task SendLoginNotificationAsync(string username, string? phoneNumber, string? email)
     {
         try
@@ -22,27 +23,20 @@ public class MessagingService(IRabbitMqPublisher publisher, ILogger<MessagingSer
                 {
                     MessageType = "sms",
                     PhoneNumber = phoneNumber,
-                    Message = $"Hello {username}, you have successfully logged into your UMaT account."
+                    Message = $"Hello {username}, you have successfully logged into your QimERP account."
                 };
 
-                logger.LogInformation("📤 [UnifiedMessage] Publishing login SMS notification for {PhoneNumber}...", phoneNumber);
-                await publisher.PublishAsync(smsMessage, ExchangeName);
-                logger.LogInformation("📤 [UnifiedMessage] Event published successfully: {Payload}", smsMessage.Serialize());
+                logger.LogInformation("📤 [Messaging] Queuing login SMS for {PhoneNumber}...", phoneNumber);
+                await notificationStarter.SendAsync(smsMessage);
             }
 
             if (!string.IsNullOrEmpty(email))
             {
-                var emailMessage = new UnifiedMessageModel
-                {
-                    MessageType = "simple_email",
-                    ToEmail = email,
-                    Subject = "Login Notification",
-                    Body = $"Hello {username}, you have successfully logged into your UMaT account."
-                };
-
-                logger.LogInformation("📤 [UnifiedMessage] Publishing login email notification for {Email}...", email);
-                await publisher.PublishAsync(emailMessage, ExchangeName);
-                logger.LogInformation("📤 [UnifiedMessage] Event published successfully: {Payload}", emailMessage.Serialize());
+                logger.LogInformation("📤 [Messaging] Queuing login email for {Email}...", email);
+                await notificationStarter.SendEmailAsync(
+                    email,
+                    "Login Notification",
+                    $"Hello {username}, you have successfully logged into your QimERP account.");
             }
         }
         catch (Exception ex)
@@ -62,32 +56,25 @@ public class MessagingService(IRabbitMqPublisher publisher, ILogger<MessagingSer
                 {
                     MessageType = "sms",
                     PhoneNumber = phoneNumber,
-                    Message = $"Hello {username}, your UMaT account has been created successfully."
+                    Message = $"Hello {username}, your QimERP account has been created successfully."
                 };
 
-                logger.LogInformation("📤 [UnifiedMessage] Publishing registration SMS notification for {PhoneNumber}...", phoneNumber);
-                await publisher.PublishAsync(smsMessage, ExchangeName);
-                logger.LogInformation("📤 [UnifiedMessage] Event published successfully: {Payload}", smsMessage.Serialize());
+                logger.LogInformation("📤 [Messaging] Queuing registration SMS for {PhoneNumber}...", phoneNumber);
+                await notificationStarter.SendAsync(smsMessage);
             }
 
             if (!string.IsNullOrEmpty(email))
             {
-                var emailMessage = new UnifiedMessageModel
-                {
-                    MessageType = "templated_email",
-                    ToEmail = email,
-                    Subject = "Registration Successful",
-                    Template = "registration-confirmation",
-                    Replacements = new Dictionary<string, string>
+                logger.LogInformation("📤 [Messaging] Queuing registration email for {Email}...", email);
+                await notificationStarter.SendTemplatedEmailAsync(
+                    email,
+                    "Registration Successful",
+                    "registration-confirmation",
+                    new Dictionary<string, string>
                     {
                         { "UserName", username },
                         { "CurrentYear", DateTime.Now.Year.ToString() }
-                    }
-                };
-
-                logger.LogInformation("📤 [UnifiedMessage] Publishing registration email notification for {Email}...", email);
-                await publisher.PublishAsync(emailMessage, ExchangeName);
-                logger.LogInformation("📤 [UnifiedMessage] Event published successfully: {Payload}", emailMessage.Serialize());
+                    });
             }
         }
         catch (Exception ex)
@@ -101,22 +88,16 @@ public class MessagingService(IRabbitMqPublisher publisher, ILogger<MessagingSer
     {
         try
         {
-            var message = new UnifiedMessageModel
-            {
-                MessageType = "templated_email",
-                ToEmail = email,
-                Subject = "Password Reset Request",
-                Template = "password-reset",
-                Replacements = new Dictionary<string, string>
+            logger.LogInformation("📤 [Messaging] Queuing password reset email for {Email}...", email);
+            await notificationStarter.SendTemplatedEmailAsync(
+                email,
+                "Password Reset Request",
+                "password-reset",
+                new Dictionary<string, string>
                 {
                     { "ResetToken", token },
                     { "ExpiryHours", "24" }
-                }
-            };
-
-            logger.LogInformation("📤 [UnifiedMessage] Publishing password reset email for {Email}...", email);
-            await publisher.PublishAsync(message, ExchangeName);
-            logger.LogInformation("📤 [UnifiedMessage] Event published successfully: {Payload}", message.Serialize());
+                });
         }
         catch (Exception ex)
         {
@@ -129,27 +110,21 @@ public class MessagingService(IRabbitMqPublisher publisher, ILogger<MessagingSer
     {
         try
         {
-            var message = new UnifiedMessageModel
-            {
-                MessageType = "templated_email",
-                ToEmail = email,
-                Subject = "Email Verification",
-                Template = "email-verification",
-                Replacements = new Dictionary<string, string>
+            logger.LogInformation("📤 [Messaging] Queuing email verification for {Email}...", email);
+            await notificationStarter.SendTemplatedEmailAsync(
+                email,
+                "Email Verification",
+                "email-verification",
+                new Dictionary<string, string>
                 {
                     { "VerificationToken", token },
                     { "ExpiryHours", "24" }
-                }
-            };
-
-            logger.LogInformation("📤 [UnifiedMessage] Publishing email verification message for {Email}...", email);
-            await publisher.PublishAsync(message, ExchangeName);
-            logger.LogInformation("📤 [UnifiedMessage] Event published successfully: {Payload}", message.Serialize());
+                });
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending email verification message to {Email}", email);
+            logger.LogError(ex, "Error sending email verification to {Email}", email);
             throw;
         }
     }
-} 
+}
