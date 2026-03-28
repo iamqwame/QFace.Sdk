@@ -7,9 +7,6 @@ namespace QFace.Sdk.Temporal.Options;
 /// Unified configuration for Temporal client and worker.
 /// Bind from the "Temporal" section in appsettings.json.
 ///
-/// Replaces:
-///   Orchestration: Orchestration:TemporalAddress, TemporalNamespace, EnableTemporalTls, TaskQueue
-///   Workflow.Consumer: Temporal:Address, Temporal:Namespace
 ///
 /// Example appsettings.json (local):
 /// <code>

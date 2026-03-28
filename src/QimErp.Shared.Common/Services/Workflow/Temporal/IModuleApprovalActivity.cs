@@ -1,20 +1,10 @@
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 
 /// <summary>
-/// Activity interface that each module implements to apply workflow outcomes
-/// to its own entities in its own database.
-///
-/// This is the ONLY interface each module needs to implement to participate
-/// in the Temporal workflow.  It replaces:
-///   - WorkflowConsumer.ProcessWorkflowApprovalRequest   (Employee, Recruitment, Leave, …)
-///   - WorkflowNotificationConsumer.ProcessWorkflowApprovalRequest
-///   - WorkflowApprovalProcessor.ProcessApprovalRequestAsync (final-step activation)
-///   - WorkflowRejectionProcessor.ProcessRejectionRequestAsync
-///
-/// Implementations live in each module's Consumer project and are registered
-/// in the module's Program.cs via services.AddModuleApprovalActivity&lt;T&gt;(configuration, module, entityTypes).
-/// Each module Consumer runs its own Temporal worker polling "qimerp-{module}-approvals",
-/// so activity type names never collide across modules.
+/// Module-implemented Temporal activities: apply approval workflow outcomes to the module's own database.
+/// Register implementations in each module's <c>Program.cs</c> with
+/// <c>services.AddModuleApprovalActivity&lt;T&gt;(configuration, module, entityTypes)</c>.
+/// Each module runs a worker on <c>qimerp-{module}-approvals</c> so activity type names do not collide.
 /// </summary>
 public interface IModuleApprovalActivity
 {

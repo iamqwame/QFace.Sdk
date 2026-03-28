@@ -196,8 +196,7 @@ public class ChartOfAccountDeletedEvent : DomainEvent
 }
 
 /// <summary>
-/// Domain event fired when a journal entry is created by another module (e.g., Cash Management)
-/// GL Consumer will consume this and create the JournalEntry in GL
+/// Fired when another module creates a journal entry (e.g. Cash Management); the GL module applies it to its ledger.
 /// </summary>
 public class JournalEntryCreatedEvent : DomainEvent
 {

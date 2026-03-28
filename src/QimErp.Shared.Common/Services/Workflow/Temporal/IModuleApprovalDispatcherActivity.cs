@@ -1,14 +1,9 @@
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 
 /// <summary>
-/// Temporal activity interface that dispatches entity-specific workflow outcomes
-/// to the correct module via HTTP.
-///
-/// Implemented by ModuleApprovalDispatcherActivity in QimErp.Platform.Orchestration.WebApi.
-/// Routes by ApprovalWorkflowInput.EntityType to the corresponding module's internal API.
-///
-/// This is the activity called FROM ApprovalWorkflow — each method is a [Activity].
-/// It is NOT implemented by individual modules; for module-side activity interfaces see IModuleApprovalActivity.
+/// Activity contract for applying approval outcomes to the owning module (finalize, advance step, reject, timeout).
+/// The live approval path routes <see cref="IModuleApprovalActivity"/> on each module's Temporal task queue
+/// (see Platform Workflow <c>ApprovalWorkflow</c>); module hosts implement that interface per domain.
 /// </summary>
 public interface IModuleApprovalDispatcherActivity
 {

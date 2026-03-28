@@ -14,8 +14,8 @@ public static class TemporalConstants
     public const string DefaultNamespace = "qimerp";
 
     /// <summary>
-    /// Per-module activity task queue. Each module Consumer runs a Temporal worker
-    /// on this queue that handles IModuleApprovalActivity for its own entity types.
+    /// Per-module activity task queue. Each module's Temporal worker polls this queue for
+    /// <see cref="IModuleApprovalActivity"/> implementations for its entity types.
     ///
     /// The module name MUST match the ApprovalWorkflowInput.Module value used by
     /// that module's entities when the workflow is triggered.

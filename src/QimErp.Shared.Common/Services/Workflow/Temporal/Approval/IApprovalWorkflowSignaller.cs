@@ -14,8 +14,7 @@ public sealed class ApprovalSignalResult
 /// Typed wrapper over IWorkflowSignaller for approval workflows.
 /// Hides workflow ID format, signal method names, and raw Temporalio exceptions.
 ///
-/// Used by: ApproveWorkflow endpoint, RejectWorkflow endpoint.
-/// Replaces: raw temporalClient.GetWorkflowHandle(...).SignalAsync(...) calls.
+/// Used by ApproveWorkflow / RejectWorkflow endpoints; wraps workflow handle signal calls.
 ///
 /// WorkflowGone=true means the workflow completed, was terminated, or never started.
 /// The caller (endpoint) decides whether this is an error or acceptable.

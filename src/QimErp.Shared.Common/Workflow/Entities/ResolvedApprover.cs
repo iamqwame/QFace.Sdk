@@ -1,7 +1,7 @@
 namespace QimErp.Shared.Common.Workflow.Entities;
 
 /// <summary>
-/// Rich approver record returned by IModuleApprovalActivity.ResolveApproversAsync.
+/// Rich approver record returned by <see cref="IApproverResolverActivity.ResolveApproversAsync"/>.
 /// Carries everything the NotificationActivity needs to send a targeted, personalised email.
 /// </summary>
 public class ResolvedApprover

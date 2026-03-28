@@ -61,14 +61,4 @@ public static class ConsumerAuditExtensions
         }
     }
 
-    /// <summary>
-    /// Executes a function with audit context from a domain event and returns a result
-    /// </summary>
-    // public static Task<T> WithAuditContextAsync<T>(
-    //     this ConsumerUserContextService contextService,
-    //     DomainEvent @event,
-    //     Func<Task<T>> func)
-    // {
-    //     return contextService.WithAuditContextAsync(@event.TenantId, @event.UserEmail, func, @event.UserName, @event.TriggeredBy);
-    // }
 }

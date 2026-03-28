@@ -56,14 +56,14 @@ public static class TemporalServiceCollectionExtensions
 
     /// <summary>
     /// Registers a module's IModuleApprovalActivity implementation for the given entity types.
-    /// Called once per module consumer in that module's Program.cs:
+    /// Call once per module from that module's Program.cs:
     ///
     ///   services.AddModuleApprovalActivity&lt;HrApprovalActivity&gt;(
     ///       "Employee", "Department", "Rank", "Station");
     ///
     /// Registers the activity as Scoped (Temporal executes each activity invocation
     /// in a new scope). Also registers a ModuleApprovalActivityRegistration singleton
-    /// so the Platform Worker can populate IModuleApprovalActivityRegistry on startup.
+    /// so the module approval activity registry can be populated at startup.
     /// </summary>
     public static IServiceCollection AddModuleApprovalActivity<TActivity>(
         this IServiceCollection services,
@@ -73,7 +73,7 @@ public static class TemporalServiceCollectionExtensions
         // Scoped — Temporal worker creates a new scope per activity execution
         services.AddScoped<TActivity>();
 
-        // Registration marker — read by the Platform Worker to populate the registry
+        // Registration marker for IModuleApprovalActivityRegistry
         services.AddSingleton<ModuleApprovalActivityRegistration>(
             _ => new ModuleApprovalActivityRegistration(entityTypes, typeof(TActivity)));
 
