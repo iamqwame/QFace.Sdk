@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
-using QFace.Sdk.RabbitMq.Services;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Services.Notifications;
 
 namespace QimErp.Shared.Common.Services.Workflow;
 
@@ -8,16 +8,14 @@ namespace QimErp.Shared.Common.Services.Workflow;
 /// Implements the workflow rejection processor to handle rejection requests.
 /// </summary>
 public class WorkflowRejectionProcessor(
-    IRabbitMqPublisher publisher,
+    INotificationWorkflowStarter notificationStarter,
     IOptions<FrontendSettings> frontendSettings,
     IOptions<SystemOptions> systemOptions,
-    IOptions<RabbitMqOptions> rabbitMqOptions,
     ILogger<WorkflowRejectionProcessor> logger)
     : IWorkflowRejectionProcessor
 {
     private readonly FrontendSettings _frontendSettings = frontendSettings.Value;
     private readonly SystemOptions _systemOptions = systemOptions.Value;
-    private readonly RabbitMqOptions _rabbitMqOptions = rabbitMqOptions.Value;
 
     /// <summary>
     /// Processes a workflow rejection request.
@@ -371,7 +369,7 @@ public class WorkflowRejectionProcessor(
                     }
                 };
 
-                await publisher.PublishAsync(message, _rabbitMqOptions.Exchanges.Notification);
+                await notificationStarter.SendAsync(message);
 
                 logger.LogInformation("✅ [WorkflowRejectionProcessor] Successfully sent rejection notification to {Recipient}",
                     recipient);

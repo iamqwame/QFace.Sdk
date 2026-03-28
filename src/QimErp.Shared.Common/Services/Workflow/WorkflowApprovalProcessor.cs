@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
-using QFace.Sdk.RabbitMq.Services;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Services.Notifications;
 
 namespace QimErp.Shared.Common.Services.Workflow;
 
@@ -8,17 +8,15 @@ namespace QimErp.Shared.Common.Services.Workflow;
 /// Processor for handling workflow approval requests.
 /// </summary>
 public class WorkflowApprovalProcessor(
-    IRabbitMqPublisher publisher,
+    INotificationWorkflowStarter notificationStarter,
     IOptions<FrontendSettings> frontendSettings,
     IOptions<SystemOptions> systemOptions,
-    IOptions<RabbitMqOptions> rabbitMqOptions,
     IDynamicHtmlGenerator dynamicHtmlGenerator,
     ILogger<WorkflowApprovalProcessor> logger)
     : IWorkflowApprovalProcessor
 {
     private readonly FrontendSettings _frontendSettings = frontendSettings.Value;
     private readonly SystemOptions _systemOptions = systemOptions.Value;
-    private readonly RabbitMqOptions _rabbitMqOptions = rabbitMqOptions.Value;
 
     /// <summary>
     /// Processes a workflow approval request event.
@@ -407,7 +405,7 @@ public class WorkflowApprovalProcessor(
             try
             {
                 var smsMessage = BuildSmsNotification(@event, notificationType, stepName, action.SendNotificationTo);
-                await publisher.PublishAsync(smsMessage, _rabbitMqOptions.Exchanges.Notification);
+                await notificationStarter.SendAsync(smsMessage);
                 logger.LogInformation("📱 [WorkflowNotification] Published SMS notification for {NotificationType} to {RecipientCount} recipients",
                     notificationType, action.SendNotificationTo.Count);
             }
@@ -447,7 +445,7 @@ public class WorkflowApprovalProcessor(
                 if (recipients.Count > 0)
                 {
                     var emailMessage = BuildEmailNotification(@event, notificationType, stepName, recipients, entity, workflowDefinition);
-                    await publisher.PublishAsync(emailMessage, _rabbitMqOptions.Exchanges.Notification);
+                    await notificationStarter.SendAsync(emailMessage);
                     logger.LogInformation("📧 [WorkflowNotification] Published Email notification for {NotificationType} to {RecipientCount} recipients",
                         notificationType, recipients.Count);
                 }
@@ -706,7 +704,7 @@ public class WorkflowApprovalProcessor(
                     }
                 };
 
-                await publisher.PublishAsync(message, _rabbitMqOptions.Exchanges.Notification);
+                await notificationStarter.SendAsync(message);
 
                 logger.LogInformation("✅ [SendNextStepNotifications] Successfully sent next step notification to {Recipient} for step {StepCode}",
                     recipient, nextStep.StepCode);
@@ -850,7 +848,7 @@ public class WorkflowApprovalProcessor(
                 }
             };
 
-            await publisher.PublishAsync(message, _rabbitMqOptions.Exchanges.Notification);
+            await notificationStarter.SendAsync(message);
             logger.LogInformation("✅ [SendRequesterNotification] Successfully sent {NotificationType} notification to requester {Email}",
                 notificationType, entity.WorkflowInitiatedByEmail);
         }
