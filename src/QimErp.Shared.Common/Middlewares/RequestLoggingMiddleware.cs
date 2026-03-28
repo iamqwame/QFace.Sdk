@@ -66,18 +66,18 @@ public class RequestLoggingMiddleware
     private async Task LogRequestAsync(HttpContext context)
     {
         var request = context.Request;
-        
-        // Log basic request information
-        var logMessage = $"Request: {request.Method} {request.Path}";
-        
+        var pathAndQuery = request.Path.Value ?? "";
         if (_options.LogQueryString && !string.IsNullOrEmpty(request.QueryString.Value))
-        {
-            logMessage += $" {request.QueryString}";
-        }
-        
-        logMessage += $" from {context.Connection.RemoteIpAddress}";
-        
-        _logger.Log(_options.LogLevel, logMessage);
+            pathAndQuery += request.QueryString.Value;
+
+        _logger.Log(
+            _options.LogLevel,
+            "HTTP request {Method} {PathAndQuery} {RemoteIpAddress} {RequestId} {ConnectionId}",
+            request.Method,
+            pathAndQuery,
+            context.Connection.RemoteIpAddress?.ToString(),
+            context.TraceIdentifier,
+            context.Connection.Id);
 
         // Log headers (excluding sensitive ones)
         if (_options.LogRequestHeaders)
@@ -186,21 +186,16 @@ public static class RequestLoggingMiddlewareExtensions
 
     public static IApplicationBuilder UseRequestLogging(this IApplicationBuilder builder, IConfiguration configuration)
     {
-        // var options = new RequestLoggingOptions();
-        // configuration.GetSection("Logging:RequestLogging").Bind(options);
-        //
-        // return builder.UseMiddleware<RequestLoggingMiddleware>(options);
-
-        return builder;
+        var options = new RequestLoggingOptions();
+        configuration.GetSection("Logging:RequestLogging").Bind(options);
+        return builder.UseMiddleware<RequestLoggingMiddleware>(options);
     }
 
     public static IApplicationBuilder UseRequestLogging(this IApplicationBuilder builder, IConfiguration configuration, Action<RequestLoggingOptions>? configureOptions = null)
     {
-        // var options = new RequestLoggingOptions();
-        // configuration.GetSection("Logging:RequestLogging").Bind(options);
-        // configureOptions?.Invoke(options);
-        //
-        // return builder.UseMiddleware<RequestLoggingMiddleware>(options);
-        return builder;
+        var options = new RequestLoggingOptions();
+        configuration.GetSection("Logging:RequestLogging").Bind(options);
+        configureOptions?.Invoke(options);
+        return builder.UseMiddleware<RequestLoggingMiddleware>(options);
     }
 } 

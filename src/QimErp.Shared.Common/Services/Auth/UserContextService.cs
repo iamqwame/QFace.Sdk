@@ -1,10 +1,14 @@
 using System.Security.Claims;
+using Microsoft.Extensions.Logging;
 
 namespace QimErp.Shared.Common.Services.Auth;
 
-public class UserContextService(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
+public class UserContextService(
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<UserContextService> logger) : ICurrentUserService
 {
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+    private readonly ILogger<UserContextService> _logger = logger;
     private static readonly AsyncLocal<UserContext> Context = new();
 
     public void SetContext(string tenantId, string userEmail, string? userName = null, string? userId = null)
@@ -324,10 +328,9 @@ public class UserContextService(IHttpContextAccessor httpContextAccessor) : ICur
                 return tenantIdProp3.GetString();
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Silently fail - token parsing errors shouldn't break the application
-            // Logging can be added here if needed for debugging
+            _logger.LogDebug(ex, "Could not extract tenant id from JWT payload");
         }
         
         return null;

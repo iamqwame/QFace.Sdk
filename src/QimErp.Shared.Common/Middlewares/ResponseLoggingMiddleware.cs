@@ -1,3 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using QimErp.Shared.Common.Logging;
+using QimErp.Shared.Common.Services.Auth;
+
 namespace QimErp.Shared.Common.Middlewares;
 
 public class ResponseLoggingOptions
@@ -87,9 +92,17 @@ public class ResponseLoggingMiddleware
             return;
         }
 
-        // Log basic response information
-        var logMessage = $"Response: {response.StatusCode} for {request.Method} {request.Path}";
-        _logger.Log(_options.LogLevel, logMessage);
+        var userService = context.RequestServices.GetService<ICurrentUserService>();
+        using (_logger.BeginUserContextScope(userService))
+        {
+            _logger.Log(
+                _options.LogLevel,
+                "HTTP response {StatusCode} {Method} {Path} {RequestId}",
+                response.StatusCode,
+                request.Method,
+                request.Path.Value ?? "",
+                context.TraceIdentifier);
+        }
 
         // Log response headers
         if (_options.LogResponseHeaders)

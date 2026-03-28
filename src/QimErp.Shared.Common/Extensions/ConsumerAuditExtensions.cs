@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging;
+using QimErp.Shared.Common.Logging;
+
 namespace QimErp.Shared.Common.Extensions;
 
 /// <summary>
@@ -7,7 +10,8 @@ namespace QimErp.Shared.Common.Extensions;
 public static class ConsumerAuditExtensions
 {
     /// <summary>
-    /// Executes an action with audit context automatically set and cleared
+    /// Executes an action with audit context automatically set and cleared.
+    /// Pass <paramref name="logger"/> to attach TenantId/UserEmail/UserName to log scope for the action.
     /// </summary>
     public static async Task WithAuditContextAsync(
         this ConsumerUserContextService contextService,
@@ -15,11 +19,23 @@ public static class ConsumerAuditExtensions
         string userEmail,
         Func<Task> action,
         string? userName = null,
-        string? triggeredBy = null)
+        string? triggeredBy = null,
+        ILogger? logger = null)
     {
         try
         {
             contextService.SetContext(tenantId, userEmail, userName, triggeredBy);
+            if (logger != null)
+            {
+                var scopeItems = UserContextScopeProperties.From(tenantId, userEmail, userName, triggeredBy);
+                if (scopeItems.Count > 0)
+                {
+                    using (logger.BeginScope(scopeItems))
+                        await action();
+                    return;
+                }
+            }
+
             await action();
         }
         finally
@@ -34,9 +50,16 @@ public static class ConsumerAuditExtensions
     public static Task WithAuditContextAsync(
         this ConsumerUserContextService contextService,
         DomainEvent @event,
-        Func<Task> action)
+        Func<Task> action,
+        ILogger? logger = null)
     {
-        return contextService.WithAuditContextAsync(@event.TenantId, @event.UserEmail, action, @event.UserName, @event.TriggeredBy);
+        return contextService.WithAuditContextAsync(
+            @event.TenantId,
+            @event.UserEmail,
+            action,
+            @event.UserName,
+            @event.TriggeredBy,
+            logger);
     }
 
     /// <summary>
@@ -48,11 +71,22 @@ public static class ConsumerAuditExtensions
         string userEmail,
         Func<Task<T>> func,
         string? userName = null,
-        string? triggeredBy = null)
+        string? triggeredBy = null,
+        ILogger? logger = null)
     {
         try
         {
             contextService.SetContext(tenantId, userEmail, userName, triggeredBy);
+            if (logger != null)
+            {
+                var scopeItems = UserContextScopeProperties.From(tenantId, userEmail, userName, triggeredBy);
+                if (scopeItems.Count > 0)
+                {
+                    using (logger.BeginScope(scopeItems))
+                        return await func();
+                }
+            }
+
             return await func();
         }
         finally

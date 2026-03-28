@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Carter;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Json;
@@ -14,6 +15,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using QFace.Sdk.RedisCache.Extensions;
 using QFace.Sdk.RedisCache.Models;
+using QimErp.Shared.Common.Behaviours;
 using QimErp.Shared.Common.Database;
 using QimErp.Shared.Common.Middlewares;
 using QimErp.Shared.Common.Options;
@@ -77,6 +79,8 @@ public static class SharedServiceCollectionExtensions
         {
             cfg.RegisterServicesFromAssemblies(allCurrentAssemblies);
         });
+
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehaviour<,>));
 
         return services;
     }
@@ -323,6 +327,7 @@ public static class SharedServiceCollectionExtensions
         app.UseAuthentication();
         app.UseTenantContext();
         app.UseAuthorization();
+        app.UseUserLoggingScope();
 
         app.MapDefaultEndpoints();
     }
