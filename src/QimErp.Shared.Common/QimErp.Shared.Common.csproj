@@ -31,9 +31,6 @@
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
-    <ItemGroup>
-        <EmbeddedResource Include="Templates\Emails\*.html" />
-    </ItemGroup>
     
     <!-- API & Documentation -->
     <ItemGroup>
