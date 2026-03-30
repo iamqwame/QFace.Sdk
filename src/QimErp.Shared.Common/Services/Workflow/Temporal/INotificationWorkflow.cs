@@ -11,6 +11,7 @@ namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 /// <see cref="QimErp.Shared.Common.Services.Notifications.INotificationWorkflowStarter"/>
 /// which provides named convenience methods and hides the task queue.
 /// </summary>
+[Workflow]
 public interface INotificationWorkflow
 {
     [WorkflowRun]
