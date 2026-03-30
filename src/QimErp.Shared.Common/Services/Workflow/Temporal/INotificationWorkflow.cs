@@ -1,4 +1,5 @@
 using QimErp.Shared.Common.Events;
+using Temporalio.Workflows;
 
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 
@@ -12,5 +13,6 @@ namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 /// </summary>
 public interface INotificationWorkflow
 {
+    [WorkflowRun]
     Task RunAsync(UnifiedMessageModel model);
 }
