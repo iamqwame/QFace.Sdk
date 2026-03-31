@@ -123,7 +123,7 @@ public static class SharedServiceCollectionExtensions
 
         return services;
     }
-    
+
     /// <summary>
     /// Registers DbContext with outbox support and audit interceptor for consumer/background apps.
     /// </summary>
@@ -182,9 +182,9 @@ public static class SharedServiceCollectionExtensions
 
             // SignalR CORS policy with credentials support
             // Must use specific origins when AllowCredentials() is used (cannot use AllowAnyOrigin())
-            var allowedOrigins = configuration?.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+            var allowedOrigins = configuration?.GetSection("Cors:AllowedOrigins").Get<string[]>()
                                  ?? ["http://localhost:3000", "https://localhost:3000"];
-            
+
             options.AddPolicy("SignalRCors",
                 policy => policy.WithOrigins(allowedOrigins)
                     .AllowAnyMethod()
@@ -296,13 +296,13 @@ public static class SharedServiceCollectionExtensions
         app.UseSwaggerUI(options =>
         {
             // Get proxy path from environment variable or configuration
-            var proxyPath = app.Configuration["Swagger:ProxyPath"] ?? 
+            var proxyPath = app.Configuration["Swagger:ProxyPath"] ??
                            Environment.GetEnvironmentVariable("SWAGGER_PROXY_PATH");
-            
+
             var swaggerEndpoint = !string.IsNullOrEmpty(proxyPath)
                 ? $"{proxyPath}/swagger/{version}/swagger.json"
                 : $"/swagger/{version}/swagger.json";
-            
+
             options.SwaggerEndpoint(swaggerEndpoint, $"{title} {version}");
             options.RoutePrefix = "swagger";
             options.DisplayRequestDuration();
@@ -318,9 +318,9 @@ public static class SharedServiceCollectionExtensions
     {
         app.UseRequestLogging(configuration);
         app.UseResponseLogging(configuration);
-        
+
         app.UseAntiforgery();
-        
+
         app.UseCors("AllowAll");
         var httpsPort = configuration["HTTPS_PORT"]
             ?? configuration["ASPNETCORE_HTTPS_PORT"];
@@ -349,9 +349,9 @@ public static class SharedServiceCollectionExtensions
         Assembly assembly, Assembly? workFlowAssembly = null)
     {
 
-        var isAddWorkflow = workFlowAssembly!=null;
+        var isAddWorkflow = workFlowAssembly != null;
 
-        var carterCatalog =isAddWorkflow? new DependencyContextAssemblyCatalog(
+        var carterCatalog = isAddWorkflow ? new DependencyContextAssemblyCatalog(
             workFlowAssembly,
             assembly
         ) : new DependencyContextAssemblyCatalog(assembly);
@@ -359,14 +359,14 @@ public static class SharedServiceCollectionExtensions
 
         services.AddMemoryCache(); // For configuration caching
         services.AddQimErpConfiguration(configuration);
-        
+
         // Add antiforgery services (required by UseAntiforgery in UseAppSecurity)
         services.AddAntiforgery();
-        
+
         // Register ITenantContext (required by UseTenantContext middleware in UseAppSecurity)
         // Use TryAddScoped to avoid duplicate registration if already registered by AddDbContextWithOutbox
         services.TryAddScoped<ITenantContext, TenantContext>();
-        
+
         // Register SDK Redis Cache services (reads from "RedisCache" configuration section)
         services.AddRedisCache(configuration);
 
@@ -391,7 +391,7 @@ public static class SharedServiceCollectionExtensions
         services.AddScoped<ICacheService, RedisCacheService>();
         services.AddAuth(configuration); // ✅ Ensure Authentication is Added Early
         services.AddCorsConfig(configuration);
-        services.RegisterMediatR(isAddWorkflow ? [assembly,workFlowAssembly]:[assembly]);
+        services.RegisterMediatR(isAddWorkflow ? [assembly, workFlowAssembly] : [assembly]);
         services.AddCarter(carterCatalog); // ✅ Carter will automatically scan for modules
         services.AddValidatorsFromAssembly(assembly);
         // Add health checks
@@ -405,7 +405,7 @@ public static class SharedServiceCollectionExtensions
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
             options.SerializerOptions.Converters.Add(new DateOnlyJsonConverter());
             options.SerializerOptions.Converters.Add(new NullableDateOnlyJsonConverter());
-            
+
             // Performance optimizations
             options.SerializerOptions.WriteIndented = false; // Explicitly disable indentation for faster serialization
             options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull; // Skip null properties
@@ -573,8 +573,8 @@ public static class SharedServiceCollectionExtensions
     {
         using IServiceScope scope = serviceProvider.CreateScope();
         TDbContext dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
-        
-       try
+
+        try
         {
             // Check if there are pending migrations
             if (dbContext.Database.GetPendingMigrations().Any())
@@ -588,7 +588,7 @@ public static class SharedServiceCollectionExtensions
             //  Log the error and try to create database from scratch
             Console.WriteLine($"Migration failed: {ex.Message}");
             Console.WriteLine("Attempting to recreate database...");
-            
+
         }
     }
 
@@ -607,19 +607,19 @@ public static class SharedServiceCollectionExtensions
     /// <param name="app">The application builder</param>
     /// <param name="seedFunc">The seeding function to execute</param>
     public static void SeedLookups<TContext>(
-        this IApplicationBuilder app, 
+        this IApplicationBuilder app,
         Func<TContext, IServiceProvider, Task> seedFunc) where TContext : DbContext
     {
         using var scope = app.ApplicationServices.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<TContext>>();
-        
+
         try
         {
             logger.LogInformation("Starting lookup data seeding for {Context}...", typeof(TContext).Name);
-            
+
             var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
             seedFunc(dbContext, scope.ServiceProvider).GetAwaiter().GetResult();
-            
+
             logger.LogInformation("Lookup data seeding completed successfully for {Context}", typeof(TContext).Name);
         }
         catch (Exception ex)
@@ -662,7 +662,7 @@ public static class SharedServiceCollectionExtensions
     }
 
 
-    
+
     public static IHostApplicationBuilder AddServiceDefaults<TDbContext>(this IHostApplicationBuilder builder)
         where TDbContext : DbContext
     {
