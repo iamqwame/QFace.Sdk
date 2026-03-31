@@ -322,7 +322,17 @@ public static class SharedServiceCollectionExtensions
         app.UseAntiforgery();
         
         app.UseCors("AllowAll");
-        app.UseHttpsRedirection();
+        var httpsPort = configuration["HTTPS_PORT"]
+            ?? configuration["ASPNETCORE_HTTPS_PORT"];
+        var aspNetCoreUrls = configuration["ASPNETCORE_URLS"];
+        var hasHttpsBinding = !string.IsNullOrWhiteSpace(httpsPort)
+            || (!string.IsNullOrWhiteSpace(aspNetCoreUrls)
+                && aspNetCoreUrls.Contains("https://", StringComparison.OrdinalIgnoreCase));
+
+        if (hasHttpsBinding)
+        {
+            app.UseHttpsRedirection();
+        }
 
         app.UseAuthentication();
         app.UseTenantContext();
