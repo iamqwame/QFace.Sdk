@@ -14,6 +14,7 @@ namespace QimErp.Shared.Common.Activities;
 /// </summary>
 public interface IAdminDataSyncActivity
 {
+
     [Activity] Task SyncJobTitleAsync(AdminDataSyncRequest request);
     [Activity] Task SyncJobStatusAsync(AdminDataSyncRequest request);
     [Activity] Task SyncOrganizationalUnitAsync(AdminDataSyncRequest request);
