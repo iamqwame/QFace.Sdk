@@ -82,11 +82,11 @@ public abstract class EmployeeBaseConfiguration<TEmployee> : AuditableEntityConf
         builder.Property(e => e.CurrentJobStatusCode)
             .HasMaxLength(50);
 
-        // Indexes
-        builder.HasIndex(e => e.Code)
+        // Indexes — per-tenant composite uniqueness (Code and Email are unique within a tenant, not globally)
+        builder.HasIndex(e => new { e.TenantId, e.Code })
             .IsUnique();
 
-        builder.HasIndex(e => e.Email)
+        builder.HasIndex(e => new { e.TenantId, e.Email })
             .IsUnique()
             .HasFilter("\"Email\" IS NOT NULL");
         
