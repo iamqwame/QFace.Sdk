@@ -2,7 +2,7 @@ namespace QimErp.Shared.Common.Activities;
 
 public enum AdminSyncOperation { CreatedOrUpdated, Deleted }
 
-public enum AdminEntityType { JobTitle, JobStatus, OrganizationalUnit, Station }
+public enum AdminEntityType { JobTitle, JobStatus, OrganizationalUnit, Station, Rank }
 
 /// <summary>
 /// Payload for AdminDataSyncWorkflow fan-out activities.

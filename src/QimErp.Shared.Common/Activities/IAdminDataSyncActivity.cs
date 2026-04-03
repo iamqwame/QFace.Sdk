@@ -19,4 +19,5 @@ public interface IAdminDataSyncActivity
     [Activity] Task SyncJobStatusAsync(AdminDataSyncRequest request);
     [Activity] Task SyncOrganizationalUnitAsync(AdminDataSyncRequest request);
     [Activity] Task SyncStationAsync(AdminDataSyncRequest request);
+    [Activity] Task SyncRankAsync(AdminDataSyncRequest request);
 }
