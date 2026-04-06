@@ -1,3 +1,5 @@
+using Temporalio.Workflows;
+
 namespace QimErp.Shared.Common.Activities;
 
 /// <summary>
@@ -6,7 +8,9 @@ namespace QimErp.Shared.Common.Activities;
 /// Referenced here so admin services (in Shared) can start the workflow
 /// without a cross-project dependency on the WebApi.
 /// </summary>
+[Workflow("AdminDataSyncWorkflow")]
 public interface IAdminDataSyncWorkflow
 {
+    [WorkflowRun]
     Task RunAsync(AdminDataSyncRequest request);
 }
