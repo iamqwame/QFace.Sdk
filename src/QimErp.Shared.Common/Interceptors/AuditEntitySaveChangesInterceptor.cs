@@ -73,7 +73,7 @@ public class AuditEntitySaveChangesInterceptor(
         {
             if (result > 0 && _contextEvents.TryGetValue(context, out var workflowEvents))
             {
-                logger.LogDebug("Publishing {EventCount} workflow events after successful save ({RowsAffected} rows affected)", 
+                logger.LogDebug("Publishing {EventCount} workflow events after successful save ({RowsAffected} rows affected)",
                     workflowEvents.Count, result);
                 await PublishWorkflowEventsWithTransactionAsync(workflowEvents, context, cancellationToken);
                 _contextEvents.Remove(context);
@@ -159,7 +159,7 @@ public class AuditEntitySaveChangesInterceptor(
         }
     }
 
-    
+
     private async Task PublishWorkflowEventsWithTransactionAsync(
         List<IDomainEvent> events,
         DbContext context,
@@ -191,7 +191,7 @@ public class AuditEntitySaveChangesInterceptor(
         }
     }
 
-    
+
 
     private async Task PublishWorkflowEventsAsync(List<IDomainEvent> events, CancellationToken cancellationToken)
     {
@@ -205,12 +205,12 @@ public class AuditEntitySaveChangesInterceptor(
             try
             {
                 var exchangeName = GetExchangeNameForEvent(domainEvent);
-                
+
                 if (!string.IsNullOrEmpty(exchangeName) && rabbitMqPublisher != null)
                 {
                     // Use IRabbitMqPublisher with explicit exchange name for workflow events
                     await rabbitMqPublisher.PublishAsync(domainEvent, exchangeName);
-                    logger.LogDebug("Successfully published {EventType} to exchange {ExchangeName}", 
+                    logger.LogDebug("Successfully published {EventType} to exchange {ExchangeName}",
                         domainEvent.GetType().Name, exchangeName);
                 }
                 else if (publisher != null)
@@ -221,7 +221,7 @@ public class AuditEntitySaveChangesInterceptor(
                 }
                 else
                 {
-                    logger.LogWarning("No publisher available for event {EventType}. Event will not be published.", 
+                    logger.LogWarning("No publisher available for event {EventType}. Event will not be published.",
                         domainEvent.GetType().Name);
                     failedEvents.Add((domainEvent, new InvalidOperationException("No publisher available")));
                 }
@@ -236,7 +236,7 @@ public class AuditEntitySaveChangesInterceptor(
         if (failedEvents.Count > 0)
         {
             var failedEventTypes = string.Join(", ", failedEvents.Select(f => f.Event.GetType().Name));
-            logger.LogError("Failed to publish {FailedCount} out of {TotalCount} events: {EventTypes}", 
+            logger.LogError("Failed to publish {FailedCount} out of {TotalCount} events: {EventTypes}",
                 failedEvents.Count, events.Count, failedEventTypes);
 
             if (failedEvents.Any(f => IsCriticalEvent(f.Event)))
@@ -277,7 +277,7 @@ public class AuditEntitySaveChangesInterceptor(
     private void SetTenantIdOnEntities(DbContext context)
     {
         var tenantId = userContextService?.GetTenantId() ?? string.Empty;
-        
+
         if (string.IsNullOrWhiteSpace(tenantId))
         {
             logger.LogDebug("TenantId is empty in userContextService. Skipping TenantId assignment on entities.");
@@ -368,7 +368,7 @@ public class AuditEntitySaveChangesInterceptor(
     private async Task CaptureWorkflowEventsAsync(List<IDomainEvent> events, DbContext? context, CancellationToken cancellationToken)
     {
         if (context == null) return;
-        
+
         var currentUser = userContextService?.GetUserId();
         if (string.IsNullOrWhiteSpace(currentUser))
             currentUser = "system";
@@ -382,10 +382,10 @@ public class AuditEntitySaveChangesInterceptor(
         foreach (EntityEntry<IWorkflowEnabled> entry in statusChanges)
         {
             IWorkflowEnabled entity = entry.Entity;
-            
+
             WorkflowStatus oldStatus;
             var originalValue = entry.Property(nameof(IWorkflowEnabled.WorkflowStatus)).OriginalValue;
-            
+
             if (entry.State == EntityState.Added)
             {
                 oldStatus = WorkflowStatus.NotStarted;
@@ -402,9 +402,9 @@ public class AuditEntitySaveChangesInterceptor(
             {
                 oldStatus = (WorkflowStatus)originalValue;
             }
-            
+
             WorkflowStatus newStatus = entity.WorkflowStatus;
-            
+
             logger.LogDebug("[CaptureWorkflowEvents] Checking status change for {EntityType} {EntityId}. EntityState={EntityState}, OldStatus={OldStatus}, NewStatus={NewStatus}",
                 entity.EntityType, GetEntityId(entity), entry.State, oldStatus, newStatus);
 
@@ -426,11 +426,11 @@ public class AuditEntitySaveChangesInterceptor(
             {
                 logger.LogInformation("[CaptureWorkflowEvents] ✅ Status change detected: {EntityType} {EntityId} changed from NotStarted to InProgress. Will publish workflow event.",
                     entity.EntityType, GetEntityId(entity));
-                
+
                 // Resolve TenantId - try userContextService first, then entity as fallback
                 var resolvedTenantId = tenantId;
                 var tenantIdSource = "userContextService";
-                
+
                 if (string.IsNullOrWhiteSpace(resolvedTenantId))
                 {
                     // Try to get TenantId from the entity itself (if it's an AuditableEntity)
@@ -447,7 +447,7 @@ public class AuditEntitySaveChangesInterceptor(
                             entity.EntityType, GetEntityId(entity));
                     }
                 }
-                
+
                 // Validate TenantId before proceeding
                 if (string.IsNullOrWhiteSpace(resolvedTenantId))
                 {
@@ -455,13 +455,13 @@ public class AuditEntitySaveChangesInterceptor(
                         entity.EntityType, GetEntityId(entity));
                     continue; // Skip this entity and continue with the next one
                 }
-                
+
                 logger.LogDebug("[CaptureWorkflowEvents] Using TenantId={TenantId} (source: {TenantIdSource}) for {EntityType} {EntityId}",
                     resolvedTenantId, tenantIdSource, entity.EntityType, GetEntityId(entity));
-                
+
                 var workflowCode = GetWorkflowCodeFromEntity(entity);
                 EntityWorkflowStep? entityWorkflowStep = null;
-                
+
                 if (context is IWorkflowAwareContext)
                 {
                     entityWorkflowStep = await GetEntityWorkflowStepByEntityTypeAsync(context, entity.EntityType);
@@ -471,43 +471,43 @@ public class AuditEntitySaveChangesInterceptor(
                         {
                             workflowCode = entityWorkflowStep.WorkflowCode;
                             SetWorkflowCodeOnEntity(entity, workflowCode);
-                            logger.LogDebug("Auto-detected WorkflowCode={WorkflowCode} for EntityType={EntityType}", 
+                            logger.LogDebug("Auto-detected WorkflowCode={WorkflowCode} for EntityType={EntityType}",
                                 workflowCode, entity.EntityType);
                         }
                     }
                 }
-                
+
                 string? currentState = null;
                 string? nextStepCode = null;
-                if (entityWorkflowStep?.WorkflowDefinition?.Steps != null && 
+                if (entityWorkflowStep?.WorkflowDefinition?.Steps != null &&
                     entityWorkflowStep.WorkflowDefinition.Steps.Any())
                 {
                     var stepsOrdered = entityWorkflowStep.WorkflowDefinition.Steps.OrderBy(s => s.Order).ToList();
                     if (stepsOrdered.Count > 0)
                     {
                         currentState = stepsOrdered[0].StepCode;
-                        logger.LogDebug("Determined CurrentState={CurrentState} from first step for {EntityType}", 
+                        logger.LogDebug("Determined CurrentState={CurrentState} from first step for {EntityType}",
                             currentState, entity.EntityType);
                     }
                     if (stepsOrdered.Count > 1)
                     {
                         nextStepCode = stepsOrdered[1].StepCode;
-                        logger.LogDebug("Determined NextStepCode={NextStepCode} from second step for {EntityType}", 
+                        logger.LogDebug("Determined NextStepCode={NextStepCode} from second step for {EntityType}",
                             nextStepCode, entity.EntityType);
                     }
                 }
-                
+
                 var workflowHistoryId = entity.CurrentWorkflowHistoryId?.ToString() ?? "";
-                
+
                 if (string.IsNullOrWhiteSpace(workflowHistoryId))
                 {
                     logger.LogWarning("⚠️ [CaptureWorkflowEvents] CurrentWorkflowHistoryId is not set for {EntityType} {EntityId}. Workflow history may not be recorded correctly. WorkflowCode={WorkflowCode}",
                         entity.EntityType, GetEntityId(entity), workflowCode);
-                    
+
                     var fallbackWorkflowHistoryId = Guid.NewGuid();
                     entity.CurrentWorkflowHistoryId = fallbackWorkflowHistoryId;
                     workflowHistoryId = fallbackWorkflowHistoryId.ToString();
-                    
+
                     logger.LogInformation("Generated fallback WorkflowHistoryId={WorkflowHistoryId} for {EntityType} {EntityId}",
                         workflowHistoryId, entity.EntityType, GetEntityId(entity));
                 }
@@ -516,13 +516,13 @@ public class AuditEntitySaveChangesInterceptor(
                     logger.LogDebug("CurrentWorkflowHistoryId={WorkflowHistoryId} is set for {EntityType} {EntityId}",
                         workflowHistoryId, entity.EntityType, GetEntityId(entity));
                 }
-                
+
                 var actorService = serviceProvider.GetService<IActorService>();
                 if (actorService != null)
                 {
                     logger.LogDebug("[CaptureWorkflowEvents] IActorService found. Creating WorkflowEventMessage for {EntityType} {EntityId}",
                         entity.EntityType, GetEntityId(entity));
-                    
+
                     var workflowMessage = new WorkflowEventMessage
                     {
                         EntityType = entity.EntityType,
@@ -540,10 +540,10 @@ public class AuditEntitySaveChangesInterceptor(
                         CurrentState = currentState,
                         NextStepCode = nextStepCode
                     };
-                    
+
                     logger.LogDebug("[CaptureWorkflowEvents] Created WorkflowEventMessage for {EntityType} {EntityId}. WorkflowId={WorkflowId}, WorkflowCode={WorkflowCode}, TenantId={TenantId} (source: {TenantIdSource})",
                         entity.EntityType, GetEntityId(entity), workflowHistoryId, workflowCode, resolvedTenantId, tenantIdSource);
-                    
+
                     var bridge = serviceProvider.GetService<IWorkflowTriggerBridge>();
                     var handledByTemporal = false;
                     if (bridge != null)
@@ -560,16 +560,16 @@ public class AuditEntitySaveChangesInterceptor(
                                 entity.EntityType, GetEntityId(entity), ex.Message);
                         }
                     }
-                    
+
                     if (!handledByTemporal)
                     {
                         try
                         {
                             logger.LogDebug("[CaptureWorkflowEvents] Calling actorService.Tell<WorkflowEventPublisherActor> for {EntityType} {EntityId}",
                                 entity.EntityType, GetEntityId(entity));
-                            
+
                             actorService.Tell<WorkflowEventPublisherActor>(workflowMessage);
-                            
+
                             logger.LogInformation("✅ [CaptureWorkflowEvents] Successfully told WorkflowEventPublisherActor to publish workflow approval required event for {EntityType} {EntityId} with WorkflowId={WorkflowId}",
                                 entity.EntityType, GetEntityId(entity), workflowHistoryId);
                         }
@@ -620,7 +620,7 @@ public class AuditEntitySaveChangesInterceptor(
             if (domainEvents.Any())
             {
                 events.AddRange(domainEvents);
-                logger.LogDebug("Collected {EventCount} domain event(s) from {EntityType}", 
+                logger.LogDebug("Collected {EventCount} domain event(s) from {EntityType}",
                     domainEvents.Count(), entry.Entity.GetType().Name);
             }
         }
@@ -656,6 +656,8 @@ public class AuditEntitySaveChangesInterceptor(
             };
 
             if (operation == null) continue;
+
+            var workflowInitiatedForCreate = false;
 
             string? workflowCode = GetWorkflowCodeFromEntity(entity);
 
@@ -699,7 +701,7 @@ public class AuditEntitySaveChangesInterceptor(
                                 throw new InvalidOperationException(canDelete.Error.Message);
                             }
                         }
-                        
+
                         // Validate SignificantFieldsForUpdate if this is an UPDATE operation
                         if (entry.State == EntityState.Modified && config.SignificantFieldsForUpdate.Any())
                         {
@@ -712,58 +714,58 @@ public class AuditEntitySaveChangesInterceptor(
             EntityWorkflowStep? entityWorkflowStep = null;
             if (!string.IsNullOrWhiteSpace(workflowCode) && context is IWorkflowAwareContext workflowContext)
             {
-                logger.LogDebug("Querying EntityWorkflowStep for EntityType={EntityType}, WorkflowCode={WorkflowCode}", 
+                logger.LogDebug("Querying EntityWorkflowStep for EntityType={EntityType}, WorkflowCode={WorkflowCode}",
                     entity.EntityType, workflowCode);
-                
+
                 entityWorkflowStep = await GetEntityWorkflowStepAsync(context, entity.EntityType, workflowCode);
-                
+
                 if (entityWorkflowStep == null)
                 {
-                    logger.LogDebug("EntityWorkflowStep not found by EntityType and WorkflowCode. Trying fallback query by WorkflowCode only. WorkflowCode={WorkflowCode}", 
+                    logger.LogDebug("EntityWorkflowStep not found by EntityType and WorkflowCode. Trying fallback query by WorkflowCode only. WorkflowCode={WorkflowCode}",
                         workflowCode);
-                    
+
                     entityWorkflowStep = await GetEntityWorkflowStepByWorkflowCodeAsync(context, workflowCode);
-                    
+
                     if (entityWorkflowStep != null)
                     {
-                        logger.LogWarning("Found EntityWorkflowStep by WorkflowCode only. EntityType in DB may be empty. WorkflowCode={WorkflowCode}, DB EntityType={DbEntityType}", 
+                        logger.LogWarning("Found EntityWorkflowStep by WorkflowCode only. EntityType in DB may be empty. WorkflowCode={WorkflowCode}, DB EntityType={DbEntityType}",
                             workflowCode, entityWorkflowStep.EntityType);
                     }
                     else
                     {
-                        logger.LogDebug("EntityWorkflowStep not found by WorkflowCode fallback query. WorkflowCode={WorkflowCode}", 
+                        logger.LogDebug("EntityWorkflowStep not found by WorkflowCode fallback query. WorkflowCode={WorkflowCode}",
                             workflowCode);
                     }
                 }
                 else
                 {
-                    logger.LogDebug("Found EntityWorkflowStep for EntityType={EntityType}, WorkflowCode={WorkflowCode}, IsActive={IsActive}", 
+                    logger.LogDebug("Found EntityWorkflowStep for EntityType={EntityType}, WorkflowCode={WorkflowCode}, IsActive={IsActive}",
                         entity.EntityType, workflowCode, entityWorkflowStep.IsActive);
                 }
             }
             else if (string.IsNullOrWhiteSpace(workflowCode))
             {
-                logger.LogDebug("WorkflowCode is empty for EntityType={EntityType}. Skipping EntityWorkflowStep lookup.", 
+                logger.LogDebug("WorkflowCode is empty for EntityType={EntityType}. Skipping EntityWorkflowStep lookup.",
                     entity.EntityType);
             }
             else if (context is not IWorkflowAwareContext)
             {
-                logger.LogDebug("DbContext {ContextType} does not implement IWorkflowAwareContext. Skipping EntityWorkflowStep lookup for EntityType={EntityType}", 
+                logger.LogDebug("DbContext {ContextType} does not implement IWorkflowAwareContext. Skipping EntityWorkflowStep lookup for EntityType={EntityType}",
                     context.GetType().Name, entity.EntityType);
             }
 
             if (entityWorkflowStep != null && entityWorkflowStep.IsActive)
             {
-                logger.LogInformation("Initiating workflow for {EntityType} {Operation} with WorkflowCode={WorkflowCode}. EntityWorkflowStep found and is active.", 
+                logger.LogInformation("Initiating workflow for {EntityType} {Operation} with WorkflowCode={WorkflowCode}. EntityWorkflowStep found and is active.",
                     entity.EntityType, operation, workflowCode);
-                
+
                 // Ensure WorkflowCode is set on entity before calling InitiateWorkflowAsync
                 if (!string.IsNullOrWhiteSpace(workflowCode))
                 {
                     SetWorkflowCodeOnEntity(entity, workflowCode);
                     logger.LogDebug("Set WorkflowCode={WorkflowCode} on entity {EntityType}", workflowCode, entity.EntityType);
                 }
-                
+
                 if (operation == "CREATE")
                 {
                     if (entry.Entity is AuditableEntity auditableEntity)
@@ -772,56 +774,69 @@ public class AuditEntitySaveChangesInterceptor(
                         logger.LogDebug("Set entity {EntityType} as Draft", entity.EntityType);
                     }
 
-                    logger.LogDebug("Calling InitiateWorkflowAsync for {EntityType} CREATE operation. WorkflowCode={WorkflowCode}, CurrentWorkflowHistoryId={WorkflowHistoryId}", 
+                    logger.LogDebug("Calling InitiateWorkflowAsync for {EntityType} CREATE operation. WorkflowCode={WorkflowCode}, CurrentWorkflowHistoryId={WorkflowHistoryId}",
                         entity.EntityType, workflowCode, entity.CurrentWorkflowHistoryId);
-                    
+
                     await workflowService.InitiateWorkflowAsync(entity, operation, entityWorkflowStep.WorkflowDefinition);
-                    
-                    logger.LogInformation("Successfully initiated workflow for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}", 
+                    workflowInitiatedForCreate = true;
+
+                    logger.LogInformation("Successfully initiated workflow for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}",
                         entity.EntityType, operation, entity.WorkflowCode, entity.WorkflowStatus, entity.CurrentWorkflowHistoryId);
                 }
                 else if (operation == "UPDATE" && entity.WorkflowStatus != WorkflowStatus.InProgress)
                 {
-                    logger.LogDebug("Calling InitiateWorkflowAsync for {EntityType} UPDATE operation. WorkflowCode={WorkflowCode}, CurrentWorkflowStatus={CurrentStatus}", 
+                    logger.LogDebug("Calling InitiateWorkflowAsync for {EntityType} UPDATE operation. WorkflowCode={WorkflowCode}, CurrentWorkflowStatus={CurrentStatus}",
                         entity.EntityType, workflowCode, entity.WorkflowStatus);
-                    
+
                     await workflowService.InitiateWorkflowAsync(entity, operation, entityWorkflowStep.WorkflowDefinition);
-                    
-                    logger.LogInformation("Successfully initiated workflow for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}", 
+
+                    logger.LogInformation("Successfully initiated workflow for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}",
                         entity.EntityType, operation, entity.WorkflowCode, entity.WorkflowStatus, entity.CurrentWorkflowHistoryId);
                 }
                 else if (operation == "UPDATE" && entity.WorkflowStatus == WorkflowStatus.InProgress)
                 {
-                    logger.LogDebug("Skipping workflow initiation for {EntityType} UPDATE. Entity already has WorkflowStatus=InProgress", 
+                    logger.LogDebug("Skipping workflow initiation for {EntityType} UPDATE. Entity already has WorkflowStatus=InProgress",
                         entity.EntityType);
                 }
             }
             else if (entityWorkflowStep != null && !entityWorkflowStep.IsActive)
             {
-                logger.LogWarning("EntityWorkflowStep found for {EntityType} WorkflowCode={WorkflowCode} but IsActive=false. Skipping workflow initiation.", 
+                logger.LogWarning("EntityWorkflowStep found for {EntityType} WorkflowCode={WorkflowCode} but IsActive=false. Skipping workflow initiation.",
                     entity.EntityType, workflowCode);
+
+                if (operation == "CREATE" && entry.Entity is AuditableEntity auditableEntity)
+                {
+                    auditableEntity.AsActive();
+                    logger.LogDebug("No active workflow step connected for {EntityType}. Keeping entity active on create.", entity.EntityType);
+                }
             }
             else if (entityWorkflowStep == null)
             {
-                logger.LogDebug("EntityWorkflowStep not found. Falling back to ShouldTriggerWorkflow check for {EntityType} {Operation}", 
+                logger.LogDebug("EntityWorkflowStep not found. Falling back to ShouldTriggerWorkflow check for {EntityType} {Operation}",
                     entity.EntityType, operation);
-                
+
                 var module = GetModuleFromConfiguration();
                 if (string.IsNullOrWhiteSpace(module))
                 {
                     logger.LogWarning("Module not configured. Cannot check ShouldTriggerWorkflow for {EntityType}", entity.EntityType);
+
+                    if (operation == "CREATE" && entry.Entity is AuditableEntity auditableEntity)
+                    {
+                        auditableEntity.AsActive();
+                        logger.LogDebug("Module not configured for workflow checks. Keeping {EntityType} active on create.", entity.EntityType);
+                    }
                 }
                 else
                 {
                     var shouldTrigger = await workflowService.ShouldTriggerWorkflow(entity, operation, module);
-                    logger.LogDebug("ShouldTriggerWorkflow returned {ShouldTrigger} for {EntityType} {Operation} in module {Module}", 
+                    logger.LogDebug("ShouldTriggerWorkflow returned {ShouldTrigger} for {EntityType} {Operation} in module {Module}",
                         shouldTrigger, entity.EntityType, operation, module);
-                    
+
                     if (shouldTrigger)
                     {
-                        logger.LogInformation("Workflow should be triggered for {EntityType} {Operation}. Initiating workflow without EntityWorkflowStep.", 
+                        logger.LogInformation("Workflow should be triggered for {EntityType} {Operation}. Initiating workflow without EntityWorkflowStep.",
                             entity.EntityType, operation);
-                        
+
                         if (operation == "CREATE")
                         {
                             if (entry.Entity is AuditableEntity auditableEntity)
@@ -831,28 +846,41 @@ public class AuditEntitySaveChangesInterceptor(
                             }
 
                             logger.LogDebug("Calling InitiateWorkflowAsync (fallback path) for {EntityType} CREATE operation", entity.EntityType);
-                            
+
                             await workflowService.InitiateWorkflowAsync(entity, operation);
-                            
-                            logger.LogInformation("Successfully initiated workflow (fallback path) for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}", 
+                            workflowInitiatedForCreate = true;
+
+                            logger.LogInformation("Successfully initiated workflow (fallback path) for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}",
                                 entity.EntityType, operation, entity.WorkflowCode, entity.WorkflowStatus, entity.CurrentWorkflowHistoryId);
                         }
                         else if (operation == "UPDATE" && entity.WorkflowStatus != WorkflowStatus.InProgress)
                         {
                             logger.LogDebug("Calling InitiateWorkflowAsync (fallback path) for {EntityType} UPDATE operation", entity.EntityType);
-                            
+
                             await workflowService.InitiateWorkflowAsync(entity, operation);
-                            
-                            logger.LogInformation("Successfully initiated workflow (fallback path) for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}", 
+
+                            logger.LogInformation("Successfully initiated workflow (fallback path) for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}",
                                 entity.EntityType, operation, entity.WorkflowCode, entity.WorkflowStatus, entity.CurrentWorkflowHistoryId);
                         }
                     }
                     else
                     {
-                        logger.LogDebug("Workflow should not be triggered for {EntityType} {Operation}. Skipping workflow initiation.", 
+                        logger.LogDebug("Workflow should not be triggered for {EntityType} {Operation}. Skipping workflow initiation.",
                             entity.EntityType, operation);
+
+                        if (operation == "CREATE" && entry.Entity is AuditableEntity auditableEntity)
+                        {
+                            auditableEntity.AsActive();
+                            logger.LogDebug("No workflow trigger configured for {EntityType} create. Keeping entity active.", entity.EntityType);
+                        }
                     }
                 }
+            }
+
+            if (operation == "CREATE" && !workflowInitiatedForCreate && entry.Entity is AuditableEntity createAuditableEntity)
+            {
+                createAuditableEntity.AsActive();
+                logger.LogDebug("Create operation for {EntityType} finished without workflow initiation. Enforced active status.", entity.EntityType);
             }
         }
     }
@@ -882,18 +910,18 @@ public class AuditEntitySaveChangesInterceptor(
             var asNoTrackingMethod = typeof(EntityFrameworkQueryableExtensions)
                 .GetMethods()
                 .FirstOrDefault(m => m.Name == "AsNoTracking" && m.GetParameters().Length == 1);
-            
+
             if (asNoTrackingMethod == null) return null;
-            
+
             var queryableType = dbSet.GetType().GetInterfaces()
                 .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryable<>));
-            
+
             if (queryableType == null) return null;
-            
+
             var entityTypeParam = queryableType.GetGenericArguments()[0];
             var asNoTrackingGeneric = asNoTrackingMethod.MakeGenericMethod(entityTypeParam);
             var query = asNoTrackingGeneric.Invoke(null, new[] { dbSet });
-            
+
             if (query == null) return null;
 
             var parameter = Expression.Parameter(entityTypeParam, "e");
@@ -901,23 +929,23 @@ public class AuditEntitySaveChangesInterceptor(
             var entityTypeProperty = Expression.Property(parameter, nameof(EntityWorkflowStep.EntityType));
             var isActiveProperty = Expression.Property(parameter, nameof(EntityWorkflowStep.IsActive));
             var dataStatusProperty = Expression.Property(parameter, nameof(EntityWorkflowStep.DataStatus));
-            
+
             var workflowCodeEqual = Expression.Equal(workflowCodeProperty, Expression.Constant(workflowCode));
             var entityTypeEqual = Expression.Equal(entityTypeProperty, Expression.Constant(entityType));
             var isActiveTrue = Expression.Equal(isActiveProperty, Expression.Constant(true));
             var dataStatusActive = Expression.Equal(dataStatusProperty, Expression.Constant(DataState.Active, typeof(DataState?)));
-            
+
             var and1 = Expression.AndAlso(workflowCodeEqual, entityTypeEqual);
             var and2 = Expression.AndAlso(and1, isActiveTrue);
             var and3 = Expression.AndAlso(and2, dataStatusActive);
-            
+
             var lambdaType = typeof(Func<,>).MakeGenericType(entityTypeParam, typeof(bool));
             var lambda = Expression.Lambda(lambdaType, and3, parameter);
-            
+
             var whereMethod = typeof(Queryable).GetMethods()
                 .FirstOrDefault(m => m.Name == "Where" && m.GetParameters().Length == 2);
             var whereGenericMethod = whereMethod?.MakeGenericMethod(entityTypeParam);
-            
+
             var filteredQuery = whereGenericMethod?.Invoke(null, new[] { query, lambda });
             if (filteredQuery == null) return null;
 
@@ -926,7 +954,7 @@ public class AuditEntitySaveChangesInterceptor(
                 .GetMethods()
                 .FirstOrDefault(m => m.Name == "FirstOrDefaultAsync" && m.GetParameters().Length == 2);
             var firstOrDefaultGeneric = firstOrDefaultMethod?.MakeGenericMethod(entityTypeParam);
-            
+
             var cancellationToken = CancellationToken.None;
             var task = firstOrDefaultGeneric?.Invoke(null, new[] { filteredQuery, cancellationToken }) as Task<EntityWorkflowStep?>;
             if (task == null) return null;
@@ -935,7 +963,7 @@ public class AuditEntitySaveChangesInterceptor(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Error querying EntityWorkflowStep for EntityType={EntityType}, WorkflowCode={WorkflowCode}", 
+            logger.LogWarning(ex, "Error querying EntityWorkflowStep for EntityType={EntityType}, WorkflowCode={WorkflowCode}",
                 entityType, workflowCode);
             return null;
         }
@@ -965,36 +993,36 @@ public class AuditEntitySaveChangesInterceptor(
             var asNoTrackingMethod = typeof(EntityFrameworkQueryableExtensions)
                 .GetMethods()
                 .FirstOrDefault(m => m.Name == "AsNoTracking" && m.GetParameters().Length == 1);
-            
+
             if (asNoTrackingMethod == null) return null;
-            
+
             var queryableType = dbSet.GetType().GetInterfaces()
                 .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryable<>));
-            
+
             if (queryableType == null) return null;
-            
+
             var entityTypeParam = queryableType.GetGenericArguments()[0];
             var asNoTrackingGeneric = asNoTrackingMethod.MakeGenericMethod(entityTypeParam);
             var query = asNoTrackingGeneric.Invoke(null, new[] { dbSet });
-            
+
             if (query == null) return null;
 
             var parameter = Expression.Parameter(entityTypeParam, "e");
             var entityTypeProperty = Expression.Property(parameter, nameof(EntityWorkflowStep.EntityType));
             var dataStatusProperty = Expression.Property(parameter, nameof(EntityWorkflowStep.DataStatus));
-            
+
             var entityTypeEqual = Expression.Equal(entityTypeProperty, Expression.Constant(entityType));
             var dataStatusActive = Expression.Equal(dataStatusProperty, Expression.Constant(DataState.Active, typeof(DataState?)));
-            
+
             var andExpression = Expression.AndAlso(entityTypeEqual, dataStatusActive);
-            
+
             var lambdaType = typeof(Func<,>).MakeGenericType(entityTypeParam, typeof(bool));
             var lambda = Expression.Lambda(lambdaType, andExpression, parameter);
-            
+
             var whereMethod = typeof(Queryable).GetMethods()
                 .FirstOrDefault(m => m.Name == "Where" && m.GetParameters().Length == 2);
             var whereGenericMethod = whereMethod?.MakeGenericMethod(entityTypeParam);
-            
+
             var filteredQuery = whereGenericMethod?.Invoke(null, new[] { query, lambda });
             if (filteredQuery == null) return null;
 
@@ -1002,7 +1030,7 @@ public class AuditEntitySaveChangesInterceptor(
                 .GetMethods()
                 .FirstOrDefault(m => m.Name == "FirstOrDefaultAsync" && m.GetParameters().Length == 2);
             var firstOrDefaultGeneric = firstOrDefaultMethod?.MakeGenericMethod(entityTypeParam);
-            
+
             var cancellationToken = CancellationToken.None;
             var task = firstOrDefaultGeneric?.Invoke(null, new[] { filteredQuery, cancellationToken }) as Task<EntityWorkflowStep?>;
             if (task == null) return null;
@@ -1040,39 +1068,39 @@ public class AuditEntitySaveChangesInterceptor(
             var asNoTrackingMethod = typeof(EntityFrameworkQueryableExtensions)
                 .GetMethods()
                 .FirstOrDefault(m => m.Name == "AsNoTracking" && m.GetParameters().Length == 1);
-            
+
             if (asNoTrackingMethod == null) return null;
-            
+
             var queryableType = dbSet.GetType().GetInterfaces()
                 .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryable<>));
-            
+
             if (queryableType == null) return null;
-            
+
             var entityTypeParam = queryableType.GetGenericArguments()[0];
             var asNoTrackingGeneric = asNoTrackingMethod.MakeGenericMethod(entityTypeParam);
             var query = asNoTrackingGeneric.Invoke(null, new[] { dbSet });
-            
+
             if (query == null) return null;
 
             var parameter = Expression.Parameter(entityTypeParam, "e");
             var workflowCodeProperty = Expression.Property(parameter, nameof(EntityWorkflowStep.WorkflowCode));
             var isActiveProperty = Expression.Property(parameter, nameof(EntityWorkflowStep.IsActive));
             var dataStatusProperty = Expression.Property(parameter, nameof(EntityWorkflowStep.DataStatus));
-            
+
             var workflowCodeEqual = Expression.Equal(workflowCodeProperty, Expression.Constant(workflowCode));
             var isActiveTrue = Expression.Equal(isActiveProperty, Expression.Constant(true));
             var dataStatusActive = Expression.Equal(dataStatusProperty, Expression.Constant(DataState.Active, typeof(DataState?)));
-            
+
             var and1 = Expression.AndAlso(workflowCodeEqual, isActiveTrue);
             var and2 = Expression.AndAlso(and1, dataStatusActive);
-            
+
             var lambdaType = typeof(Func<,>).MakeGenericType(entityTypeParam, typeof(bool));
             var lambda = Expression.Lambda(lambdaType, and2, parameter);
-            
+
             var whereMethod = typeof(Queryable).GetMethods()
                 .FirstOrDefault(m => m.Name == "Where" && m.GetParameters().Length == 2);
             var whereGenericMethod = whereMethod?.MakeGenericMethod(entityTypeParam);
-            
+
             var filteredQuery = whereGenericMethod?.Invoke(null, new[] { query, lambda });
             if (filteredQuery == null) return null;
 
@@ -1080,7 +1108,7 @@ public class AuditEntitySaveChangesInterceptor(
                 .GetMethods()
                 .FirstOrDefault(m => m.Name == "FirstOrDefaultAsync" && m.GetParameters().Length == 2);
             var firstOrDefaultGeneric = firstOrDefaultMethod?.MakeGenericMethod(entityTypeParam);
-            
+
             var cancellationToken = CancellationToken.None;
             var task = firstOrDefaultGeneric?.Invoke(null, new[] { filteredQuery, cancellationToken }) as Task<EntityWorkflowStep?>;
             if (task == null) return null;
@@ -1127,7 +1155,7 @@ public class AuditEntitySaveChangesInterceptor(
             if (workflowCodeProperty != null && workflowCodeProperty.CanWrite)
             {
                 workflowCodeProperty.SetValue(entity, workflowCode);
-                logger.LogDebug("Auto-set WorkflowCode={WorkflowCode} on entity {EntityType}", 
+                logger.LogDebug("Auto-set WorkflowCode={WorkflowCode} on entity {EntityType}",
                     workflowCode, entity.EntityType);
             }
         }
@@ -1168,7 +1196,7 @@ public class AuditEntitySaveChangesInterceptor(
 
         return Result.WithSuccess();
     }
-    
+
     /// <summary>
     /// Validates that significant fields for update exist on the entity
     /// Logs warnings for missing fields but doesn't fail (graceful degradation)
@@ -1177,10 +1205,10 @@ public class AuditEntitySaveChangesInterceptor(
     {
         if (significantFields == null || !significantFields.Any())
             return;
-        
+
         var entityType = entity.GetType();
         var missingFields = new List<string>();
-        
+
         foreach (var fieldName in significantFields)
         {
             if (!ValidateFieldExists(entity, fieldName))
@@ -1188,7 +1216,7 @@ public class AuditEntitySaveChangesInterceptor(
                 missingFields.Add(fieldName);
             }
         }
-        
+
         if (missingFields.Any())
         {
             logger.LogWarning(
@@ -1197,7 +1225,7 @@ public class AuditEntitySaveChangesInterceptor(
                 entityType.Name, string.Join(", ", missingFields));
         }
     }
-    
+
     /// <summary>
     /// Checks if a field exists on the entity using reflection
     /// </summary>
@@ -1205,17 +1233,17 @@ public class AuditEntitySaveChangesInterceptor(
     {
         if (string.IsNullOrWhiteSpace(fieldName))
             return false;
-        
+
         var entityType = entity.GetType();
-        var property = entityType.GetProperty(fieldName, 
-            System.Reflection.BindingFlags.Public | 
-            System.Reflection.BindingFlags.Instance | 
+        var property = entityType.GetProperty(fieldName,
+            System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.Instance |
             System.Reflection.BindingFlags.IgnoreCase);
-        
+
         return property != null;
     }
 
-  
+
 
 
     /// <summary>
@@ -1229,21 +1257,21 @@ public class AuditEntitySaveChangesInterceptor(
             logger.LogWarning("IConfiguration not available. Cannot determine module name.");
             return string.Empty;
         }
-        
+
         // Try multiple configuration keys for flexibility
-        var module = configuration["Workflow:Module"] 
+        var module = configuration["Workflow:Module"]
                   ?? configuration["Workflow:ModuleCategory"]
                   ?? configuration["Workflow:ModuleName"];
-        
+
         if (string.IsNullOrWhiteSpace(module))
         {
             logger.LogWarning("Workflow:Module not configured in appsettings.json. Workflow configurations will not be loaded.");
             return string.Empty;
         }
-        
+
         return module;
     }
-    
+
     protected virtual string GetModuleName() => GetModuleFromConfiguration();
 
     protected virtual string GetEntityId(IWorkflowEnabled entity) =>
