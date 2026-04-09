@@ -7,7 +7,6 @@ public class RedisCacheService : IRedisCacheService
 {
     private readonly Providers.IRedisProvider _provider;
     private readonly Models.RedisCacheOptions _options;
-    private readonly ILogger<RedisCacheService> _logger;
 
     public RedisCacheService(
         Providers.IRedisProvider provider,
@@ -16,7 +15,7 @@ public class RedisCacheService : IRedisCacheService
     {
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _ = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<T> GetAsync<T>(string key)
@@ -66,6 +65,12 @@ public class RedisCacheService : IRedisCacheService
         await _provider.RemoveManyAsync(fullKeys);
     }
 
+    public async Task<long> RemoveByPatternAsync(string pattern)
+    {
+        var fullPattern = GetFullKey(pattern);
+        return await _provider.RemoveByPatternAsync(fullPattern);
+    }
+
     public async Task<bool> SetIfNotExistsAsync<T>(string key, T value, TimeSpan? expiration = null)
     {
         var fullKey = GetFullKey(key);
@@ -77,19 +82,24 @@ public class RedisCacheService : IRedisCacheService
     {
         var fullKey = GetFullKey(key);
         var cached = await _provider.GetAsync<T>(fullKey);
-        
-        if (cached != null && !EqualityComparer<T>.Default.Equals(cached, default(T)))
+
+        if (!EqualityComparer<T>.Default.Equals(cached, default!))
         {
             return cached;
         }
-        
+
+        if (await _provider.ExistsAsync(fullKey))
+        {
+            return cached;
+        }
+
         var value = await factory();
-        if (value != null)
+        if (!EqualityComparer<T>.Default.Equals(value, default!))
         {
             var expiry = expiration ?? _options.DefaultExpiration;
             await _provider.SetAsync(fullKey, value, expiry);
         }
-        
+
         return value;
     }
 
@@ -163,7 +173,7 @@ public class RedisCacheService : IRedisCacheService
     {
         if (string.IsNullOrEmpty(_options.KeyPrefix))
             return key;
-        
+
         return $"{_options.KeyPrefix}{key}";
     }
 }

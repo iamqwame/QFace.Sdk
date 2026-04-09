@@ -20,12 +20,12 @@ public class UpstashRedisProvider : IRedisProvider
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        
+
         if (string.IsNullOrEmpty(options.Url))
             throw new ArgumentException("Upstash URL is required", nameof(options));
         if (string.IsNullOrEmpty(options.Token))
             throw new ArgumentException("Upstash Token is required", nameof(options));
-        
+
         _httpClient = httpClientFactory.CreateClient("UpstashRedis");
         _httpClient.BaseAddress = new Uri(options.Url);
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.Token);
@@ -37,7 +37,7 @@ public class UpstashRedisProvider : IRedisProvider
         var result = await ExecuteCommandAsync<string>("GET", new[] { key });
         if (string.IsNullOrEmpty(result))
             return default(T);
-        
+
         return Deserialize<T>(result!);
     }
 
@@ -45,13 +45,13 @@ public class UpstashRedisProvider : IRedisProvider
     {
         var serialized = Serialize(value);
         var args = new List<string> { key, serialized };
-        
+
         if (expiration.HasValue)
         {
             args.Add("EX");
             args.Add(((int)expiration.Value.TotalSeconds).ToString());
         }
-        
+
         await ExecuteCommandAsync<string>("SET", args.ToArray());
     }
 
@@ -71,10 +71,10 @@ public class UpstashRedisProvider : IRedisProvider
     {
         if (keys == null || keys.Length == 0)
             return new Dictionary<string, T>();
-        
+
         var result = await ExecuteCommandAsync<string[]>("MGET", keys);
         var dictionary = new Dictionary<string, T>();
-        
+
         for (int i = 0; i < keys.Length; i++)
         {
             if (result != null && i < result.Length && !string.IsNullOrEmpty(result[i]))
@@ -82,7 +82,7 @@ public class UpstashRedisProvider : IRedisProvider
                 dictionary[keys[i]] = Deserialize<T>(result[i]);
             }
         }
-        
+
         return dictionary;
     }
 
@@ -90,7 +90,7 @@ public class UpstashRedisProvider : IRedisProvider
     {
         if (items == null || items.Count == 0)
             return;
-        
+
         // Use pipeline for better performance
         var tasks = items.Select(item => SetAsync(item.Key, item.Value, expiration));
         await Task.WhenAll(tasks);
@@ -100,21 +100,35 @@ public class UpstashRedisProvider : IRedisProvider
     {
         if (keys == null || keys.Length == 0)
             return;
-        
+
         await ExecuteCommandAsync<long>("DEL", keys);
+    }
+
+    public async Task<long> RemoveByPatternAsync(string pattern)
+    {
+        if (string.IsNullOrWhiteSpace(pattern))
+            return 0;
+
+        var keys = await ExecuteCommandAsync<string[]>("KEYS", new[] { pattern });
+        if (keys == null || keys.Length == 0)
+        {
+            return 0;
+        }
+
+        return await ExecuteCommandAsync<long>("DEL", keys);
     }
 
     public async Task<bool> SetIfNotExistsAsync<T>(string key, T value, TimeSpan? expiration = null)
     {
         var serialized = Serialize(value);
         var args = new List<string> { key, serialized };
-        
+
         if (expiration.HasValue)
         {
             args.Add("EX");
             args.Add(((int)expiration.Value.TotalSeconds).ToString());
         }
-        
+
         var result = await ExecuteCommandAsync<long>("SETNX", args.ToArray());
         return result > 0;
     }
@@ -124,7 +138,7 @@ public class UpstashRedisProvider : IRedisProvider
         var result = await ExecuteCommandAsync<long>("TTL", new[] { key });
         if (result < 0)
             return null; // Key doesn't exist or has no expiration
-        
+
         return TimeSpan.FromSeconds(result);
     }
 
@@ -139,7 +153,7 @@ public class UpstashRedisProvider : IRedisProvider
         var result = await ExecuteCommandAsync<string>("HGET", new[] { key, field });
         if (string.IsNullOrEmpty(result))
             return default(T);
-        
+
         return Deserialize<T>(result);
     }
 
@@ -155,7 +169,7 @@ public class UpstashRedisProvider : IRedisProvider
         var result = await ExecuteCommandAsync<string[]>("HGETALL", new[] { key });
         if (result == null || result.Length == 0)
             return new Dictionary<string, T>();
-        
+
         var dictionary = new Dictionary<string, T>();
         for (int i = 0; i < result.Length; i += 2)
         {
@@ -164,7 +178,7 @@ public class UpstashRedisProvider : IRedisProvider
                 dictionary[result[i]] = Deserialize<T>(result[i + 1]);
             }
         }
-        
+
         return dictionary;
     }
 
@@ -179,7 +193,7 @@ public class UpstashRedisProvider : IRedisProvider
         var result = await ExecuteCommandAsync<string>("LPOP", new[] { key });
         if (string.IsNullOrEmpty(result))
             return default(T);
-        
+
         return Deserialize<T>(result);
     }
 
@@ -188,7 +202,7 @@ public class UpstashRedisProvider : IRedisProvider
         var result = await ExecuteCommandAsync<string[]>("LRANGE", new[] { key, start.ToString(), stop.ToString() });
         if (result == null || result.Length == 0)
             return new List<T>();
-        
+
         return result.Select(Deserialize<T>).ToList();
     }
 
@@ -211,7 +225,7 @@ public class UpstashRedisProvider : IRedisProvider
         var result = await ExecuteCommandAsync<string[]>("SMEMBERS", new[] { key });
         if (result == null || result.Length == 0)
             return new List<T>();
-        
+
         return result.Select(Deserialize<T>).ToList();
     }
 
@@ -219,7 +233,7 @@ public class UpstashRedisProvider : IRedisProvider
     {
         int attempt = 0;
         Exception lastException = null;
-        
+
         while (attempt <= _options.RetryCount)
         {
             try
@@ -230,44 +244,44 @@ public class UpstashRedisProvider : IRedisProvider
                 {
                     commandArray.AddRange(args);
                 }
-                
+
                 var json = JsonConvert.SerializeObject(commandArray);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                
+
                 _logger.LogDebug("Upstash Redis request: {Command} with args: {Args}", command, string.Join(", ", args ?? Array.Empty<string>()));
-                
+
                 var response = await _httpClient.PostAsync("", content);
-                
+
                 var responseJson = await response.Content.ReadAsStringAsync();
-                
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("Upstash Redis API error: Status {StatusCode}, Response: {Response}", 
+                    _logger.LogError("Upstash Redis API error: Status {StatusCode}, Response: {Response}",
                         response.StatusCode, responseJson);
                     throw new HttpRequestException($"Upstash Redis API returned {response.StatusCode}: {responseJson}");
                 }
-                
+
                 // Upstash REST API always returns JSON with either "result" or "error" field
                 // Format: { "result": <value> } or { "error": "<error message>" }
                 try
                 {
                     var responseObj = JsonConvert.DeserializeObject<UpstashResponse<TResult>>(responseJson);
-                    
+
                     if (responseObj == null)
                     {
                         _logger.LogWarning("Upstash returned null response: {Response}", responseJson);
                         return default(TResult);
                     }
-                    
+
                     // Check for error response
                     if (responseObj.error != null)
                     {
                         _logger.LogError("Upstash Redis API error: {Error}", responseObj.error);
                         throw new InvalidOperationException($"Upstash Redis API error: {responseObj.error}");
                     }
-                    
+
                     // Return the result
-                    if (responseObj.result != null)
+                    if (!EqualityComparer<TResult>.Default.Equals(responseObj.result!, default!))
                     {
                         // For value types, check if it's the default value
                         if (typeof(TResult).IsValueType)
@@ -289,39 +303,39 @@ public class UpstashRedisProvider : IRedisProvider
                     _logger.LogError(ex, "Failed to deserialize Upstash response: {Response}", responseJson);
                     throw;
                 }
-                
+
                 return default(TResult);
             }
             catch (Exception ex)
             {
                 lastException = ex;
                 attempt++;
-                
+
                 if (attempt <= _options.RetryCount)
                 {
                     var delay = (int)(_options.RetryBaseDelayMs * Math.Pow(2, attempt - 1));
-                    _logger.LogWarning(ex, 
+                    _logger.LogWarning(ex,
                         "Upstash Redis command failed (attempt {Attempt}/{MaxRetries}): {Command}. Retrying in {Delay}ms...",
                         attempt, _options.RetryCount + 1, command, delay);
-                    
+
                     await Task.Delay(delay);
                 }
             }
         }
-        
-        _logger.LogError(lastException, "Upstash Redis command failed after {Retries} attempts: {Command}", 
+
+        _logger.LogError(lastException, "Upstash Redis command failed after {Retries} attempts: {Command}",
             _options.RetryCount + 1, command);
         throw new InvalidOperationException($"Failed to execute Redis command '{command}' after {_options.RetryCount + 1} attempts", lastException);
     }
 
-    private string Serialize<T>(T value)
+    private static string? Serialize<T>(T value)
     {
-        if (value == null)
+        if (EqualityComparer<T>.Default.Equals(value, default!))
             return null;
-        
+
         if (value is string str)
             return str;
-        
+
         return JsonConvert.SerializeObject(value);
     }
 
@@ -329,10 +343,10 @@ public class UpstashRedisProvider : IRedisProvider
     {
         if (string.IsNullOrEmpty(value))
             return default(T);
-        
+
         if (typeof(T) == typeof(string))
             return (T)(object)value;
-        
+
         try
         {
             return JsonConvert.DeserializeObject<T>(value);
@@ -344,10 +358,10 @@ public class UpstashRedisProvider : IRedisProvider
         }
     }
 
-    private class UpstashResponse<T>
+    private sealed class UpstashResponse<T>
     {
-        public T? result { get; set; }
-        public string? error { get; set; }
+        public T? result { get; init; }
+        public string? error { get; init; }
     }
 }
 

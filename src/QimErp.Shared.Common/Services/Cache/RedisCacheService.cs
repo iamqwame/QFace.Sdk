@@ -3,20 +3,20 @@ using QFace.Sdk.RedisCache.Services;
 namespace QimErp.Shared.Common.Services.Cache;
 
 public class RedisCacheService(
-    IRedisCacheService redisCacheService, 
+    IRedisCacheService redisCacheService,
     ILogger<RedisCacheService> logger,
     IConfiguration configuration)
     : IDistributedCacheService
 {
     private readonly bool _cacheEnabled = GetCacheEnabled(configuration);
-    
+
     private static bool GetCacheEnabled(IConfiguration configuration)
     {
         // Read Enabled from RedisCache section (defaults to true if not specified)
         var enabled = configuration.GetValue<bool>("RedisCache:Enabled", true);
         return enabled;
     }
-    
+
     public async Task<T?> GetAsync<T>(string key)
     {
         return await GetAsync<T>(key, null);
@@ -34,7 +34,7 @@ public class RedisCacheService(
         {
             var fullKey = GetFullKey(key, region);
             var cachedValue = await redisCacheService.GetAsync<T>(fullKey);
-            
+
             // SDK returns Task<T> which may be default(T) if not found
             // Check if it's actually a cache hit by using ExistsAsync
             if (EqualityComparer<T>.Default.Equals(cachedValue, default(T)))
@@ -76,7 +76,7 @@ public class RedisCacheService(
             var fullKey = GetFullKey(key, region);
             // Enforce TTL - if no expiration provided, use default
             var ttl = expiration ?? TimeSpan.FromMinutes(15); // Default 15 minutes
-            
+
             await redisCacheService.SetAsync(fullKey, value, ttl);
             logger.LogDebug("Cached value for key: {Key} with TTL: {Ttl}", fullKey, ttl);
         }
@@ -126,10 +126,9 @@ public class RedisCacheService(
 
         try
         {
-            // Note: Pattern-based deletion is not directly supported by the SDK
-            // This would require a custom implementation using Redis commands
-            // For now, we'll log this as a limitation
-            logger.LogWarning("Pattern-based cache removal not implemented for Redis. Pattern: {Pattern}", pattern);
+            var fullPattern = GetFullKey(pattern, region);
+            var removedCount = await redisCacheService.RemoveByPatternAsync(fullPattern);
+            logger.LogDebug("Removed {RemovedCount} cache entries for pattern: {Pattern}", removedCount, fullPattern);
         }
         catch (Exception ex)
         {

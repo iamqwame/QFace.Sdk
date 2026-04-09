@@ -19,19 +19,19 @@ public class StackExchangeRedisProvider : IRedisProvider
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        
+
         if (string.IsNullOrEmpty(options.ConnectionString))
             throw new ArgumentException("ConnectionString is required", nameof(options));
-        
+
         var configurationOptions = ConfigurationOptions.Parse(options.ConnectionString);
         configurationOptions.ConnectTimeout = options.ConnectTimeout;
         configurationOptions.SyncTimeout = options.SyncTimeout;
         configurationOptions.AbortOnConnectFail = options.AbortOnConnectFail;
-        
+
         _connection = ConnectionMultiplexer.Connect(configurationOptions);
         _database = _connection.GetDatabase(options.Database);
-        
-        _logger.LogInformation("StackExchange.Redis connected to {ConnectionString}, Database: {Database}", 
+
+        _logger.LogInformation("StackExchange.Redis connected to {ConnectionString}, Database: {Database}",
             options.ConnectionString, options.Database);
     }
 
@@ -40,7 +40,7 @@ public class StackExchangeRedisProvider : IRedisProvider
         var value = await _database.StringGetAsync(key);
         if (!value.HasValue)
             return default(T);
-        
+
         return Deserialize<T>(value);
     }
 
@@ -64,10 +64,10 @@ public class StackExchangeRedisProvider : IRedisProvider
     {
         if (keys == null || keys.Length == 0)
             return new Dictionary<string, T>();
-        
+
         var redisKeys = keys.Select(k => (RedisKey)k).ToArray();
         var values = await _database.StringGetAsync(redisKeys);
-        
+
         var dictionary = new Dictionary<string, T>();
         for (int i = 0; i < keys.Length; i++)
         {
@@ -76,7 +76,7 @@ public class StackExchangeRedisProvider : IRedisProvider
                 dictionary[keys[i]] = Deserialize<T>(values[i]);
             }
         }
-        
+
         return dictionary;
     }
 
@@ -84,12 +84,12 @@ public class StackExchangeRedisProvider : IRedisProvider
     {
         if (items == null || items.Count == 0)
             return;
-        
-        var keyValuePairs = items.Select(kvp => 
+
+        var keyValuePairs = items.Select(kvp =>
             new KeyValuePair<RedisKey, RedisValue>(kvp.Key, Serialize(kvp.Value))).ToArray();
-        
+
         await _database.StringSetAsync(keyValuePairs);
-        
+
         if (expiration.HasValue)
         {
             var tasks = items.Keys.Select(key => _database.KeyExpireAsync(key, expiration.Value));
@@ -101,9 +101,51 @@ public class StackExchangeRedisProvider : IRedisProvider
     {
         if (keys == null || keys.Length == 0)
             return;
-        
+
         var redisKeys = keys.Select(k => (RedisKey)k).ToArray();
         await _database.KeyDeleteAsync(redisKeys);
+    }
+
+    public async Task<long> RemoveByPatternAsync(string pattern)
+    {
+        if (string.IsNullOrWhiteSpace(pattern))
+            return 0;
+
+        var deletedCount = 0L;
+        var endpoints = _connection.GetEndPoints();
+
+        foreach (var endpoint in endpoints)
+        {
+            IServer server;
+
+            try
+            {
+                server = _connection.GetServer(endpoint);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get Redis server for endpoint {Endpoint}", endpoint);
+                continue;
+            }
+
+            if (!server.IsConnected)
+            {
+                continue;
+            }
+
+            var keys = server.Keys(_options.Database, pattern: pattern, pageSize: 500)
+                .ToArray();
+
+            if (keys.Length == 0)
+            {
+                continue;
+            }
+
+            deletedCount += await _database.KeyDeleteAsync(keys);
+        }
+
+        _logger.LogDebug("Removed {DeletedCount} Redis keys matching pattern {Pattern}", deletedCount, pattern);
+        return deletedCount;
     }
 
     public async Task<bool> SetIfNotExistsAsync<T>(string key, T value, TimeSpan? expiration = null)
@@ -127,7 +169,7 @@ public class StackExchangeRedisProvider : IRedisProvider
         var value = await _database.HashGetAsync(key, field);
         if (!value.HasValue)
             return default(T);
-        
+
         return Deserialize<T>(value);
     }
 
@@ -142,7 +184,7 @@ public class StackExchangeRedisProvider : IRedisProvider
         var hash = await _database.HashGetAllAsync(key);
         if (hash == null || hash.Length == 0)
             return new Dictionary<string, T>();
-        
+
         return hash.ToDictionary(
             entry => entry.Name.ToString(),
             entry => Deserialize<T>(entry.Value)
@@ -160,7 +202,7 @@ public class StackExchangeRedisProvider : IRedisProvider
         var value = await _database.ListLeftPopAsync(key);
         if (!value.HasValue)
             return default(T);
-        
+
         return Deserialize<T>(value);
     }
 
@@ -169,7 +211,7 @@ public class StackExchangeRedisProvider : IRedisProvider
         var values = await _database.ListRangeAsync(key, start, stop);
         if (values == null || values.Length == 0)
             return new List<T>();
-        
+
         return values.Select(Deserialize<T>).ToList();
     }
 
@@ -190,18 +232,18 @@ public class StackExchangeRedisProvider : IRedisProvider
         var values = await _database.SetMembersAsync(key);
         if (values == null || values.Length == 0)
             return new List<T>();
-        
+
         return values.Select(Deserialize<T>).ToList();
     }
 
-    private string Serialize<T>(T value)
+    private static string? Serialize<T>(T value)
     {
-        if (value == null)
+        if (EqualityComparer<T>.Default.Equals(value, default!))
             return null;
-        
+
         if (value is string str)
             return str;
-        
+
         return JsonConvert.SerializeObject(value);
     }
 
@@ -209,12 +251,12 @@ public class StackExchangeRedisProvider : IRedisProvider
     {
         if (!value.HasValue || value.IsNullOrEmpty)
             return default(T);
-        
+
         var stringValue = value.ToString();
-        
+
         if (typeof(T) == typeof(string))
             return (T)(object)stringValue;
-        
+
         try
         {
             return JsonConvert.DeserializeObject<T>(stringValue);

@@ -179,19 +179,19 @@ public static class AppConstant
                 public const string CashInHand = "10113";
                 public const string UndepositedFunds = "10115";
                 public const string PayrollClearingAccount = "10117";
-                
+
                 // Accounts Receivable (10120-10129)
                 public const string AccountsReceivable = "10120";
                 public const string AllowanceForDoubtfulAccounts = "10121";
-                
+
                 // Prepaid Expenses (10200-10299)
                 public const string PrepaidExpenses = "10200";
-                
+
                 // Inventory (10800-10899)
                 public const string Inventory = "10800";
                 public const string GoodsReceivedClearingAccount = "10810";
                 public const string StocksOfWorkInProgress = "10900";
-                
+
                 // Fixed Assets (15000-15999)
                 public const string FixedAssets = "15000";
                 public const string AccumulatedDepreciation = "15010";
@@ -204,21 +204,21 @@ public static class AppConstant
                 public const string AccountsPayable = "20110";
                 public const string CustomerAdvances = "20120";
                 public const string VendorAdvances = "20130";
-                
+
                 // Accrued Expenses (20200-20299)
                 public const string AccruedExpenses = "20200";
                 public const string AccruedPayroll = "20210";
-                
+
                 // Taxes Payable (20300-20399)
                 public const string SalesTax = "20300";
                 public const string EmployeeIncomeTaxWithholdingPayable = "20310";
                 public const string EmployeeSocialSecurityWithholdingPayable = "20320";
                 public const string EmployeeHealthInsuranceWithholdingPayable = "20330";
                 public const string EmployerPayrollTaxPayable = "20340";
-                
+
                 // Notes Payable (20400-20499)
                 public const string NotesPayable = "20400";
-                
+
                 // Unearned Revenue (20500-20599)
                 public const string UnearnedRevenue = "20500";
             }
@@ -252,19 +252,19 @@ public static class AppConstant
                 public const string PurchaseDiscounts = "50400";
                 public const string PurchasePriceVariance = "50500";
                 public const string PurchaseTax = "50700";
-                
+
                 // Operating Expenses (60000-69999)
                 public const string DepreciationExpense = "60100";
                 public const string BadDebtExpense = "60200";
                 public const string InterestExpense = "60300";
                 public const string RentExpense = "60400";
                 public const string UtilitiesExpense = "60500";
-                
+
                 // Payroll Expenses (60600-60699)
                 public const string SalariesAndWagesExpense = "60600";
                 public const string OvertimeExpense = "60610";
                 public const string BonusesAndCommissionsExpense = "60620";
-                
+
                 // Benefits Expenses (60700-60799)
                 public const string EmployeeBenefitsExpense = "60700";
                 public const string HealthInsuranceExpense = "60710";
@@ -510,7 +510,7 @@ public static class AppConstant
 
         public static class Url
         {
-          
+
 
             public static class Hr
             {
@@ -554,47 +554,47 @@ public static class AppConstant
                 public const string EmployeeJobStatusesPage = "/api/hr/employee-job-statuses/page";
 
                 public const string LeaveTypes = "/api/hr/leave-types";
-                
+
                 public static class Recruitment
                 {
                     public const string Dashboard = "/api/hr/recruitment/dashboard";
                     public const string Base = "/api/hr/recruitment";
-                
+
                     // Candidates
                     public const string Candidates = $"{Base}/candidates";
-                
+
                     // Jobs
                     public const string Jobs = $"{Base}/jobs";
-                
+
                     // Applications
                     public const string Applications = $"{Base}/applications";
-                
+
                     // Interviews
                     public const string Interviews = $"{Base}/interviews";
-                
+
                     // Offers
                     public const string Offers = $"{Base}/offers";
-                
+
                     // Hires
                     public const string Hires = $"{Base}/hires";
-                
+
                     // Job Requisitions
                     public const string JobRequisitions = $"{Base}/job-requisitions";
-                
+
                     // Scorecards
                     public const string Scorecards = $"{Base}/scorecards";
-                
+
                     // Screening Rules
                     public const string ScreeningRules = $"{Base}/screening-rules";
                 }
-                
+
                 public static class Surveys
                 {
                     public const string Base = "/api/hr/surveys";
                     public const string Responses = $"{Base}/responses";
                     public const string Analytics = $"{Base}/analytics";
                 }
-                
+
                 public static class Engagement
                 {
                     public const string Base = "/api/hr/engagement";
@@ -607,7 +607,7 @@ public static class AppConstant
                     public const string ComplianceAudits = $"{Base}/compliance-audits";
                     public const string Analytics = $"{Base}/analytics";
                 }
-                
+
                 public static class Performance
                 {
                     public const string Base = "/api/hr/performance";
@@ -623,7 +623,7 @@ public static class AppConstant
                     public const string StrategicFramework = $"{Base}/strategic-framework";
                     public const string Analytics = $"{Base}/analytics";
                 }
-                
+
                 public static class Learning
                 {
                     public const string Base = "/api/hr/learning";
@@ -640,7 +640,7 @@ public static class AppConstant
                     public const string Analytics = $"{Base}/analytics";
                     public const string Employees = $"{Base}/employees";
                 }
-                
+
                 public static class Talent
                 {
                     public const string Base = "/api/hr/talent";
@@ -676,14 +676,14 @@ public static class AppConstant
                     public const string Plans = $"{Base}/plans";
                     public const string Analytics = $"{Base}/analytics";
                 }
-                
+
                 public const string LeaveTypesPage = "/api/hr/leave-types/page";
 
                 // Leave Management URLs - Organized in nested class
                 public static class Leave
                 {
                     public const string Base = "/api/hr/leave";
-                    
+
                     public const string LeaveRequests = $"{Base}/leave-requests";
                     public const string LeaveRequestsPage = $"{Base}/leave-requests/page";
                     public const string AllLeaveRequestsPage = $"{Base}/leave-requests/all/page";
@@ -726,7 +726,7 @@ public static class AppConstant
                     // Admin/Configuration URLs
                     public const string ConfigureEmployeeLeave = $"{Base}/timeoff/configure-employee-leave";
                     public const string EmployeesLeaves = $"{Base}/employees/leaves";
-                    
+
                     // Leave Admin URLs
                     public const string LeaveAdminDashboard = $"{Base}/leave-admin/dashboard";
                 }
@@ -791,7 +791,7 @@ public static class AppConstant
                 }
             }
 
-           
+
 
             public static class Ar
             {
@@ -832,7 +832,7 @@ public static class AppConstant
                 public const string CurrencyRevaluations = $"{Base}/currency-revaluations";
                 public const string CostCenters = $"{Base}/cost-centers";
                 public const string Reports = $"{Base}/reports";
-                
+
                 public static class BudgetPlanning
                 {
                     public const string Base = $"{Gl.Base}/budgets";
@@ -879,7 +879,7 @@ public static class AppConstant
             }
 
 
-           
+
         }
     }
 
@@ -888,14 +888,14 @@ public static class AppConstant
     /// </summary>
     public static class Cache
     {
-            /// <summary>
-            /// Prefix for all cache keys in Redis
-            /// </summary>
+        /// <summary>
+        /// Prefix for all cache keys in Redis
+        /// </summary>
         private const string CacheKeyPrefix = "qface:qimerp:";
 
-            /// <summary>
-            /// Cache regions for different modules
-            /// </summary>
+        /// <summary>
+        /// Cache regions for different modules
+        /// </summary>
         public static class Regions
         {
             public const string Auth = "auth";
@@ -905,11 +905,11 @@ public static class AppConstant
             public const string Inventory = "inventory";
             public const string Core = "core";
             public const string Workflow = "workflow";
-            }
+        }
 
-            /// <summary>
-            /// Cache key templates with tenant support
-            /// </summary>
+        /// <summary>
+        /// Cache key templates with tenant support
+        /// </summary>
         public static class Keys
         {
             // Auth Module Keys
@@ -937,6 +937,37 @@ public static class AppConstant
 
             public static string EmployeeSimpleList(string tenantId, int top) =>
             $"{CacheKeyPrefix}{tenantId}:hr:employee_simple_list_{top}";
+
+            public static string JobTitle(string tenantId, Guid jobTitleId) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:job_title_{jobTitleId}";
+
+            public static string JobTitles(string tenantId, string? searchTerm, string? department, int? level) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:job_titles_{searchTerm ?? "null"}_{department ?? "null"}_{level?.ToString() ?? "null"}";
+
+            public static string JobTitlesPage(string tenantId, int pageNumber, int pageSize, string? searchTerm, int? level,
+                string? sortBy, bool sortDescending) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:job_titles_page_{pageNumber}_{pageSize}_{searchTerm ?? "null"}_{level?.ToString() ?? "null"}_{sortBy ?? "default"}_{sortDescending}";
+
+            public static string OrganizationalUnit(string tenantId, Guid organizationalUnitId) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:organizational_unit_{organizationalUnitId}";
+
+            public static string OrganizationalUnits(string tenantId, string? searchTerm, string? type) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:organizational_units_{searchTerm ?? "null"}_{type ?? "null"}";
+
+            public static string OrganizationalUnitsPage(string tenantId, string dimensionsKey) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:organizational_units_page_{dimensionsKey}";
+
+            public static string OrganizationalUnitTree(string tenantId) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:organizational_units_tree";
+
+            public static string Station(string tenantId, Guid stationId) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:station_{stationId}";
+
+            public static string Stations(string tenantId, string? searchTerm, string? stationType, string? city, string? region) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:stations_{searchTerm ?? "null"}_{stationType ?? "null"}_{city ?? "null"}_{region ?? "null"}";
+
+            public static string StationsPage(string tenantId, string dimensionsKey) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:stations_page_{dimensionsKey}";
 
             // Dashboard Keys
             public static string MyTeam(string tenantId, string email) => $"{CacheKeyPrefix}{tenantId}:hr:my_team_{email}";
@@ -988,6 +1019,12 @@ public static class AppConstant
 
             // Pattern-based keys for invalidation
             public static string PeoplePagePattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:people_page_*";
+            public static string JobTitlePattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:job_title_*";
+            public static string JobTitlesPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:job_titles*";
+            public static string OrganizationalUnitPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:organizational_unit_*";
+            public static string OrganizationalUnitsPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:organizational_units*";
+            public static string StationPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:station_*";
+            public static string StationsPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:stations*";
             public static string NewsPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:news_*";
 
             public static string UnreadNewsCountPattern(string tenantId) =>
@@ -1049,11 +1086,11 @@ public static class AppConstant
             public static string WorkflowStatsPattern() => $"{CacheKeyPrefix}workflow:stats_*";
             public static string WorkflowDashboardPattern() => $"{CacheKeyPrefix}workflow:dashboard_*";
             public static string WorkflowHistoryPattern(string entityType) => $"{CacheKeyPrefix}workflow:history_{entityType}_*";
-            }
+        }
 
-            /// <summary>
-            /// Cache TTL (Time To Live) constants in minutes
-            /// </summary>
+        /// <summary>
+        /// Cache TTL (Time To Live) constants in minutes
+        /// </summary>
         public static class Ttl
         {
             // Frequently changing data (2-5 minutes)
@@ -1069,6 +1106,16 @@ public static class AppConstant
             public const int Employee = 15;
             public const int EmployeeSimpleList = 10;
             public const int MyOnboardingProgress = 15;
+            public const int JobTitle = 180;
+            public const int JobTitles = 180;
+            public const int JobTitlesPage = 120;
+            public const int OrganizationalUnit = 180;
+            public const int OrganizationalUnits = 180;
+            public const int OrganizationalUnitsPage = 120;
+            public const int OrganizationalUnitTree = 180;
+            public const int Station = 180;
+            public const int Stations = 180;
+            public const int StationsPage = 120;
 
             // Auth Module TTL
             public const int ActivationToken = 2880; // 48 hours for activation tokens
@@ -1324,7 +1371,7 @@ public static class AppConstant
                     public const string FiscalYearUpdated = "qimerp.gl.fiscal_year_updated.prod_exchange";
                     public const string JournalEntryPosted = "qimerp.gl.journal_entry_posted.prod_exchange";
                 }
-                
+
                 /// <summary>
                 /// Budget Planning module exchanges
                 /// </summary>
