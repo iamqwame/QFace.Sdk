@@ -969,6 +969,9 @@ public static class AppConstant
             public static string StationsPage(string tenantId, string dimensionsKey) =>
             $"{CacheKeyPrefix}{tenantId}:hr:stations_page_{dimensionsKey}";
 
+            public static string HRAdminDashboard(string tenantId, string fromDateKey, string toDateKey) =>
+            $"{CacheKeyPrefix}{tenantId}:hr:admin_dashboard_{fromDateKey}_{toDateKey}";
+
             // Dashboard Keys
             public static string MyTeam(string tenantId, string email) => $"{CacheKeyPrefix}{tenantId}:hr:my_team_{email}";
 
@@ -1025,6 +1028,7 @@ public static class AppConstant
             public static string OrganizationalUnitsPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:organizational_units*";
             public static string StationPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:station_*";
             public static string StationsPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:stations*";
+            public static string HRAdminDashboardPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:admin_dashboard_*";
             public static string NewsPattern(string tenantId) => $"{CacheKeyPrefix}{tenantId}:hr:news_*";
 
             public static string UnreadNewsCountPattern(string tenantId) =>
@@ -1116,6 +1120,7 @@ public static class AppConstant
             public const int Station = 180;
             public const int Stations = 180;
             public const int StationsPage = 120;
+            public const int HRAdminDashboard = 10;
 
             // Auth Module TTL
             public const int ActivationToken = 2880; // 48 hours for activation tokens
