@@ -127,7 +127,7 @@ public class RedisCacheService(
         try
         {
             var fullPattern = GetFullKey(pattern, region);
-            var removedCount = await redisCacheService.RemoveByPatternAsync(fullPattern);
+            var removedCount = await RemoveByPatternWithFallbackAsync(fullPattern);
             logger.LogDebug("Removed {RemovedCount} cache entries for pattern: {Pattern}", removedCount, fullPattern);
         }
         catch (Exception ex)
@@ -191,5 +191,47 @@ public class RedisCacheService(
     private static string GetFullKey(string key, string? region)
     {
         return string.IsNullOrEmpty(region) ? key : $"{region}:{key}";
+    }
+
+    private async Task<long> RemoveByPatternWithFallbackAsync(string fullPattern)
+    {
+        // Some deployments use an older QFace.Sdk.RedisCache contract that does not
+        // expose RemoveByPatternAsync on IRedisCacheService at compile time.
+        var method = redisCacheService.GetType().GetMethod("RemoveByPatternAsync", new[] { typeof(string) });
+
+        if (method == null)
+        {
+            logger.LogWarning(
+                "IRedisCacheService implementation {ServiceType} does not support RemoveByPatternAsync. Pattern purge skipped for {Pattern}.",
+                redisCacheService.GetType().FullName,
+                fullPattern);
+            return 0;
+        }
+
+        var result = method.Invoke(redisCacheService, [fullPattern]);
+        if (result is not Task task)
+        {
+            logger.LogWarning(
+                "RemoveByPatternAsync on {ServiceType} did not return Task. Pattern purge skipped for {Pattern}.",
+                redisCacheService.GetType().FullName,
+                fullPattern);
+            return 0;
+        }
+
+        await task.ConfigureAwait(false);
+
+        var resultProperty = task.GetType().GetProperty("Result");
+        var value = resultProperty?.GetValue(task);
+        if (value is long longValue)
+        {
+            return longValue;
+        }
+
+        if (value is int intValue)
+        {
+            return intValue;
+        }
+
+        return 0;
     }
 }
