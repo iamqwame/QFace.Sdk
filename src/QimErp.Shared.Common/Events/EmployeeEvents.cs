@@ -39,6 +39,7 @@ public class EmployeeChangedEvent : DomainEvent
     public string? JobStatusCode { get; set; }
 
     public bool SendInvitation { get; set; }
+    public bool SetDefaultPassword { get; set; }
 
     public EmployeeChangedEvent()
     {
@@ -121,6 +122,7 @@ public class EmployeeChangedEvent : DomainEvent
     }
     
     public EmployeeChangedEvent WithInvitation(bool sendInvitation = true) { SendInvitation = sendInvitation; return this; }
+    public EmployeeChangedEvent WithDefaultPassword(bool set = true) { SetDefaultPassword = set; return this; }
 }
 
 
