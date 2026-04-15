@@ -348,6 +348,7 @@ public static class SharedServiceCollectionExtensions
     }
     /// <summary>
     /// Configures core services including Authentication, CORS, MediatR, Carter, and JSON serialization settings.
+    /// OpenTelemetry export is not registered here; call <see cref="AddQimErpOpenTelemetryDefaults"/> on <see cref="WebApplicationBuilder"/> early in host setup when you want ASP.NET/EF/OTLP instrumentation.
     /// </summary>
     public static IServiceCollection AddCoreServices(this IServiceCollection services,
         IConfiguration configuration,
