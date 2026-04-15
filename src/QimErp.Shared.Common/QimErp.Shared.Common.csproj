@@ -7,7 +7,7 @@
         
         <!-- NuGet Package Metadata -->
         <PackageId>QimErp.Shared.Common</PackageId>
-        <Version>3.2.4</Version>
+        <Version>3.2.5</Version>
         <Authors>IAmQwame</Authors>
         <Company>QimErp</Company>
         <Description>Shared common library for QimErp microservices ERP system. Contains common entities, contracts, services, and utilities used across all QimErp modules.</Description>
@@ -102,7 +102,7 @@
         <PackageReference Include="QFace.Sdk.ActorSystems" Version="1.0.1" />
         <PackageReference Include="QFace.Sdk.Extensions" Version="1.0.2" />
         <PackageReference Include="QFace.Sdk.RabbitMq" Version="1.1.4" />
-        <PackageReference Include="QFace.Sdk.Temporal" Version="1.0.2" />
+        <PackageReference Include="QFace.Sdk.Temporal" Version="1.0.3" />
 
         <PackageReference Include="QFace.Sdk.AI" Version="1.0.0" />
         <PackageReference Include="QFace.Sdk.RedisCache" Version="1.0.0" />
@@ -110,13 +110,14 @@
 
     <!-- Observability -->
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="9.0.0"/>
-        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0"/>
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0"/>
-        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0"/>
-        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0"/>
-        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0"/>
+        <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="9.0.0" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.11.0-beta.1" />
     </ItemGroup>
 
     <!-- Project References -->

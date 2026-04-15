@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using QimErp.Shared.Common.Services.Auth;
 
@@ -36,6 +37,31 @@ public static class LoggerUserContextScopeExtensions
         string? userId = null)
     {
         var items = UserContextScopeProperties.From(tenantId, userEmail, userName, userId);
+        return items.Count == 0 ? NullScope.Instance : logger.BeginScope(items)!;
+    }
+
+    /// <summary>
+    /// MediatR pipeline scope: <c>CorrelationId</c>, <c>TenantId</c> (domain name when present), <c>UserId</c> (acting user email per observability standard), <c>RequestType</c>.
+    /// </summary>
+    public static IDisposable BeginMediatrObservabilityScope(
+        this ILogger logger,
+        ICurrentUserService currentUser,
+        string requestTypeName)
+    {
+        var items = new List<KeyValuePair<string, object>>(5);
+        var correlationId = currentUser.GetCorrelationId();
+        if (!string.IsNullOrWhiteSpace(correlationId))
+            items.Add(new KeyValuePair<string, object>("CorrelationId", correlationId));
+
+        var tenantKey = currentUser.GetDomainName() ?? currentUser.GetTenantId();
+        if (!string.IsNullOrWhiteSpace(tenantKey))
+            items.Add(new KeyValuePair<string, object>("TenantId", tenantKey));
+
+        var actorEmail = currentUser.GetUserEmail();
+        items.Add(new KeyValuePair<string, object>("UserId", string.IsNullOrWhiteSpace(actorEmail) ? "unknown" : actorEmail));
+
+        items.Add(new KeyValuePair<string, object>("RequestType", requestTypeName));
+
         return items.Count == 0 ? NullScope.Instance : logger.BeginScope(items)!;
     }
 }

@@ -4,6 +4,8 @@ namespace QimErp.Shared.Common.Services;
 
 public class DesignTimeCurrentUserService : ICurrentUserService
 {
+    public string GetCorrelationId() => "design-time";
+
     public bool IsAuthenticated => false;
     public string GetUserId() => "design-time-user";
     public string? GetRole() => null;

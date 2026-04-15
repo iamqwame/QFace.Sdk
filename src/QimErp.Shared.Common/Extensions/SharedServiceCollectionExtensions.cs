@@ -10,9 +10,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using OpenTelemetry.Instrumentation.EntityFrameworkCore;
 using QFace.Sdk.RedisCache.Extensions;
 using QFace.Sdk.RedisCache.Models;
 using QimErp.Shared.Common.Behaviours;
@@ -81,6 +84,7 @@ public static class SharedServiceCollectionExtensions
         });
 
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehaviour<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TracingBehaviour<,>));
 
         return services;
     }
@@ -316,6 +320,7 @@ public static class SharedServiceCollectionExtensions
     /// </summary>
     public static void UseAppSecurity(this WebApplication app, IConfiguration configuration)
     {
+        app.UseCorrelationId();
         app.UseRequestLogging(configuration);
         app.UseResponseLogging(configuration);
 
@@ -663,10 +668,28 @@ public static class SharedServiceCollectionExtensions
 
 
 
+    /// <summary>
+    /// Registers OpenTelemetry logging, metrics, and tracing (including ASP.NET Core, HttpClient, EF Core, and MediatR <see cref="ObservabilityTelemetry.MediatRActivitySourceName"/>).
+    /// OTLP export is enabled when <c>OTEL_EXPORTER_OTLP_ENDPOINT</c> is set.
+    /// </summary>
+    public static WebApplicationBuilder AddQimErpOpenTelemetryDefaults(this WebApplicationBuilder builder)
+    {
+        RegisterOpenTelemetryCore(
+            builder.Services,
+            builder.Logging,
+            builder.Environment,
+            builder.Configuration);
+        return builder;
+    }
+
     public static IHostApplicationBuilder AddServiceDefaults<TDbContext>(this IHostApplicationBuilder builder)
         where TDbContext : DbContext
     {
-        builder.ConfigureOpenTelemetry();
+        RegisterOpenTelemetryCore(
+            builder.Services,
+            builder.Logging,
+            builder.Environment,
+            builder.Configuration);
 
         builder.AddDefaultHealthChecks<TDbContext>();
 
@@ -684,16 +707,19 @@ public static class SharedServiceCollectionExtensions
         return builder;
     }
 
-    private static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
+    private static void RegisterOpenTelemetryCore(
+        IServiceCollection services,
+        ILoggingBuilder logging,
+        IHostEnvironment environment,
+        IConfiguration configuration)
     {
-        builder.Logging.AddOpenTelemetry(logging =>
+        logging.AddOpenTelemetry(loggingOptions =>
         {
-            logging.IncludeFormattedMessage = true;
-            logging.IncludeScopes = true;
+            loggingOptions.IncludeFormattedMessage = true;
+            loggingOptions.IncludeScopes = true;
         });
 
-        builder.Services.AddOpenTelemetry()
+        var otelBuilder = services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
@@ -702,27 +728,15 @@ public static class SharedServiceCollectionExtensions
             })
             .WithTracing(tracing =>
             {
-                tracing.AddSource(builder.Environment.ApplicationName)
+                tracing.AddSource(environment.ApplicationName)
+                    .AddSource(ObservabilityTelemetry.MediatRActivitySourceName)
                     .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddEntityFrameworkCoreInstrumentation();
             });
 
-        builder.AddOpenTelemetryExporters();
-
-        return builder;
-    }
-
-    private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
-    {
-        bool useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-
-        if (useOtlpExporter)
-        {
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
-        }
-
-        return builder;
+        if (!string.IsNullOrWhiteSpace(configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+            otelBuilder.UseOtlpExporter();
     }
 
     private static IHostApplicationBuilder AddDefaultHealthChecks<TDbContext>(this IHostApplicationBuilder builder)

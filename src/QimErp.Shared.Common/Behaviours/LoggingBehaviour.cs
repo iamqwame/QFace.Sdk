@@ -19,9 +19,14 @@ public sealed class LoggingBehaviour<TRequest, TResponse>(
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        using (logger.BeginUserContextScope(currentUserService))
+        var requestTypeName = typeof(TRequest).Name;
+        using (logger.BeginMediatrObservabilityScope(currentUserService, requestTypeName))
         {
-            logger.LogInformation("Starting feature {FeatureName}", typeof(TRequest).Name);
+            if (requestTypeName.EndsWith("Query", StringComparison.Ordinal))
+                logger.LogDebug("Starting feature {FeatureName}", requestTypeName);
+            else
+                logger.LogInformation("Starting feature {FeatureName}", requestTypeName);
+
             return await next();
         }
     }

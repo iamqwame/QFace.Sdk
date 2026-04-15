@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <PackageId>QFace.Sdk.Temporal</PackageId>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>IAmQwame</Authors>
     <Company>QFace</Company>
     <Description>

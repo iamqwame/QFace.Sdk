@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
+using QimErp.Shared.Common.Middlewares;
 
 namespace QimErp.Shared.Common.Services.Auth;
 
@@ -26,6 +27,16 @@ public class UserContextService(
     public void ClearContext()
     {
         Context.Value = null;
+    }
+
+    public string GetCorrelationId()
+    {
+        var http = _httpContextAccessor.HttpContext;
+        if (http?.Items.TryGetValue(CorrelationIdMiddleware.HttpContextItemKey, out var v) == true &&
+            v is string s && !string.IsNullOrWhiteSpace(s))
+            return s;
+
+        return string.Empty;
     }
 
     public string GetUserId()

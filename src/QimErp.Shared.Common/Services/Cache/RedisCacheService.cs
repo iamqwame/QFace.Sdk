@@ -13,7 +13,7 @@ public class RedisCacheService(
     private static bool GetCacheEnabled(IConfiguration configuration)
     {
         // Read Enabled from RedisCache section (defaults to true if not specified)
-        var enabled = configuration.GetValue<bool>("RedisCache:Enabled", true);
+        var enabled = configuration.GetValue("RedisCache:Enabled", true);
         return enabled;
     }
 

@@ -3,7 +3,9 @@ using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 using System.Transactions;
 using QFace.Sdk.RabbitMq.Services;
+using QimErp.Shared.Common.Events;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Services.Auth;
 using QimErp.Shared.Common.Services.Workflow;
 
 namespace QimErp.Shared.Common.Interceptors;

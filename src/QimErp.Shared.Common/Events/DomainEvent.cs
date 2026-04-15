@@ -11,6 +11,9 @@ public abstract class DomainEvent : IDomainEvent
     public string UserEmail { get; set; }
     public string? UserName { get; set; }
 
+    /// <summary>Optional application correlation id (e.g. from <c>X-Correlation-Id</c>) for consumers and tracing.</summary>
+    public string? CorrelationId { get; set; }
+
     protected DomainEvent()
     {
         OccurredOn = DateTime.UtcNow;

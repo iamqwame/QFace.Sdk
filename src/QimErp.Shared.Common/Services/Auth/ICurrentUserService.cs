@@ -4,6 +4,11 @@ namespace QimErp.Shared.Common.Services.Auth;
 
 public interface ICurrentUserService
 {
+    /// <summary>
+    /// Application correlation id (typically from <c>X-Correlation-Id</c> middleware). Empty when unavailable (e.g. design-time, some consumers).
+    /// </summary>
+    string GetCorrelationId();
+
     bool IsAuthenticated { get; }
     string GetUserId();
     string? GetRole();

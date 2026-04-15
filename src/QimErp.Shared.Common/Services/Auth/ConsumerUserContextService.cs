@@ -18,7 +18,7 @@ public class ConsumerUserContextService : ICurrentUserService
         _systemOptions = systemOptions.Value;
     }
 
-    public void SetContext(string tenantId, string userEmail, string? userName = null, string? triggeredBy = null)
+    public void SetContext(string tenantId, string userEmail, string? userName = null, string? triggeredBy = null, string? correlationId = null)
     {
         Context.Value = new ConsumerContext
         {
@@ -26,6 +26,7 @@ public class ConsumerUserContextService : ICurrentUserService
             TriggeredBy = triggeredBy ?? _systemOptions.DefaultUserId,
             UserEmail = userEmail,
             UserName = userName ?? _systemOptions.DefaultUserId,
+            CorrelationId = correlationId,
             Timestamp = DateTime.UtcNow
         };
     }
@@ -34,6 +35,8 @@ public class ConsumerUserContextService : ICurrentUserService
     {
         Context.Value = null;
     }
+
+    public string GetCorrelationId() => Context.Value?.CorrelationId ?? string.Empty;
 
     public bool IsAuthenticated
     {
@@ -130,6 +133,7 @@ public class ConsumerUserContextService : ICurrentUserService
         public string TriggeredBy { get; set; } = "system";
         public string UserEmail { get; set; } = "system@consumer";
         public string UserName { get; set; } = "system";
+        public string? CorrelationId { get; set; }
         public DateTime Timestamp { get; set; }
     }
 }
