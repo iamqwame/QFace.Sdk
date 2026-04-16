@@ -77,13 +77,13 @@ public class UserContextService(
     {
         // Check AsyncLocal first (background actors)
         if (Context.Value != null)
-            return Context.Value.TenantId ?? string.Empty;
+            return NormalizeTenantId(Context.Value.TenantId) ?? string.Empty;
         
         // Try to get from claims first
         var tenantIdFromClaims = GetClaim("tenantId") ?? GetClaim("TenantId");
         if (!string.IsNullOrWhiteSpace(tenantIdFromClaims))
         {
-            return tenantIdFromClaims;
+            return NormalizeTenantId(tenantIdFromClaims) ?? string.Empty;
         }
         
         // Fallback: Parse JWT token directly if claims aren't available
@@ -93,11 +93,19 @@ public class UserContextService(
             var tenantIdFromToken = ExtractTenantIdFromToken(token);
             if (!string.IsNullOrWhiteSpace(tenantIdFromToken))
             {
-                return tenantIdFromToken;
+                return NormalizeTenantId(tenantIdFromToken) ?? string.Empty;
             }
         }
         
         return string.Empty;
+    }
+
+    private static string? NormalizeTenantId(string? tenantId)
+    {
+        if (string.IsNullOrWhiteSpace(tenantId))
+            return tenantId;
+
+        return Guid.TryParse(tenantId.Trim(), out var g) ? g.ToString("D") : tenantId.Trim();
     }
 
     public string? GetToken()
@@ -134,10 +142,22 @@ public class UserContextService(
     {
         // Check AsyncLocal first (background actors)
         if (Context.Value != null)
-            return Context.Value.UserEmail ?? string.Empty;
+            return (Context.Value.UserEmail ?? string.Empty).Trim();
         
-        // Fall back to HTTP context (HTTP requests)
-        return GetClaim(ClaimTypes.Email) ?? "";
+        // Fall back to HTTP context (HTTP requests). Prefer mapped claim, then raw JWT names used by IAM/NextAuth.
+        var email = GetClaim(ClaimTypes.Email)
+                    ?? GetClaim("email")
+                    ?? GetClaim("unique_name");
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            var preferred = GetClaim("preferred_username");
+            // Avoid treating non-email UPNs as login email (would break employee lookup by email).
+            if (!string.IsNullOrWhiteSpace(preferred) && preferred.Contains('@', StringComparison.Ordinal))
+                email = preferred;
+        }
+
+        return (email ?? string.Empty).Trim();
     }
 
     public string GetUserName()

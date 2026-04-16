@@ -13,10 +13,22 @@ public class TenantContextMiddleware
 
     public async Task InvokeAsync(HttpContext context, ITenantContext tenantContext, ICurrentUserService currentUserService)
     {
-        var tenantId = currentUserService.GetTenantId();
+        var tenantId = NormalizeTenantId(currentUserService.GetTenantId());
         tenantContext.SetTenant(tenantId);
         
         await _next(context);
+    }
+
+    /// <summary>
+    /// Aligns JWT/header tenant ids with DB values: Guid claims may differ only by casing, but PostgreSQL
+    /// uses case-sensitive string equality, which breaks EF global filters (e.TenantId == context).
+    /// </summary>
+    internal static string? NormalizeTenantId(string? tenantId)
+    {
+        if (string.IsNullOrWhiteSpace(tenantId))
+            return tenantId;
+
+        return Guid.TryParse(tenantId.Trim(), out var g) ? g.ToString("D") : tenantId.Trim();
     }
 }
 
