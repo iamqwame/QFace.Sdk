@@ -41,6 +41,17 @@ public static class StringHelpers
         {
             return Results.NotFound(result.Error);
         }
+
+        if (result.Code == "401")
+        {
+            return Results.Json(result.ToResponse(), statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        if (result.Code == "403")
+        {
+            return Results.Json(result.ToResponse(), statusCode: StatusCodes.Status403Forbidden);
+        }
+
         return Results.BadRequest(result.Error);
     }
 
