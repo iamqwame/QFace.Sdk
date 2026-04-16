@@ -9,7 +9,10 @@ public abstract class ImportService<TContext> : IImportService
     protected readonly TContext _context;
     protected readonly ILogger<ImportService<TContext>> _logger;
     protected readonly IDistributedCacheService _cacheService;
-    protected const string CacheRegion = AppConstant.Cache.Regions.Hr;
+    protected const string CacheRegion = "hr";
+    private const int ImportCacheTtlMinutes = 5;
+    private static string ImportCacheKey(string tenantId, Guid importId) =>
+        $"qface:qimerp:{tenantId}:hr:import_{importId}";
 
     protected ImportService(
         TContext context,
@@ -182,7 +185,7 @@ public abstract class ImportService<TContext> : IImportService
                 return null;
             }
 
-            var cacheKey = AppConstant.Cache.Keys.Import(import.TenantId, importId);
+            var cacheKey = ImportCacheKey(import.TenantId, importId);
             
             var cachedImport = await _cacheService.GetAsync<Import>(cacheKey, CacheRegion);
             if (cachedImport != null)
@@ -194,10 +197,10 @@ public abstract class ImportService<TContext> : IImportService
             await _cacheService.SetAsync(
                 cacheKey,
                 import,
-                TimeSpan.FromMinutes(AppConstant.Cache.Ttl.Import),
+                TimeSpan.FromMinutes(ImportCacheTtlMinutes),
                 CacheRegion);
             
-            _logger.LogDebug("Import {ImportId} cached for {Ttl} minutes", importId, AppConstant.Cache.Ttl.Import);
+            _logger.LogDebug("Import {ImportId} cached for {Ttl} minutes", importId, ImportCacheTtlMinutes);
             
             return import;
         }
@@ -260,7 +263,7 @@ public abstract class ImportService<TContext> : IImportService
     {
         try
         {
-            var cacheKey = AppConstant.Cache.Keys.Import(tenantId, importId);
+            var cacheKey = ImportCacheKey(tenantId, importId);
             await _cacheService.RemoveAsync(cacheKey, CacheRegion);
             _logger.LogDebug("Invalidated cache for import {ImportId}", importId);
         }

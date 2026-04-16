@@ -23,7 +23,7 @@ public class WorkflowConfigCacheService : IWorkflowConfigCacheService
     {
         try
         {
-            var cacheKey = AppConstant.Cache.Keys.WorkflowConfiguration(module, entityType);
+            var cacheKey = $"qface:qimerp:workflow:config_{module}_{entityType}";
             var config = await _cache.GetAsync<EntityWorkflowConfig>(cacheKey);
 
             if (config == null)

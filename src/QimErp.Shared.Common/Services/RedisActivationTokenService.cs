@@ -50,6 +50,8 @@ public class RedisActivationTokenService(
     IDistributedCacheService cacheService,
     ILogger<RedisActivationTokenService> logger) : IRedisActivationTokenService
 {
+    private const int ActivationTokenTtlMinutes = 2880; // 48 hours
+    private static string ActivationTokenCacheKey(string email) => $"qface:qimerp:auth:activation_token_{email}";
 
     public async Task<string> GenerateActivationTokenWithEmailDataAsync(ActivationTokenRequest request)
     {
@@ -59,7 +61,7 @@ public class RedisActivationTokenService(
 
             // Generate a secure random token
             var now = DateTime.UtcNow;
-            var expiresAt = now.AddMinutes(AppConstant.Cache.Ttl.ActivationToken);
+            var expiresAt = now.AddMinutes(ActivationTokenTtlMinutes);
 
             // Create activation token data
             var activationData = new ActivationTokenData
@@ -80,11 +82,11 @@ public class RedisActivationTokenService(
             };
 
             // Store in Redis with TTL
-            var cacheKey = AppConstant.Cache.Keys.ActivationToken(request.Email);
-            await cacheService.SetAsync(cacheKey, activationData, TimeSpan.FromMinutes(AppConstant.Cache.Ttl.ActivationToken));
+            var cacheKey = ActivationTokenCacheKey(request.Email);
+            await cacheService.SetAsync(cacheKey, activationData, TimeSpan.FromMinutes(ActivationTokenTtlMinutes));
 
             logger.LogInformation("✅ [Redis Activation Token] Activation token with email data generated and stored for {Email} with TTL {Ttl} minutes", 
-                request.Email, AppConstant.Cache.Ttl.ActivationToken);
+                request.Email, ActivationTokenTtlMinutes);
 
             return request.Token;
         }
@@ -99,7 +101,7 @@ public class RedisActivationTokenService(
     {
         try
         {
-            var cacheKey = AppConstant.Cache.Keys.ActivationToken(email);
+            var cacheKey = ActivationTokenCacheKey(email);
             var activationData = await cacheService.GetAsync<ActivationTokenData>(cacheKey);
 
             if (activationData == null)
@@ -152,8 +154,8 @@ public class RedisActivationTokenService(
 
             // Mark token as used
             activationData.IsUsed = true;
-            var cacheKey = AppConstant.Cache.Keys.ActivationToken(email);
-            await cacheService.SetAsync(cacheKey, activationData, TimeSpan.FromMinutes(AppConstant.Cache.Ttl.ActivationToken));
+            var cacheKey = ActivationTokenCacheKey(email);
+            await cacheService.SetAsync(cacheKey, activationData, TimeSpan.FromMinutes(ActivationTokenTtlMinutes));
 
             logger.LogInformation("✅ [Redis Activation Token] Activation token validated and consumed for {Email}", email);
             return true;
@@ -183,7 +185,7 @@ public class RedisActivationTokenService(
     {
         try
         {
-            var cacheKey = AppConstant.Cache.Keys.ActivationToken(email);
+            var cacheKey = ActivationTokenCacheKey(email);
             await cacheService.RemoveAsync(cacheKey);
             logger.LogInformation("🗑️ [Redis Activation Token] Activation token removed for {Email}", email);
         }
