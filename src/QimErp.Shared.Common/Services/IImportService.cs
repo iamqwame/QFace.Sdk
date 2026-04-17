@@ -15,7 +15,7 @@ public interface IImportService
 
     Task UpdateTotalRowsAsync(Guid importId, int totalRows, CancellationToken cancellationToken = default);
 
-    Task UpdateProgressAsync(
+    Task<Import?> UpdateProgressAsync(
         Guid importId,
         int processedRows,
         int successfulImports,
@@ -34,6 +34,11 @@ public interface IImportService
     Task StartBatchSavingAsync(Guid importId, int totalBatches, CancellationToken cancellationToken = default);
 
     Task UpdateBatchSaveProgressAsync(Guid importId, int batchesSaved, int batchesFailed, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Loads the import once, increments batch saved or failed count, persists, invalidates cache, returns the updated row.
+    /// </summary>
+    Task<Import?> IncrementBatchSaveOutcomeAsync(Guid importId, bool success, CancellationToken cancellationToken = default);
 
     Task<Import?> GetImportAsync(Guid importId, CancellationToken cancellationToken = default);
 

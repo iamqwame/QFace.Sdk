@@ -72,7 +72,7 @@ public abstract class ImportService<TContext> : IImportService
         _logger.LogInformation("Updated total rows for ImportId: {ImportId}, TotalRows: {TotalRows}", importId, totalRows);
     }
 
-    public async Task UpdateProgressAsync(
+    public async Task<Import?> UpdateProgressAsync(
         Guid importId,
         int processedRows,
         int successfulImports,
@@ -83,12 +83,13 @@ public abstract class ImportService<TContext> : IImportService
         if (import == null)
         {
             _logger.LogWarning("Import {ImportId} not found for progress update", importId);
-            return;
+            return null;
         }
 
         import.UpdateProgress(processedRows, successfulImports, failedImports);
         await _context.SaveChangesAsync(cancellationToken);
         await InvalidateCacheAsync(import.TenantId, importId);
+        return import;
     }
 
     public async Task CompleteImportAsync(
@@ -173,6 +174,28 @@ public abstract class ImportService<TContext> : IImportService
 
         _logger.LogInformation("Updated batch save progress for ImportId: {ImportId}, BatchesSaved: {BatchesSaved}, BatchesFailed: {BatchesFailed}",
             importId, batchesSaved, batchesFailed);
+    }
+
+    public async Task<Import?> IncrementBatchSaveOutcomeAsync(Guid importId, bool success, CancellationToken cancellationToken = default)
+    {
+        var import = await Imports.FindAsync([importId], cancellationToken);
+        if (import == null)
+        {
+            _logger.LogWarning("Import {ImportId} not found for batch save outcome increment", importId);
+            return null;
+        }
+
+        import.IncrementBatchOutcome(success);
+
+        if (import.BatchesSaved + import.BatchesFailed >= import.BatchesQueued && import.BatchesQueued > 0)
+        {
+            _logger.LogInformation("All batches completed for ImportId: {ImportId}. BatchesSaved: {BatchesSaved}, BatchesFailed: {BatchesFailed}",
+                importId, import.BatchesSaved, import.BatchesFailed);
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await InvalidateCacheAsync(import.TenantId, importId);
+        return import;
     }
 
     public async Task<Import?> GetImportAsync(Guid importId, CancellationToken cancellationToken = default)

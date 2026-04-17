@@ -121,6 +121,19 @@ public class Import : GuidAuditableEntity
         BatchesFailed = batchesFailed;
         LastUpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Increments batch outcome counters after one batch save attempt (used by bulk import progress).
+    /// </summary>
+    public void IncrementBatchOutcome(bool success)
+    {
+        if (success)
+            BatchesSaved++;
+        else
+            BatchesFailed++;
+
+        LastUpdatedAt = DateTime.UtcNow;
+    }
 }
 
 public enum ImportStatus
