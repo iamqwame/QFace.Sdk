@@ -88,7 +88,7 @@ public class TaxationProcessor(ILogger<TaxationProcessor> logger)
             {
                 adjustedBaseAmount = cumulativeTax + baseAmount;
             }
-            if (tax.IncludedInPrice == AppConstant.Service.IncludedInPrice.TaxIncluded)
+            if (tax.IncludedInPrice == TaxationConstants.IncludedInPrice.TaxIncluded)
             {
                 var (taxableBase, taxAmount) = CalculateTaxAmount(afterPrice, tax);
                 afterPrice = taxableBase; // Update AfterPrice to reflect tax-included adjustments
@@ -149,12 +149,12 @@ public class TaxationProcessor(ILogger<TaxationProcessor> logger)
 
         switch (tax.ComputationMethod)
         {
-            case AppConstant.Service.TaxComputationMethod.Fixed:
+            case TaxationConstants.TaxComputationMethod.Fixed:
                 taxAmount = tax.Rate;
                 break;
 
-            case AppConstant.Service.TaxComputationMethod.Percentage:
-                if (tax.IncludedInPrice == AppConstant.Service.IncludedInPrice.TaxIncluded)
+            case TaxationConstants.TaxComputationMethod.Percentage:
+                if (tax.IncludedInPrice == TaxationConstants.IncludedInPrice.TaxIncluded)
                 {
                     taxableBase = amount / (1 + (tax.Rate / 100m));
                     taxAmount = amount - taxableBase; // Separate tax from the total
@@ -166,14 +166,14 @@ public class TaxationProcessor(ILogger<TaxationProcessor> logger)
 
                 break;
 
-            case AppConstant.Service.TaxComputationMethod.PercentageOfTaxIncluded:
+            case TaxationConstants.TaxComputationMethod.PercentageOfTaxIncluded:
                 // Correct formula for Percentage of Price Tax Included
                 var taxRate = tax.Rate / 100m;
                 taxAmount = (amount * taxRate) / (1 - taxRate);
                 taxableBase = amount - taxAmount; // Base amount is total minus tax amount
                 break;
 
-            case AppConstant.Service.TaxComputationMethod.Group:
+            case TaxationConstants.TaxComputationMethod.Group:
                 throw new NotSupportedException("Group taxes should be handled separately");
 
             default:
@@ -202,9 +202,9 @@ public class TaxationProcessor(ILogger<TaxationProcessor> logger)
         {
             var amount = distribution.BasedOn switch
             {
-                AppConstant.Service.Core.DistributionBaseOnTheBase =>
+                TaxationConstants.Core.DistributionBaseOnTheBase =>
                     baseAmount * (distribution.Percentage / 100m),
-                AppConstant.Service.Core.DistributionBaseOnThePercentageOfTheBase =>
+                TaxationConstants.Core.DistributionBaseOnThePercentageOfTheBase =>
                     taxAmount * (distribution.Percentage / 100m),
                 _ => throw new InvalidOperationException($"Unknown BasedOn value: {distribution.BasedOn}")
             };
@@ -224,10 +224,10 @@ public class TaxationProcessor(ILogger<TaxationProcessor> logger)
         {
             // Validate distributions sum to 100%
             var invoiceTotal = tax.InvoiceDistributions
-                .Where(x => x.BasedOn != AppConstant.Service.Core.DistributionBaseOnTheBase)
+                .Where(x => x.BasedOn != TaxationConstants.Core.DistributionBaseOnTheBase)
                 .Sum(d => d.Percentage);
             var refundTotal = tax.RefundDistributions
-                .Where(x => x.BasedOn != AppConstant.Service.Core.DistributionBaseOnTheBase)
+                .Where(x => x.BasedOn != TaxationConstants.Core.DistributionBaseOnTheBase)
                 .Sum(d => d.Percentage);
 
             if (Math.Abs(invoiceTotal - 100m) > 0.01m || Math.Abs(refundTotal - 100m) > 0.01m)
@@ -239,8 +239,8 @@ public class TaxationProcessor(ILogger<TaxationProcessor> logger)
             // Validate that all distributions have valid "BasedOn" values
             foreach (var distribution in tax.InvoiceDistributions.Concat(tax.RefundDistributions))
             {
-                if (distribution.BasedOn != AppConstant.Service.Core.DistributionBaseOnTheBase &&
-                    distribution.BasedOn != AppConstant.Service.Core.DistributionBaseOnThePercentageOfTheBase)
+                if (distribution.BasedOn != TaxationConstants.Core.DistributionBaseOnTheBase &&
+                    distribution.BasedOn != TaxationConstants.Core.DistributionBaseOnThePercentageOfTheBase)
                 {
                     throw new InvalidOperationException($"Invalid BasedOn value in tax {tax.Name}");
                 }

@@ -765,7 +765,7 @@ public class WorkflowApprovalProcessor(
         var totalSteps = 0;
 
         var nextStepCode = isCompleted
-            ? AppConstant.Workflow.States.Completed
+            ? WorkflowConstants.States.Completed
             : (@event.CurrentState ?? @event.NextStepCode ?? "");
         var nextStepName = _systemOptions.DefaultNextStepName;
 

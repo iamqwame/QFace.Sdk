@@ -1,3 +1,5 @@
+using QimErp.Shared.Common.Processors;
+
 namespace QimErp.Shared.Common.Entities;
 
 public class TaxationShared : GuidAuditableEntity
@@ -41,7 +43,7 @@ public class TaxationShared : GuidAuditableEntity
     }
 
     // Fluent methods for property assignment
-    public TaxationShared WithComputationMethod(string method = AppConstant.Service.TaxComputationMethod.Percentage)
+    public TaxationShared WithComputationMethod(string method = TaxationConstants.TaxComputationMethod.Percentage)
     {
         ComputationMethod = method;
         return this;
@@ -54,19 +56,19 @@ public class TaxationShared : GuidAuditableEntity
     }
 
 
-    public TaxationShared WithScope(string scope = AppConstant.Service.TaxScope.Default)
+    public TaxationShared WithScope(string scope = TaxationConstants.TaxScope.Default)
     {
         Scope = scope;
         return this;
     }
 
-    public TaxationShared WithIncludedInPrice(string includedInPrice = AppConstant.Service.IncludedInPrice.Default)
+    public TaxationShared WithIncludedInPrice(string includedInPrice = TaxationConstants.IncludedInPrice.Default)
     {
         IncludedInPrice = includedInPrice;
         return this;
     }
 
-    public TaxationShared WithType(string type = AppConstant.Service.TaxType.Default)
+    public TaxationShared WithType(string type = TaxationConstants.TaxType.Default)
     {
         Type = type;
         return this;
@@ -124,7 +126,7 @@ public class TaxationShared : GuidAuditableEntity
     public TaxationShared AddInvoiceDistribution(string baseOn, decimal? percentage, string taxGrid, string? accountId,
         string? accountName, string? accountCode = "")
     {
-        if (baseOn == AppConstant.Service.Core.DistributionBaseOnTheBase)
+        if (baseOn == TaxationConstants.Core.DistributionBaseOnTheBase)
         {
             _invoiceDistributions.Add(TaxDistributionLineShared.CreateBase(
                 AccountProperty.Create(accountId, accountName, accountCode), taxGrid));
@@ -141,7 +143,7 @@ public class TaxationShared : GuidAuditableEntity
     public TaxationShared AddRefundDistribution(string baseOn, decimal? percentage, string taxGrid, string? accountId,
         string? accountName, string? accountCode = "")
     {
-        if (baseOn == AppConstant.Service.Core.DistributionBaseOnTheBase)
+        if (baseOn == TaxationConstants.Core.DistributionBaseOnTheBase)
         {
             _refundDistributions.Add(TaxDistributionLineShared.CreateBase(
                 AccountProperty.Create(accountId, accountName, accountCode), taxGrid));
@@ -161,7 +163,7 @@ public class TaxationShared : GuidAuditableEntity
         [
             Create("NHIL", 2.5m)
                 .WithComputationMethod()
-                .WithType(AppConstant.Service.TaxType.Sales)
+                .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup()
                 .WithSequence(5)
                 .WithDescription("National Health Insurance Levy")
@@ -169,7 +171,7 @@ public class TaxationShared : GuidAuditableEntity
 
             Create("GETFUND", 2.5m)
                 .WithComputationMethod()
-                .WithType(AppConstant.Service.TaxType.Sales)
+                .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup()
                 .WithSequence(5)
                 .WithDescription("Ghana Education Trust Fund")
@@ -177,7 +179,7 @@ public class TaxationShared : GuidAuditableEntity
 
             Create("NHIL", 2.5m)
                 .WithComputationMethod()
-                .WithType(AppConstant.Service.TaxType.Sales)
+                .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup()
                 .WithSequence(5)
                 .WithDescription("National Health Insurance Levy")
@@ -185,7 +187,7 @@ public class TaxationShared : GuidAuditableEntity
 
             Create("COVID-19", 1m)
                 .WithComputationMethod()
-                .WithType(AppConstant.Service.TaxType.Sales)
+                .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup()
                 .WithSequence(5)
                 .WithDescription("COVID-19 Health Recovery Levy")
@@ -193,7 +195,7 @@ public class TaxationShared : GuidAuditableEntity
 
             Create("Standard VAT Rate", 12.5m)
                 .WithComputationMethod()
-                .WithType(AppConstant.Service.TaxType.Sales)
+                .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup()
                 .WithSequence(5)
                 .WithDescription("General taxable goods and services.")
@@ -201,7 +203,7 @@ public class TaxationShared : GuidAuditableEntity
 
             Create("Standard VAT Rate", 12.5m)
                 .WithComputationMethod()
-                .WithType(AppConstant.Service.TaxType.Sales)
+                .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup("VAT")
                 .WithSequence(5)
                 .WithDescription("General taxable goods and services.")
@@ -209,7 +211,7 @@ public class TaxationShared : GuidAuditableEntity
 
             Create("VAT Flat Rate Scheme (VFRS)", 3m)
                 .WithComputationMethod()
-                .WithType(AppConstant.Service.TaxType.Sales)
+                .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup("VAT")
                 .WithLabelOnInvoices("3% VAT")
                 .WithSequence(5)
@@ -218,7 +220,7 @@ public class TaxationShared : GuidAuditableEntity
 
             Create("VAT Exempt", 0m)
                 .WithComputationMethod()
-                .WithType(AppConstant.Service.TaxType.Sales)
+                .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup("VAT")
                 .WithLabelOnInvoices("0% VAT")
                 .WithSequence(5)
@@ -229,14 +231,14 @@ public class TaxationShared : GuidAuditableEntity
 
     private TaxationShared AddDistribution(string accountId = "451000", string accountName = "VAT Payable")
     {
-        AddInvoiceDistribution(AppConstant.Service.Core.DistributionBaseOnTheBase, null, "FIXED_01", accountId,
+        AddInvoiceDistribution(TaxationConstants.Core.DistributionBaseOnTheBase, null, "FIXED_01", accountId,
             accountName);
-        AddInvoiceDistribution(AppConstant.Service.Core.DistributionBaseOnThePercentageOfTheBase, 100, "FIXED_01",
+        AddInvoiceDistribution(TaxationConstants.Core.DistributionBaseOnThePercentageOfTheBase, 100, "FIXED_01",
             accountId,
             accountName);
-        AddRefundDistribution(AppConstant.Service.Core.DistributionBaseOnTheBase, null, "FIXED_01", "451000",
+        AddRefundDistribution(TaxationConstants.Core.DistributionBaseOnTheBase, null, "FIXED_01", "451000",
             accountName);
-        AddRefundDistribution(AppConstant.Service.Core.DistributionBaseOnThePercentageOfTheBase, 100, "FIXED_01",
+        AddRefundDistribution(TaxationConstants.Core.DistributionBaseOnThePercentageOfTheBase, 100, "FIXED_01",
             accountId,
             accountName);
         return this;
@@ -258,7 +260,7 @@ public class TaxDistributionLineShared
         return new TaxDistributionLineShared
         {
             Percentage = percentage,
-            BasedOn = AppConstant.Service.Core.DistributionBaseOnThePercentageOfTheBase,
+            BasedOn = TaxationConstants.Core.DistributionBaseOnThePercentageOfTheBase,
             Account = account,
             TaxGrid = taxGrid,
             Id = Guid.CreateVersion7()
@@ -270,7 +272,7 @@ public class TaxDistributionLineShared
         return new TaxDistributionLineShared
         {
             Percentage = 100,
-            BasedOn = AppConstant.Service.Core.DistributionBaseOnTheBase,
+            BasedOn = TaxationConstants.Core.DistributionBaseOnTheBase,
             Account = account,
             TaxGrid = taxGrid,
             Id = Guid.CreateVersion7()
