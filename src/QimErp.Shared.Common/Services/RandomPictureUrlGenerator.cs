@@ -5,24 +5,23 @@ public static class RandomPictureUrlGenerator
     private static readonly Random _random = new();
     private static readonly HashSet<string> _usedUrls = new();
     
-    private static readonly string[] RandomUserMeUrls = GenerateRandomUserMeUrls();
-    
-    private static string[] GenerateRandomUserMeUrls()
+    // pravatar.cc is CORS-compliant (Access-Control-Allow-Origin: *) and provides
+    // 70 realistic portraits per gender category via a simple index URL.
+    // randomuser.me was replaced because it does not send CORS headers, causing
+    // browser <img> loads to be blocked when the app runs on localhost or any
+    // cross-origin host.
+    private static readonly string[] PravatarUrls = GeneratePravatarUrls();
+
+    private static string[] GeneratePravatarUrls()
     {
         var urls = new List<string>();
-        
-        // Generate 99 male portraits (1-99) - randomuser.me supports up to 99
-        for (int i = 1; i <= 99; i++)
+
+        // pravatar.cc supports img=1-70 for both genders
+        for (int i = 1; i <= 70; i++)
         {
-            urls.Add($"https://randomuser.me/api/portraits/men/{i}.jpg");
+            urls.Add($"https://i.pravatar.cc/150?img={i}");
         }
-        
-        // Generate 99 female portraits (1-99) - randomuser.me supports up to 99
-        for (int i = 1; i <= 99; i++)
-        {
-            urls.Add($"https://randomuser.me/api/portraits/women/{i}.jpg");
-        }
-        
+
         return urls.ToArray();
     }
     
@@ -89,32 +88,16 @@ public static class RandomPictureUrlGenerator
     
     public static string GetRandomPictureUrl()
     {
-        // 70% chance for randomuser.me, 30% chance for unsplash
-        var useRandomUser = _random.NextDouble() < 0.7;
-        
-        if (useRandomUser)
-        {
-            return GetUniqueRandomUserMeUrl();
-        }
-        else
-        {
-            return GetUniqueUnsplashUrl();
-        }
+        // 70% chance for pravatar.cc (CORS-safe), 30% chance for unsplash
+        var usePravatar = _random.NextDouble() < 0.7;
+        return usePravatar ? GetUniquePravatarUrl() : GetUniqueUnsplashUrl();
     }
-    
+
     public static string GetRandomPictureUrl(string? gender)
     {
-        // 70% chance for randomuser.me, 30% chance for unsplash
-        var useRandomUser = _random.NextDouble() < 0.7;
-        
-        if (useRandomUser)
-        {
-            return GetUniqueRandomUserMeUrl(gender);
-        }
-        else
-        {
-            return GetUniqueUnsplashUrl(gender);
-        }
+        // 70% chance for pravatar.cc (CORS-safe), 30% chance for unsplash
+        var usePravatar = _random.NextDouble() < 0.7;
+        return usePravatar ? GetUniquePravatarUrl() : GetUniqueUnsplashUrl(gender);
     }
     
     private static string GetUniqueUnsplashUrl(string? gender = null)
@@ -140,24 +123,16 @@ public static class RandomPictureUrlGenerator
         return selectedUrl;
     }
     
-    private static string GetUniqueRandomUserMeUrl(string? gender = null)
+    private static string GetUniquePravatarUrl()
     {
-        var availableUrls = gender?.ToLower() switch
-        {
-            "male" or "m" => RandomUserMeUrls.Take(99).ToArray(),
-            "female" or "f" => RandomUserMeUrls.Skip(99).Take(99).ToArray(),
-            _ => RandomUserMeUrls
-        };
-        
-        var unusedUrls = availableUrls.Where(url => !_usedUrls.Contains(url)).ToArray();
-        
+        var unusedUrls = PravatarUrls.Where(url => !_usedUrls.Contains(url)).ToArray();
+
         if (unusedUrls.Length == 0)
         {
-            // If all URLs are used, reset and start over
             _usedUrls.Clear();
-            unusedUrls = availableUrls;
+            unusedUrls = PravatarUrls;
         }
-        
+
         var selectedUrl = unusedUrls[_random.Next(unusedUrls.Length)];
         _usedUrls.Add(selectedUrl);
         return selectedUrl;

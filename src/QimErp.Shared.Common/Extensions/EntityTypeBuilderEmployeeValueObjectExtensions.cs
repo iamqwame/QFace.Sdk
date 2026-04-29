@@ -6,20 +6,54 @@ namespace QimErp.Shared.Common.Extensions;
 public static class EntityTypeBuilderEmployeeValueObjectExtensions
 {
     /// <summary>
-    /// Configures a required EmployeeValueObject property as an owned entity with standard column naming.
+    /// Maps every column of EmployeeValueObject — the slim 5 (Id, Name, Code,
+    /// Email, ProfilePicture) plus the eight denormalised job-info columns
+    /// (JobTitle, JobTitleCode, OrganizationalUnit, OrganizationalUnitCode,
+    /// Station, StationCode, Rank, RankCode). The eight extras have no max
+    /// length — open-ended PostgreSQL `text`.
     /// </summary>
-    /// <typeparam name="TEntity">The entity type.</typeparam>
-    /// <param name="builder">The entity type builder.</param>
-    /// <param name="navigationExpression">Expression selecting the EmployeeValueObject property.</param>
-    /// <param name="columnNamePrefix">Prefix for column names (e.g., "Employee" will create "EmployeeId", "EmployeeName", etc.). Defaults to "Employee".</param>
-    /// <param name="includeIndex">Whether to create an index on the EmployeeId column. Defaults to false.</param>
-    /// <returns>The entity type builder for chaining.</returns>
-    /// <example>
-    /// <code>
-    /// builder.ConfigureEmployee(x => x.Employee);
-    /// builder.ConfigureEmployee(x => x.CreatedBy, "CreatedBy", includeIndex: true);
-    /// </code>
-    /// </example>
+    private static void MapColumns<TEntity>(
+        OwnedNavigationBuilder<TEntity, EmployeeValueObject> employee,
+        string columnNamePrefix)
+        where TEntity : class
+    {
+        employee.Property(p => p.Id)
+            .HasColumnName($"{columnNamePrefix}Id")
+            .IsRequired();
+
+        employee.Property(p => p.Name)
+            .HasColumnName($"{columnNamePrefix}Name")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        employee.Property(p => p.Code)
+            .HasColumnName($"{columnNamePrefix}Code")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        employee.Property(p => p.Email)
+            .HasColumnName($"{columnNamePrefix}Email")
+            .HasMaxLength(255);
+
+        employee.Property(p => p.Picture)
+            .HasColumnName($"{columnNamePrefix}ProfilePicture")
+            .HasMaxLength(500);
+
+        employee.Property(p => p.JobTitle).HasColumnName($"{columnNamePrefix}JobTitle");
+        employee.Property(p => p.JobTitleCode).HasColumnName($"{columnNamePrefix}JobTitleCode");
+        employee.Property(p => p.OrganizationalUnit).HasColumnName($"{columnNamePrefix}OrganizationalUnit");
+        employee.Property(p => p.OrganizationalUnitCode).HasColumnName($"{columnNamePrefix}OrganizationalUnitCode");
+        employee.Property(p => p.Station).HasColumnName($"{columnNamePrefix}Station");
+        employee.Property(p => p.StationCode).HasColumnName($"{columnNamePrefix}StationCode");
+        employee.Property(p => p.Rank).HasColumnName($"{columnNamePrefix}Rank");
+        employee.Property(p => p.RankCode).HasColumnName($"{columnNamePrefix}RankCode");
+    }
+
+    /// <summary>
+    /// Configures a required EmployeeValueObject property as an owned entity
+    /// with consistent column naming for all 13 columns (5 identity +
+    /// 8 denormalised job/org/station/rank fields).
+    /// </summary>
     public static EntityTypeBuilder<TEntity> ConfigureEmployee<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, EmployeeValueObject>> navigationExpression,
@@ -29,52 +63,17 @@ public static class EntityTypeBuilderEmployeeValueObjectExtensions
     {
         builder.OwnsOne(navigationExpression, employee =>
         {
-            employee.Property(p => p.Id)
-                .HasColumnName($"{columnNamePrefix}Id")
-                .IsRequired();
-
-            employee.Property(p => p.Name)
-                .HasColumnName($"{columnNamePrefix}Name")
-                .HasMaxLength(200)
-                .IsRequired();
-
-            employee.Property(p => p.Code)
-                .HasColumnName($"{columnNamePrefix}Code")
-                .HasMaxLength(50)
-                .IsRequired();
-
-            employee.Property(p => p.Email)
-                .HasColumnName($"{columnNamePrefix}Email")
-                .HasMaxLength(255);
-
-            employee.Property(p => p.Picture)
-                .HasColumnName($"{columnNamePrefix}ProfilePicture")
-                .HasMaxLength(500);
-
-            if (includeIndex)
-            {
-                employee.HasIndex(p => p.Id);
-            }
+            MapColumns(employee, columnNamePrefix);
+            if (includeIndex) employee.HasIndex(p => p.Id);
         });
 
         return builder;
     }
 
     /// <summary>
-    /// Configures an optional EmployeeValueObject property as an owned entity with standard column naming.
+    /// Configures an optional EmployeeValueObject property as an owned entity
+    /// with consistent column naming for all 13 columns.
     /// </summary>
-    /// <typeparam name="TEntity">The entity type.</typeparam>
-    /// <param name="builder">The entity type builder.</param>
-    /// <param name="navigationExpression">Expression selecting the EmployeeValueObject? property.</param>
-    /// <param name="columnNamePrefix">Prefix for column names (e.g., "Employee" will create "EmployeeId", "EmployeeName", etc.). Defaults to "Employee".</param>
-    /// <param name="includeIndex">Whether to create an index on the EmployeeId column. Defaults to false.</param>
-    /// <returns>The entity type builder for chaining.</returns>
-    /// <example>
-    /// <code>
-    /// builder.ConfigureOptionalEmployee(x => x.Supervisor, "Supervisor");
-    /// builder.ConfigureOptionalEmployee(x => x.Manager, "Manager", includeIndex: true);
-    /// </code>
-    /// </example>
     public static EntityTypeBuilder<TEntity> ConfigureOptionalEmployee<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, EmployeeValueObject?>> navigationExpression,
@@ -84,34 +83,10 @@ public static class EntityTypeBuilderEmployeeValueObjectExtensions
     {
         builder.OwnsOne(navigationExpression, employee =>
         {
-            employee.Property(p => p.Id)
-                .HasColumnName($"{columnNamePrefix}Id")
-                .IsRequired();
-            
-            employee.Property(p => p.Name)
-                .HasColumnName($"{columnNamePrefix}Name")
-                .HasMaxLength(200)
-                .IsRequired();
-            
-            employee.Property(p => p.Code)
-                .HasColumnName($"{columnNamePrefix}Code")
-                .HasMaxLength(50)
-                .IsRequired();
-            
-            employee.Property(p => p.Email)
-                .HasColumnName($"{columnNamePrefix}Email")
-                .HasMaxLength(255);
-            
-            employee.Property(p => p.Picture)
-                .HasColumnName($"{columnNamePrefix}ProfilePicture")
-                .HasMaxLength(500);
-            
-            if (includeIndex)
-            {
-                employee.HasIndex(p => p.Id);
-            }
+            MapColumns(employee, columnNamePrefix);
+            if (includeIndex) employee.HasIndex(p => p.Id);
         });
-        
+
         return builder;
     }
 }

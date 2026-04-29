@@ -13,7 +13,7 @@ public class EmployeeValueObject
     }
     public EmployeeValueObject()
     {
-        
+
     }
 
     public Guid Id { get; set; }
@@ -21,7 +21,17 @@ public class EmployeeValueObject
     public string Name { get; set; }
     public string? Email { get; set; }
     public string? Picture { get; set; }
-    
+
+
+    public string? JobTitle { get; set; }
+    public string? JobTitleCode { get; set; }
+    public string? OrganizationalUnit { get; set; }
+    public string? OrganizationalUnitCode { get; set; }
+    public string? Station { get; set; }
+    public string? StationCode { get; set; }
+    public string? Rank { get; set; }
+    public string? RankCode { get; set; }
+
 
     public static EmployeeValueObject Create(Guid id, string code, string name, string email, string picture)
     {

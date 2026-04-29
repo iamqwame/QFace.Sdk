@@ -92,11 +92,21 @@ public class ResponseLoggingMiddleware
             return;
         }
 
+        // Escalate log level for error responses so 4xx/5xx stand out in logs and
+        // their bodies are captured even when the default log level is Warning+.
+        var isError = response.StatusCode >= 400;
+        var statusLogLevel = response.StatusCode switch
+        {
+            >= 500 => LogLevel.Error,
+            >= 400 => LogLevel.Warning,
+            _ => _options.LogLevel,
+        };
+
         var userService = context.RequestServices.GetService<ICurrentUserService>();
         using (_logger.BeginUserContextScope(userService))
         {
             _logger.Log(
-                _options.LogLevel,
+                statusLogLevel,
                 "HTTP response {StatusCode} {Method} {Path} {RequestId}",
                 response.StatusCode,
                 request.Method,
@@ -114,8 +124,11 @@ public class ResponseLoggingMiddleware
             }
         }
 
-        // Log response body
-        if (_options.LogResponseBody && ShouldLogResponseBody(response.ContentType))
+        // Log response body. For error responses we always try to read the body —
+        // ignoring the content-type allowlist — because the whole point is to
+        // surface the failure reason in logs. For 2xx we respect the usual
+        // "only text-like content-types" heuristic.
+        if (_options.LogResponseBody && (isError || ShouldLogResponseBody(response.ContentType)))
         {
             var body = await GetResponseBodyAsync(memoryStream);
             if (!string.IsNullOrEmpty(body))
@@ -126,7 +139,7 @@ public class ResponseLoggingMiddleware
                     body = body[.._options.MaxBodyLength] + "... [truncated]";
                 }
 
-                _logger.Log(_options.LogLevel, "Response Body: {Body}", body);
+                _logger.Log(statusLogLevel, "Response Body ({StatusCode}): {Body}", response.StatusCode, body);
             }
         }
 
