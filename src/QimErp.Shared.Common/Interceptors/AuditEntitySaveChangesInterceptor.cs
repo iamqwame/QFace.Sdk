@@ -5,6 +5,7 @@ using System.Transactions;
 using QFace.Sdk.RabbitMq.Services;
 using QimErp.Shared.Common.Events;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Services;
 using QimErp.Shared.Common.Services.Auth;
 using QimErp.Shared.Common.Services.Workflow;
 
@@ -41,6 +42,17 @@ public class AuditEntitySaveChangesInterceptor(
             // Set TenantId on entities early, before workflow processing
             SetTenantIdOnEntities(context);
 
+            // Bulk-seed fast path: skip workflow processing and event capture.
+            // Audit metadata still applied so seeded rows have CreatedBy/At, but no events flow to RabbitMQ.
+            if (BulkSeedScope.IsSuppressed)
+            {
+                AddAuditMetadata(context);
+                ClearPendingDomainEvents(context);
+                logger.LogDebug("BulkSeedScope active — skipped workflow processing and event capture for {Context}",
+                    context.GetType().Name);
+                return await base.SavingChangesAsync(eventData, result, cancellationToken);
+            }
+
             var workflowEvents = new List<IDomainEvent>();
             await ProcessWorkflowEntitiesAsync(workflowEvents, cancellationToken, context);
             await CaptureWorkflowEventsAsync(workflowEvents, context, cancellationToken);
@@ -73,6 +85,13 @@ public class AuditEntitySaveChangesInterceptor(
 
         try
         {
+            // Bulk-seed fast path: no captured events to publish.
+            if (BulkSeedScope.IsSuppressed)
+            {
+                _contextEvents.Remove(context);
+                return await base.SavedChangesAsync(eventData, result, cancellationToken);
+            }
+
             if (result > 0 && _contextEvents.TryGetValue(context, out var workflowEvents))
             {
                 logger.LogDebug("Publishing {EventCount} workflow events after successful save ({RowsAffected} rows affected)",
@@ -111,6 +130,15 @@ public class AuditEntitySaveChangesInterceptor(
         {
             logger.LogDebug("Starting pre-save processing for context: {Context} (sync)", context.GetType().Name);
 
+            if (BulkSeedScope.IsSuppressed)
+            {
+                AddAuditMetadata(context);
+                ClearPendingDomainEvents(context);
+                logger.LogDebug("BulkSeedScope active — skipped workflow processing and event capture for {Context} (sync)",
+                    context.GetType().Name);
+                return base.SavingChanges(eventData, result);
+            }
+
             var workflowEvents = new List<IDomainEvent>();
             ProcessWorkflowEntitiesAsync(workflowEvents, CancellationToken.None, context).GetAwaiter().GetResult();
             CaptureWorkflowEventsAsync(workflowEvents, context, CancellationToken.None).GetAwaiter().GetResult();
@@ -139,6 +167,12 @@ public class AuditEntitySaveChangesInterceptor(
 
         try
         {
+            if (BulkSeedScope.IsSuppressed)
+            {
+                _contextEvents.Remove(context);
+                return base.SavedChanges(eventData, result);
+            }
+
             if (result > 0 && _contextEvents.TryGetValue(context, out var workflowEvents))
             {
                 logger.LogDebug("Publishing {EventCount} workflow events after successful save (sync)", workflowEvents.Count);
@@ -1283,4 +1317,21 @@ public class AuditEntitySaveChangesInterceptor(
         entity.GetType().GetProperty("Name")?.GetValue(entity)?.ToString() ?? entity.EntityType;
 
     protected virtual Dictionary<string, object> GetEntityData(IWorkflowEnabled entity) => [];
+
+    /// <summary>
+    /// Drops any pending domain events on tracked AuditableEntity instances without publishing.
+    /// Called on the BulkSeedScope fast path so seed-time entity construction (e.g. WithMiddleName
+    /// triggering EmployeeChangedEvent) does not leave events queued for the next non-seed save.
+    /// </summary>
+    private void ClearPendingDomainEvents(DbContext context)
+    {
+        var tracked = context.ChangeTracker.Entries<AuditableEntity>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified)
+            .ToList();
+        foreach (var entry in tracked)
+        {
+            if (entry.Entity.HasDomainEvents)
+                entry.Entity.ClearDomainEvents();
+        }
+    }
 }

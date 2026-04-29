@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+
+        <!-- NuGet Package Metadata -->
+        <PackageId>QimErp.Shared.DemoData</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>IAmQwame</Authors>
+        <Company>QimErp</Company>
+        <Description>
+            Demo-data generation library for QimErp: industry profiles (Banking, Software,
+            Healthcare, Manufacturing, Service, Education, ECommerce, Telecommunications,
+            NonProfit, Construction), Ghana-curated person/geography/banking/telecom data,
+            org hierarchy + employee distribution algorithms, and a Bogus-backed faker.
+            Used by IAM admin demo-seeding endpoints and CoreHr bulk-seed activities to
+            stand up realistic demo tenants without going through Excel imports.
+        </Description>
+        <PackageTags>qimerp;demo;seeding;bogus;faker;ghana;industry</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/iamqwame/QimErp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/iamqwame/QimErp</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+        <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Realistic data engine -->
+        <PackageReference Include="Bogus" Version="35.6.1" />
+
+        <!-- DI helpers for AddDemoData() extension -->
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    </ItemGroup>
+
+</Project>
