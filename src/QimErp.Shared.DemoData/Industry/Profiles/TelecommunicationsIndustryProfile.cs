@@ -2,10 +2,6 @@ using QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
-/// <summary>
-/// Telecommunications industry. Lifted from QimErp.IAM.Seeding.Demo's
-/// TelecommunicationsIndustryData. Stations are HQ + regional offices + tower-maintenance yards.
-/// </summary>
 public sealed class TelecommunicationsIndustryProfile : IIndustryProfile
 {
     public string Code => "TELECOMMUNICATIONS";
@@ -73,7 +69,6 @@ public sealed class TelecommunicationsIndustryProfile : IIndustryProfile
                 CapacityMax: 120));
         }
 
-        // Tower / fibre maintenance yards — small, 1.5x the regional count.
         var yardCount = (regionalCount * 3) / 2;
         var yards = new List<StationSpec>(yardCount);
         for (var i = 0; i < yardCount; i++)
@@ -100,7 +95,7 @@ public sealed class TelecommunicationsIndustryProfile : IIndustryProfile
         {
             [5] = 0.005,
             [4] = 0.040,
-            [3] = 0.250, // engineers / techs / CSR are the bulk
+            [3] = 0.250,
             [2] = 0.500,
             [1] = 0.205
         },
@@ -111,12 +106,10 @@ public sealed class TelecommunicationsIndustryProfile : IIndustryProfile
         {
             [5] = (14_000m, 30_000m),
             [4] = (7_000m,  16_000m),
-            [3] = (3_500m,  14_000m), // SENIOR_NET_ENG (rank 3 in source) tops out at 14k
+            [3] = (3_500m,  14_000m), // top of band accommodates SENIOR_NET_ENG (rank 3 in source).
             [2] = (2_500m,   7_000m),
             [1] = (2_000m,   4_000m)
         });
-
-    // ─────────── baseline org units (lifted from TelecommunicationsIndustryData) ───────────
 
     private static readonly IReadOnlyList<string> NetOpsJobs    = ["NET_DIR", "NET_MGR", "NET_ENG", "SENIOR_NET_ENG", "JUNIOR_NET_ENG", "NET_TRAINEE"];
     private static readonly IReadOnlyList<string> CustomerJobs  = ["CUSTOMER_MGR", "CSR", "CUSTOMER_ASSIST", "CUSTOMER_TRAINEE"];
@@ -197,23 +190,17 @@ public sealed class TelecommunicationsIndustryProfile : IIndustryProfile
         ["ADMIN"]    = 0.15
     };
 
-    // ─────────── job titles (lifted from TelecommunicationsIndustryData) ───────────
-    // NOTE: Source has "Senior Network Engineer" at Level=3 (alongside the regular
-    // Network Engineer at Level=3) rather than Level=4. Preserved as-is.
-
+    // SENIOR_NET_ENG is rank 3 (not 4) per the IAM source — preserved for parity.
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [
-        // Executive (5)
         new("CEO",                "Chief Executive Officer",  5, 18_000m, 30_000m, null,           null,        true,  "Master's Degree",   12, "Telecom Leadership, Strategic Planning"),
         new("CTO",                "Chief Technology Officer", 5, 16_000m, 28_000m, "IT",           "CEO",       true,  "Master's Degree",   10, "Technology Leadership, Network Architecture"),
         new("NET_DIR",            "Network Director",         5, 14_000m, 24_000m, "NETOPS",       "CEO",       true,  "Master's Degree",   10, "Network Operations, Infrastructure"),
-        // Senior (4)
         new("NET_MGR",            "Network Manager",          4, 9_000m,  15_000m, "NETOPS",       "NET_DIR",   true,  "Bachelor's Degree", 6,  "Network Management, Operations"),
         new("CUSTOMER_MGR",       "Customer Service Manager", 4, 7_000m,  12_000m, "CUSTOMER",     null,        true,  "Bachelor's Degree", 5,  "Customer Service, Support Management"),
         new("SALES_MGR",          "Sales Manager",            4, 8_000m,  14_000m, "SALES",        null,        true,  "Bachelor's Degree", 5,  "Sales Management, Business Development"),
         new("TECH_SUPPORT_MGR",   "Technical Support Manager",4, 8_500m,  14_000m, "TECH_SUPPORT", null,        true,  "Bachelor's Degree", 6,  "Technical Support, Field Services"),
         new("IT_MGR",             "IT Manager",               4, 10_000m, 16_000m, "IT",           "CTO",       true,  "Bachelor's Degree", 6,  "IT Operations, Systems Management"),
-        // Mid (3)
         new("NET_ENG",            "Network Engineer",         3, 7_000m,  12_000m, "NETOPS",       "NET_MGR",   false, "Bachelor's Degree", 4,  "Network Engineering, Configuration, Troubleshooting"),
         new("SENIOR_NET_ENG",     "Senior Network Engineer",  3, 8_500m,  14_000m, "NETOPS",       "NET_MGR",   false, "Bachelor's Degree", 5,  "Advanced Network Engineering, Design"),
         new("CSR",                "Customer Service Representative",3,3_500m,6_000m,"CUSTOMER",    "CUSTOMER_MGR",false,"High School",     2,  "Customer Service, Support, Billing"),
@@ -221,12 +208,10 @@ public sealed class TelecommunicationsIndustryProfile : IIndustryProfile
         new("FIELD_TECH",         "Field Technician",         3, 5_000m,  9_000m,  "TECH_SUPPORT", "TECH_SUPPORT_MGR",false,"Diploma",     3,  "Field Installations, Maintenance, Repairs"),
         new("SALES_EXEC",         "Sales Executive",          3, 5_000m,  9_000m,  "SALES",        "SALES_MGR", false, "Bachelor's Degree", 2,  "Sales, Account Management, Prospecting"),
         new("IT_ENG",             "IT Engineer",              3, 7_000m,  12_000m, "IT",           "IT_MGR",    false, "Bachelor's Degree", 3,  "IT Systems, Infrastructure, Support"),
-        // Junior (2)
         new("JUNIOR_NET_ENG",     "Junior Network Engineer",  2, 4_000m,  7_000m,  "NETOPS",       "NET_ENG",   false, "Diploma",           1,  "Network Support, Basic Configuration"),
         new("CUSTOMER_ASSIST",    "Customer Service Assistant",2,2_500m,  4_500m,  "CUSTOMER",     "CSR",       false, "High School",       1,  "Customer Support, Basic Inquiries"),
         new("JUNIOR_FIELD_TECH",  "Junior Field Technician",  2, 3_000m,  5_500m,  "TECH_SUPPORT", "FIELD_TECH",false, "High School",       1,  "Field Support, Learning"),
         new("SALES_ASSIST",       "Sales Assistant",          2, 3_000m,  5_500m,  "SALES",        "SALES_EXEC",false, "High School",       1,  "Sales Support, Data Entry"),
-        // Entry (1)
         new("NET_TRAINEE",        "Network Trainee",          1, 2_000m,  4_000m,  "NETOPS",       "JUNIOR_NET_ENG",false,"Student",       0,  "Learning, Network Support"),
         new("CUSTOMER_TRAINEE",   "Customer Service Trainee", 1, 2_000m,  3_500m,  "CUSTOMER",     "CUSTOMER_ASSIST",false,"High School",  0,  "Learning, Customer Support")
     ];

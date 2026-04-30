@@ -2,12 +2,6 @@ using QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
-/// <summary>
-/// Banking / financial-services industry. Lifts the L1-L4 baseline from
-/// QimErp.IAM.Seeding.Demo's BankingIndustryData; <see cref="OrgHierarchyBuilder"/>
-/// extends it down to ~15 levels for Corporate banks (CEO → Function → Region →
-/// Area → Branch → Team).
-/// </summary>
 public sealed class BankingIndustryProfile : IIndustryProfile
 {
     public string Code => "BANKING";
@@ -45,8 +39,8 @@ public sealed class BankingIndustryProfile : IIndustryProfile
             CapacityMin: 100,
             CapacityMax: tier == CompanyTier.Corporate ? 3500 : 500);
 
-        // Approximate branch count by tier. Corporate banks like GCB/Absa run 100-250 branches;
-        // SMEs (rural banks, microfinance) typically 5-30; startups 1-3.
+        // Branch counts by tier match the real world: GCB/Absa run 100-250 branches,
+        // rural banks/microfinance 5-30, startups 1-3.
         var branchCount = tier switch
         {
             CompanyTier.Startup   => Math.Max(1, targetEmployees / 200),
@@ -73,7 +67,7 @@ public sealed class BankingIndustryProfile : IIndustryProfile
                 CapacityMax: 80));
         }
 
-        // ATM lobbies / agent banking points — head-count 0, just for org-chart realism.
+        // ATM lobbies — zero headcount, exist only to dress the org chart.
         var satelliteCount = branchCount / 3;
         var satellites = new List<StationSpec>(satelliteCount);
         for (var i = 0; i < satelliteCount; i++)
@@ -96,13 +90,14 @@ public sealed class BankingIndustryProfile : IIndustryProfile
     }
 
     public EmployeeDistributionSpec EmployeeDistribution => new(
+        // 5=executive, 4=senior, 3=mid, 2=junior, 1=entry
         ByRankLevel: new Dictionary<int, double>
         {
-            [5] = 0.005, // executive
-            [4] = 0.040, // senior
-            [3] = 0.150, // mid
-            [2] = 0.500, // junior
-            [1] = 0.305  // entry
+            [5] = 0.005,
+            [4] = 0.040,
+            [3] = 0.150,
+            [2] = 0.500,
+            [1] = 0.305
         },
         ByOrgUnitCode: null);
 
@@ -115,8 +110,6 @@ public sealed class BankingIndustryProfile : IIndustryProfile
             [2] = (2_000m,   5_500m),
             [1] = (1_500m,   2_500m)
         });
-
-    // ─────────── baseline org units (lifted from BankingIndustryData) ───────────
 
     private static readonly IReadOnlyList<string> RetailJobs   = ["BRANCH_MGR", "LOAN_OFFICER", "TELLER", "JUNIOR_TELLER", "CSR", "TELLER_TRAINEE"];
     private static readonly IReadOnlyList<string> CorpJobs     = ["REL_MGR", "CORP_OFFICER", "HEAD_CORP"];
@@ -211,8 +204,6 @@ public sealed class BankingIndustryProfile : IIndustryProfile
             ["OPS"]          = 0.15,
             ["HR"]           = 0.05
         };
-
-    // ─────────── job titles (lifted from BankingIndustryData) ───────────
 
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [

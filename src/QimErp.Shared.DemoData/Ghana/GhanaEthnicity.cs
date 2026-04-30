@@ -1,12 +1,8 @@
 namespace QimErp.Shared.DemoData.Ghana;
 
-/// <summary>
-/// Ethnic groups of Ghana with population shares (2021 census basis). Used for the
-/// <c>EthnicGroup</c> field on the Employee entity.
-/// </summary>
+// Population shares per the 2021 Ghana census; weights sum to 1.0.
 public static class GhanaEthnicity
 {
-    /// <summary>Ethnic group → approximate share of population (sums to 1.0).</summary>
     public static readonly IReadOnlyList<(string Group, double Weight)> Distribution =
     [
         ("Akan",          0.4750),

@@ -2,10 +2,6 @@ using QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
-/// <summary>
-/// Education industry. Lifted from QimErp.IAM.Seeding.Demo's EducationIndustryData.
-/// Stations are HQ + campuses + learning centres.
-/// </summary>
 public sealed class EducationIndustryProfile : IIndustryProfile
 {
     public string Code => "EDUCATION";
@@ -74,7 +70,6 @@ public sealed class EducationIndustryProfile : IIndustryProfile
                 CapacityMax: 250));
         }
 
-        // Learning centres / extension sites — small satellites for off-campus delivery.
         var centreCount = campusCount * 2;
         var centres = new List<StationSpec>(centreCount);
         for (var i = 0; i < centreCount; i++)
@@ -101,7 +96,7 @@ public sealed class EducationIndustryProfile : IIndustryProfile
         {
             [5] = 0.010,
             [4] = 0.060,
-            [3] = 0.350, // teachers / lecturers dominate the mid-band
+            [3] = 0.350,
             [2] = 0.430,
             [1] = 0.150
         },
@@ -116,8 +111,6 @@ public sealed class EducationIndustryProfile : IIndustryProfile
             [2] = (2_000m,  4_500m),
             [1] = (1_500m,  3_000m)
         });
-
-    // ─────────── baseline org units (lifted from EducationIndustryData) ───────────
 
     private static readonly IReadOnlyList<string> AcademicJobs   = ["ACAD_DIR", "SENIOR_LECTURER", "HOD", "LECTURER", "TEACHER", "ASSIST_TEACHER", "TA"];
     private static readonly IReadOnlyList<string> AdminJobs      = ["ADMIN", "ADMIN_OFFICER", "ADMIN_ASSIST", "INTERN"];
@@ -195,36 +188,26 @@ public sealed class EducationIndustryProfile : IIndustryProfile
         ["ADMIN"]    = 0.15
     };
 
-    // ─────────── job titles (lifted from EducationIndustryData) ───────────
-    // NOTE: Source uses the code "ADMIN" both as an org-unit code AND as the
-    // Administrator job-title code. We preserve source codes faithfully here —
-    // OrgUnitCode and JobTitleSpec.Code live in separate string namespaces in
-    // the consumer.
-
+    // "ADMIN" is shared by an OrgUnit and a JobTitle code — namespaces don't collide at runtime.
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [
-        // Executive (5)
         new("PRINCIPAL",       "Principal/Head",          5, 8_000m, 14_000m, "EXEC",             null,        true,  "Master's Degree",   8, "Educational Leadership, Administration"),
         new("VP",              "Vice Principal",          5, 6_500m, 11_000m, "EXEC",             "PRINCIPAL", true,  "Master's Degree",   6, "Academic Administration, Curriculum"),
         new("ACAD_DIR",        "Academic Director",       5, 7_000m, 12_000m, "ACADEMIC",         "PRINCIPAL", true,  "Master's Degree",   7, "Academic Leadership, Curriculum Development"),
-        // Senior (4)
         new("SENIOR_LECTURER", "Senior Lecturer",         4, 5_000m,  9_000m, "ACADEMIC",         "ACAD_DIR",  true,  "Master's Degree",   6, "Teaching, Research, Course Development"),
         new("HOD",             "Head of Department",      4, 5_500m,  9_500m, "ACADEMIC",         "ACAD_DIR",  true,  "Master's Degree",   5, "Department Management, Teaching"),
         new("ADMIN",           "Administrator",           4, 4_000m,  7_000m, "ADMIN",            null,        true,  "Bachelor's Degree", 5, "Administration, Office Management"),
         new("STUDENT_MGR",     "Student Services Manager",4, 4_500m,  8_000m, "STUDENT_SERVICES", null,        true,  "Bachelor's Degree", 5, "Student Support, Counseling"),
-        // Mid (3)
         new("LECTURER",        "Lecturer",                3, 4_000m,  7_000m, "ACADEMIC",         "SENIOR_LECTURER", false, "Bachelor's Degree", 3, "Teaching, Course Delivery"),
         new("TEACHER",         "Teacher",                 3, 3_000m,  6_000m, "ACADEMIC",         "HOD",       false, "Bachelor's Degree", 2, "Teaching, Lesson Planning"),
         new("ADMIN_OFFICER",   "Administrative Officer",  3, 3_000m,  5_500m, "ADMIN",            "ADMIN",     false, "Diploma",           2, "Administrative Support, Record Keeping"),
         new("STUDENT_OFFICER", "Student Services Officer",3, 3_000m,  5_500m, "STUDENT_SERVICES", "STUDENT_MGR", false, "Bachelor's Degree", 2, "Student Support, Enrollment"),
         new("LIBRARIAN",       "Librarian",               3, 3_500m,  6_000m, "SUPPORT",          null,        false, "Bachelor's Degree", 2, "Library Management, Research Support"),
         new("IT_OFFICER",      "IT Officer",              3, 5_000m,  9_000m, "IT",               null,        false, "Bachelor's Degree", 3, "IT Support, Systems Administration"),
-        // Junior (2)
         new("ASSIST_TEACHER",  "Assistant Teacher",       2, 2_500m,  4_500m, "ACADEMIC",         "TEACHER",   false, "Diploma",           1, "Teaching Support, Classroom Assistance"),
         new("ADMIN_ASSIST",    "Administrative Assistant",2, 2_000m,  3_500m, "ADMIN",            "ADMIN_OFFICER", false, "High School",   1, "Administrative Support, Filing"),
         new("STUDENT_ASSIST",  "Student Services Assistant",2,2_500m, 4_000m, "STUDENT_SERVICES", "STUDENT_OFFICER",false,"High School",  1, "Student Support, Reception"),
         new("LIBRARY_ASSIST",  "Library Assistant",       2, 2_000m,  3_500m, "SUPPORT",          "LIBRARIAN", false, "High School",       1, "Library Support, Shelving"),
-        // Entry (1)
         new("TA",              "Teaching Assistant",      1, 1_500m,  3_000m, "ACADEMIC",         "ASSIST_TEACHER", false, "Student",      0, "Learning, Teaching Support"),
         new("INTERN",          "Intern",                  1, 1_500m,  2_500m, "ADMIN",            "ADMIN_ASSIST",   false, "Student",      0, "Learning, Administrative Support")
     ];

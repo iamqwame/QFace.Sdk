@@ -1,11 +1,5 @@
 namespace QimErp.Shared.DemoData.Ghana;
 
-/// <summary>
-/// 28 real Ghanaian commercial banks. Used to populate the <c>BankingDetails</c> VO
-/// on Employee so demo salaries are paid into a recognisable bank.
-/// Account numbers generated alongside are random 13-digit sequences (format-conformant
-/// for most Ghana banks but NOT real accounts).
-/// </summary>
 public static class GhanaBanks
 {
     public sealed record Bank(string Name, string SwiftCode, string SortCode, string PrimaryBranch);
@@ -42,7 +36,7 @@ public static class GhanaBanks
         new("ADB Bank", "ADBGGHAC", "080201", "Independence Avenue, Accra")
     ];
 
-    /// <summary>Excluding the central bank (BoG) — employees never have salary accounts there.</summary>
+    // Excludes the central bank — employees never bank with BoG.
     public static readonly IReadOnlyList<Bank> CommercialBanks =
         All.Where(b => b.Name != "Bank of Ghana").ToList();
 }

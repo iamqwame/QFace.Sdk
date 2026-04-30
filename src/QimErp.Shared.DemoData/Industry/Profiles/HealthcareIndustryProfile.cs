@@ -2,10 +2,6 @@ using QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
-/// <summary>
-/// Healthcare industry. Lifted from QimErp.IAM.Seeding.Demo's HealthcareIndustryData.
-/// Stations are HQ + hospital sites + outpatient clinics.
-/// </summary>
 public sealed class HealthcareIndustryProfile : IIndustryProfile
 {
     public string Code => "HEALTHCARE";
@@ -74,7 +70,6 @@ public sealed class HealthcareIndustryProfile : IIndustryProfile
                 CapacityMax: 400));
         }
 
-        // Outpatient clinics — smaller satellites with limited beds.
         var clinicCount = hospitalCount * 2;
         var clinics = new List<StationSpec>(clinicCount);
         for (var i = 0; i < clinicCount; i++)
@@ -101,7 +96,7 @@ public sealed class HealthcareIndustryProfile : IIndustryProfile
         {
             [5] = 0.005,
             [4] = 0.040,
-            [3] = 0.250, // doctors / nurses / pharmacists are bulk of mid-level
+            [3] = 0.250,
             [2] = 0.500,
             [1] = 0.205
         },
@@ -116,8 +111,6 @@ public sealed class HealthcareIndustryProfile : IIndustryProfile
             [2] = (2_000m,   4_500m),
             [1] = (1_500m,   2_500m)
         });
-
-    // ─────────── baseline org units (lifted from HealthcareIndustryData) ───────────
 
     private static readonly IReadOnlyList<string> ClinicalJobs = ["CMO", "MED_DIR", "SENIOR_DOCTOR", "SPECIALIST", "CLINICAL_MGR", "DOCTOR", "PA"];
     private static readonly IReadOnlyList<string> NursingJobs  = ["SENIOR_NURSE", "NURSE", "JUNIOR_NURSE", "NURSE_INTERN"];
@@ -203,32 +196,25 @@ public sealed class HealthcareIndustryProfile : IIndustryProfile
         ["ADMIN"]    = 0.05
     };
 
-    // ─────────── job titles (lifted from HealthcareIndustryData) ───────────
-
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [
-        // Executive (5)
         new("CMO",          "Chief Medical Officer",   5, 15_000m, 25_000m, "CLINICAL", null,         true,  "Medical Degree",                 10, "Medical Leadership, Strategic Planning"),
         new("MED_DIR",      "Medical Director",        5, 12_000m, 20_000m, "CLINICAL", "CMO",        true,  "Medical Degree",                 8,  "Clinical Management, Healthcare Administration"),
         new("HOSP_ADMIN",   "Hospital Administrator",  5, 10_000m, 18_000m, "EXEC",     null,         true,  "Master's Degree",                8,  "Healthcare Administration, Operations Management"),
-        // Senior (4)
         new("SENIOR_DOCTOR","Senior Doctor",           4, 10_000m, 18_000m, "CLINICAL", "MED_DIR",    true,  "Medical Degree",                 7,  "Clinical Skills, Patient Care, Diagnosis"),
         new("SPECIALIST",   "Specialist",              4, 11_000m, 19_000m, "CLINICAL", "MED_DIR",    true,  "Medical Degree + Specialization",6,  "Specialized Medical Care, Procedures"),
         new("SENIOR_NURSE", "Senior Nurse",            4, 5_000m,  9_000m,  "NURSING",  null,         true,  "Nursing Degree",                 5,  "Patient Care, Nursing Leadership"),
         new("CLINICAL_MGR", "Clinical Manager",        4, 8_000m,  14_000m, "CLINICAL", "MED_DIR",    true,  "Medical Degree",                 6,  "Clinical Management, Team Leadership"),
-        // Mid (3)
         new("DOCTOR",       "Doctor",                  3, 8_000m,  15_000m, "CLINICAL", "SENIOR_DOCTOR", false,"Medical Degree",              3,  "Clinical Skills, Patient Care, Diagnosis"),
         new("NURSE",        "Nurse",                   3, 3_000m,  6_000m,  "NURSING",  "SENIOR_NURSE", false,"Nursing Diploma",             2,  "Patient Care, Medical Procedures, Medication Administration"),
         new("PHARMACIST",   "Pharmacist",              3, 5_000m,  9_000m,  "PHARMACY", null,         false, "Pharmacy Degree",                2,  "Medication Dispensing, Drug Interactions, Counseling"),
         new("LAB_TECH",     "Lab Technician",          3, 3_000m,  6_000m,  "LAB",      null,         false, "Laboratory Science Diploma",     2,  "Laboratory Testing, Sample Processing"),
         new("RADIOGRAPHER", "Radiographer",            3, 3_500m,  6_500m,  "RADIOLOGY",null,         false, "Radiography Diploma",            2,  "Medical Imaging, X-Ray, Ultrasound"),
         new("PA",           "Physician Assistant",     3, 6_000m,  10_000m, "CLINICAL", "DOCTOR",     false, "PA Degree",                      3,  "Patient Assessment, Treatment, Procedures"),
-        // Junior (2)
         new("JUNIOR_NURSE", "Junior Nurse",            2, 2_000m,  4_000m,  "NURSING",  "NURSE",      false, "Nursing Certificate",            1,  "Basic Patient Care, Vital Signs"),
         new("PHARM_ASSIST", "Pharmacy Assistant",      2, 2_000m,  4_000m,  "PHARMACY", "PHARMACIST", false, "High School",                    1,  "Medication Dispensing Support, Inventory"),
         new("LAB_ASSIST",   "Lab Assistant",           2, 2_000m,  4_000m,  "LAB",      "LAB_TECH",   false, "High School",                    1,  "Sample Collection, Basic Lab Tasks"),
         new("MED_RECORDS",  "Medical Records Officer", 2, 2_500m,  4_500m,  "ADMIN",    null,         false, "High School",                    1,  "Medical Records Management, Filing"),
-        // Entry (1)
         new("NURSE_INTERN", "Nursing Intern",          1, 1_500m,  2_500m,  "NURSING",  "JUNIOR_NURSE", false,"Student",                       0,  "Learning, Supervised Patient Care"),
         new("PHARM_INTERN", "Pharmacy Intern",         1, 1_500m,  2_500m,  "PHARMACY", "PHARM_ASSIST", false,"Student",                       0,  "Learning, Supervised Dispensing")
     ];

@@ -2,10 +2,6 @@ using QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
-/// <summary>
-/// Non-profit / NGO industry. Lifted from QimErp.IAM.Seeding.Demo's NonProfitIndustryData.
-/// Stations are HQ + field offices in regions where the NGO operates programmes.
-/// </summary>
 public sealed class NonProfitIndustryProfile : IIndustryProfile
 {
     public string Code => "NONPROFIT";
@@ -74,7 +70,6 @@ public sealed class NonProfitIndustryProfile : IIndustryProfile
                 CapacityMax: 40));
         }
 
-        // No satellites — NGOs do community outreach from field offices directly.
         return new StationLayout(hq, fieldOffices, new List<StationSpec>());
     }
 
@@ -83,7 +78,7 @@ public sealed class NonProfitIndustryProfile : IIndustryProfile
         {
             [5] = 0.010,
             [4] = 0.060,
-            [3] = 0.300, // programme officers / field officers / accountants
+            [3] = 0.300,
             [2] = 0.470,
             [1] = 0.160
         },
@@ -98,8 +93,6 @@ public sealed class NonProfitIndustryProfile : IIndustryProfile
             [2] = (2_500m,  5_000m),
             [1] = (1_500m,  3_000m)
         });
-
-    // ─────────── baseline org units (lifted from NonProfitIndustryData) ───────────
 
     private static readonly IReadOnlyList<string> ProgramsJobs    = ["PROGRAMS_DIR", "PROGRAM_MGR", "PROGRAM_OFFICER", "PROGRAM_ASSIST", "PROGRAM_INTERN", "VOLUNTEER_COORD"];
     private static readonly IReadOnlyList<string> GrantsJobs      = ["DEV_DIR", "GRANTS_MGR", "GRANTS_OFFICER", "FUNDRAISING_COORD", "FUNDRAISING_ASSIST"];
@@ -180,23 +173,17 @@ public sealed class NonProfitIndustryProfile : IIndustryProfile
         ["ADMIN"]    = 0.09
     };
 
-    // ─────────── job titles (lifted from NonProfitIndustryData) ───────────
-    // NOTE: Source places "Volunteer Coordinator" under the Entry-Level (1) comment
-    // block but assigns it Level=2. We preserve the source's Level value (2).
-
+    // VOLUNTEER_COORD is Level=2 in the IAM source despite its position — preserved as-is.
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [
-        // Executive (5)
         new("EXEC_DIR",           "Executive Director",            5, 8_000m, 14_000m, "EXEC",     null,         true,  "Master's Degree",   8, "NonProfit Leadership, Strategic Planning"),
         new("PROGRAMS_DIR",       "Programs Director",             5, 7_000m, 12_000m, "PROGRAMS", "EXEC_DIR",   true,  "Master's Degree",   7, "Program Management, Community Development"),
         new("DEV_DIR",            "Development Director",          5, 7_000m, 12_000m, "GRANTS",   "EXEC_DIR",   true,  "Master's Degree",   7, "Fundraising, Grant Writing, Donor Relations"),
-        // Senior (4)
         new("PROGRAM_MGR",        "Program Manager",               4, 5_000m,  9_000m, "PROGRAMS", "PROGRAMS_DIR",true, "Bachelor's Degree", 5, "Program Management, Implementation"),
         new("GRANTS_MGR",         "Grants Manager",                4, 5_500m,  9_500m, "GRANTS",   "DEV_DIR",    true,  "Bachelor's Degree", 5, "Grant Writing, Fundraising, Donor Relations"),
         new("FIELD_MGR",          "Field Operations Manager",      4, 5_000m,  9_000m, "FIELD",    null,         true,  "Bachelor's Degree", 5, "Field Operations, Community Engagement"),
         new("FINANCE_MGR",        "Finance Manager",               4, 6_000m, 10_000m, "FINANCE",  null,         true,  "Bachelor's Degree", 5, "Financial Management, Reporting, Compliance"),
         new("COMM_MGR",           "Communications Manager",        4, 5_000m,  9_000m, "ADVOCACY", null,         true,  "Bachelor's Degree", 5, "Communications, Advocacy, Marketing"),
-        // Mid (3)
         new("PROGRAM_OFFICER",    "Program Officer",               3, 4_000m,  7_000m, "PROGRAMS", "PROGRAM_MGR",false, "Bachelor's Degree", 3, "Program Implementation, Monitoring, Evaluation"),
         new("GRANTS_OFFICER",     "Grants Officer",                3, 4_500m,  7_500m, "GRANTS",   "GRANTS_MGR", false, "Bachelor's Degree", 3, "Grant Writing, Proposal Development"),
         new("FIELD_OFFICER",      "Field Officer",                 3, 3_500m,  6_000m, "FIELD",    "FIELD_MGR",  false, "Diploma",           2, "Field Operations, Community Engagement"),
@@ -204,13 +191,11 @@ public sealed class NonProfitIndustryProfile : IIndustryProfile
         new("FUNDRAISING_COORD",  "Fundraising Coordinator",       3, 4_000m,  7_000m, "GRANTS",   "GRANTS_MGR", false, "Bachelor's Degree", 2, "Fundraising, Donor Relations, Events"),
         new("ACCOUNTANT",         "Accountant",                    3, 5_000m,  8_500m, "FINANCE",  "FINANCE_MGR",false, "Bachelor's Degree", 2, "Accounting, Financial Reporting"),
         new("COMM_OFFICER",       "Communications Officer",        3, 4_000m,  7_000m, "ADVOCACY", "COMM_MGR",   false, "Bachelor's Degree", 2, "Communications, Social Media, Content"),
-        // Junior (2)
         new("PROGRAM_ASSIST",     "Program Assistant",             2, 2_500m,  4_500m, "PROGRAMS", "PROGRAM_OFFICER",false,"Diploma",       1, "Program Support, Data Entry"),
         new("FIELD_ASSIST",       "Field Assistant",               2, 2_500m,  4_000m, "FIELD",    "FIELD_OFFICER",false,"High School",     1, "Field Support, Community Engagement"),
         new("ADMIN_ASSIST",       "Administrative Assistant",      2, 2_500m,  4_500m, "ADMIN",    null,         false, "High School",       1, "Administrative Support, Filing"),
         new("FUNDRAISING_ASSIST", "Fundraising Assistant",         2, 3_000m,  5_000m, "GRANTS",   "FUNDRAISING_COORD",false,"High School", 1, "Fundraising Support, Events"),
         new("VOLUNTEER_COORD",    "Volunteer Coordinator",         2, 3_000m,  5_000m, "PROGRAMS", "PROGRAM_MGR",false, "High School",       1, "Volunteer Management, Coordination"),
-        // Entry (1)
         new("PROGRAM_INTERN",     "Program Intern",                1, 1_500m,  3_000m, "PROGRAMS", "PROGRAM_ASSIST",false,"Student",        0, "Learning, Program Support")
     ];
 }

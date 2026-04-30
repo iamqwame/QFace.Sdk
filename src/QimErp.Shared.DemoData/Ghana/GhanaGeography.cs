@@ -1,13 +1,7 @@
 namespace QimErp.Shared.DemoData.Ghana;
 
-/// <summary>
-/// All 16 administrative regions of Ghana, their major cities, and a generous pool
-/// of street/road names lifted from Accra and Kumasi. Used by GhanaFakerExtensions
-/// to generate realistic addresses.
-/// </summary>
 public static class GhanaGeography
 {
-    /// <summary>All 16 regions of Ghana (post-2018 split).</summary>
     public static readonly IReadOnlyList<string> Regions =
     [
         "Greater Accra", "Ashanti", "Northern", "Western", "Western North",
@@ -16,7 +10,6 @@ public static class GhanaGeography
         "North East", "Savannah"
     ];
 
-    /// <summary>Cities/towns by region — used by GhanaCity(region) for region-coherent addresses.</summary>
     public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> CitiesByRegion =
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
         {
@@ -51,7 +44,6 @@ public static class GhanaGeography
             ["Savannah"] = ["Damongo", "Salaga", "Bole", "Sawla"]
         };
 
-    /// <summary>Streets and roads — heavy on Accra and Kumasi (where most demos happen).</summary>
     public static readonly IReadOnlyList<string> Streets =
     [
         // Accra
@@ -76,7 +68,6 @@ public static class GhanaGeography
         "Atomic Road", "Haatso-Atomic Road"
     ];
 
-    /// <summary>Generates a Ghana Post GPS code prefix (e.g. "GA-543" for Greater Accra digital address).</summary>
     public static readonly IReadOnlyDictionary<string, string> RegionGpsPrefix =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {

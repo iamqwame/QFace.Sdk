@@ -1,10 +1,5 @@
 namespace QimErp.Shared.DemoData.Ghana;
 
-/// <summary>
-/// Curated pools of Ghanaian (Akan day names + common Christian/Muslim names),
-/// West African, and international names. Lifted from QimErp.IAM.Seeding.Demo's
-/// RandomDataGenerator so demo seeding has a single source of truth.
-/// </summary>
 public static class GhanaPersonNames
 {
     public static readonly IReadOnlyList<string> MaleFirstNames =

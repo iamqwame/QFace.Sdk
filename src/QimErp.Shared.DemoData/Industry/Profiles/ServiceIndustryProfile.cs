@@ -2,10 +2,6 @@ using QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
-/// <summary>
-/// Professional services / consulting industry. Lifted from QimErp.IAM.Seeding.Demo's
-/// ServiceIndustryData. Sparse station footprint — HQ + 1-2 regional offices.
-/// </summary>
 public sealed class ServiceIndustryProfile : IIndustryProfile
 {
     public string Code => "SERVICE";
@@ -47,7 +43,6 @@ public sealed class ServiceIndustryProfile : IIndustryProfile
             CapacityMin: 50,
             CapacityMax: tier == CompanyTier.Corporate ? 700 : 250);
 
-        // Service firms typically operate 0-2 regional offices outside HQ.
         var officeCount = tier switch
         {
             CompanyTier.Startup   => 0,
@@ -80,7 +75,7 @@ public sealed class ServiceIndustryProfile : IIndustryProfile
     public EmployeeDistributionSpec EmployeeDistribution => new(
         ByRankLevel: new Dictionary<int, double>
         {
-            [5] = 0.020, // partners / directors are visibly numerous in PSFs
+            [5] = 0.020,
             [4] = 0.080,
             [3] = 0.300,
             [2] = 0.420,
@@ -97,8 +92,6 @@ public sealed class ServiceIndustryProfile : IIndustryProfile
             [2] = (2_500m,   6_000m),
             [1] = (1_500m,   3_500m)
         });
-
-    // ─────────── baseline org units (lifted from ServiceIndustryData) ───────────
 
     private static readonly IReadOnlyList<string> AdvisoryJobs = ["PARTNER", "SENIOR_CONSULTANT", "PRINCIPAL_CONSULTANT", "CONSULTANT", "SENIOR_ASSOC", "ASSOCIATE", "JUNIOR_CONSULTANT", "INTERN"];
     private static readonly IReadOnlyList<string> DeliveryJobs = ["DIRECTOR", "PM", "PROGRAM_MGR", "PROJECT_COORD", "BA", "PROJECT_ASSIST", "TRAINEE"];
@@ -183,33 +176,26 @@ public sealed class ServiceIndustryProfile : IIndustryProfile
         ["ADMIN"]       = 0.05
     };
 
-    // ─────────── job titles (lifted from ServiceIndustryData) ───────────
-
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [
-        // Executive (5)
         new("MANAGING_PARTNER",     "Managing Partner",      5, 15_000m, 25_000m, null,       null,            true,  "Master's Degree",   10, "Business Leadership, Strategy"),
         new("PARTNER",              "Partner",               5, 12_000m, 20_000m, "ADVISORY", "MANAGING_PARTNER", true,"Master's Degree", 8,  "Client Relations, Practice Leadership"),
         new("DIRECTOR",             "Director",              5, 10_000m, 18_000m, "DELIVERY", "MANAGING_PARTNER", true,"Master's Degree", 8,  "Service Delivery, Practice Management"),
-        // Senior (4)
         new("SENIOR_CONSULTANT",    "Senior Consultant",     4, 7_000m,  12_000m, "ADVISORY", "PARTNER",       true,  "Bachelor's Degree", 6,  "Consulting, Client Engagement, Analysis"),
         new("PRINCIPAL_CONSULTANT", "Principal Consultant",  4, 9_000m,  15_000m, "ADVISORY", "PARTNER",       true,  "Master's Degree",   7,  "Strategic Consulting, Leadership"),
         new("PM",                   "Project Manager",       4, 8_000m,  14_000m, "DELIVERY", "DIRECTOR",      true,  "Bachelor's Degree", 5,  "Project Management, Delivery, Stakeholder Management"),
         new("PROGRAM_MGR",          "Program Manager",       4, 9_000m,  15_000m, "DELIVERY", "DIRECTOR",      true,  "Bachelor's Degree", 6,  "Program Management, Portfolio Management"),
         new("SALES_MGR",            "Sales Manager",         4, 7_000m,  12_000m, "SALES",    null,            true,  "Bachelor's Degree", 5,  "Business Development, Client Acquisition"),
-        // Mid (3)
         new("CONSULTANT",           "Consultant",            3, 5_000m,  9_000m,  "ADVISORY", "SENIOR_CONSULTANT",false,"Bachelor's Degree",3,"Consulting, Analysis, Client Service"),
         new("SENIOR_ASSOC",         "Senior Associate",      3, 6_000m,  10_000m, "ADVISORY", "SENIOR_CONSULTANT",false,"Bachelor's Degree",3,"Analysis, Research, Client Support"),
         new("PROJECT_COORD",        "Project Coordinator",   3, 4_000m,  7_000m,  "DELIVERY", "PM",            false, "Bachelor's Degree", 2,  "Project Coordination, Documentation"),
         new("BA",                   "Business Analyst",      3, 5_000m,  9_000m,  "DELIVERY", "PM",            false, "Bachelor's Degree", 2,  "Business Analysis, Requirements Gathering"),
         new("ACCOUNT_EXEC",         "Account Executive",     3, 5_000m,  9_000m,  "SALES",    "SALES_MGR",     false, "Bachelor's Degree", 2,  "Sales, Client Relations, Prospecting"),
         new("IT_CONSULTANT",        "IT Consultant",         3, 6_000m,  11_000m, "IT",       null,            false, "Bachelor's Degree", 3,  "IT Solutions, Implementation, Support"),
-        // Junior (2)
         new("ASSOCIATE",            "Associate",             2, 3_000m,  5_500m,  "ADVISORY", "CONSULTANT",    false, "Bachelor's Degree", 1,  "Analysis, Research, Support"),
         new("JUNIOR_CONSULTANT",    "Junior Consultant",     2, 3_500m,  6_000m,  "ADVISORY", "CONSULTANT",    false, "Bachelor's Degree", 1,  "Basic Consulting, Learning"),
         new("PROJECT_ASSIST",       "Project Assistant",     2, 3_000m,  5_000m,  "DELIVERY", "PROJECT_COORD", false, "Diploma",           1,  "Administrative Support, Documentation"),
         new("CSR",                  "Customer Service Rep",  2, 2_500m,  4_500m,  "OPS",      null,            false, "High School",       1,  "Customer Service, Support"),
-        // Entry (1)
         new("INTERN",               "Intern",                1, 1_500m,  3_000m,  "ADVISORY", "ASSOCIATE",     false, "Student",           0,  "Learning, Research, Support"),
         new("TRAINEE",              "Trainee",               1, 2_000m,  3_500m,  "DELIVERY", "PROJECT_ASSIST",false, "High School",       0,  "Learning, Basic Tasks")
     ];

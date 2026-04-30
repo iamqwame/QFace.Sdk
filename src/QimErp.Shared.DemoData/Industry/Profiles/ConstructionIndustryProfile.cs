@@ -2,10 +2,6 @@ using QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
-/// <summary>
-/// Construction & civil-works industry. Heavy weight at L1/L2 (skilled trades and
-/// labourers are the bulk); stations are HQ + Project Sites (transient) + Equipment Yards.
-/// </summary>
 public sealed class ConstructionIndustryProfile : IIndustryProfile
 {
     public string Code => "CONSTRUCTION";
@@ -73,7 +69,6 @@ public sealed class ConstructionIndustryProfile : IIndustryProfile
                 CapacityMax: 350));
         }
 
-        // Equipment / regional yards (small)
         var yardCount = Math.Max(1, siteCount / 3);
         var yards = new List<StationSpec>(yardCount);
         for (var i = 0; i < yardCount; i++)
@@ -95,11 +90,11 @@ public sealed class ConstructionIndustryProfile : IIndustryProfile
     public EmployeeDistributionSpec EmployeeDistribution => new(
         ByRankLevel: new Dictionary<int, double>
         {
-            [5] = 0.005, // executive
-            [4] = 0.030, // senior
-            [3] = 0.080, // mid
-            [2] = 0.485, // skilled trades
-            [1] = 0.400  // labourers / apprentices
+            [5] = 0.005,
+            [4] = 0.030,
+            [3] = 0.080,
+            [2] = 0.485,
+            [1] = 0.400
         },
         ByOrgUnitCode: null);
 
@@ -178,20 +173,16 @@ public sealed class ConstructionIndustryProfile : IIndustryProfile
 
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [
-        // Executive (5)
         new("MD",          "Managing Director",       5, 25_000m, 40_000m, null,    null,    true,  "Master's Degree",   15, "Construction Leadership"),
         new("OPS_DIR",     "Operations Director",     5, 18_000m, 30_000m, "PMO",   "MD",    true,  "Master's Degree",   12, "Operations, Project Delivery"),
         new("FIN_DIR",     "Finance Director",        5, 18_000m, 28_000m, "FIN",   "MD",    true,  "Master's Degree",   12, "Finance, Reporting"),
-        // Senior (4)
         new("PROJECT_MGR", "Project Manager",         4, 9_000m,  17_000m, "PMO",   "OPS_DIR", true,"Bachelor's Degree", 8,  "Project Planning, Cost Control"),
         new("CHIEF_ENG",   "Chief Engineer",          4, 9_000m,  16_000m, "ENG",   "OPS_DIR", true,"Bachelor's Degree", 8,  "Civil/Structural Engineering"),
         new("HSE_MGR",     "HSE Manager",             4, 7_000m,  13_000m, "HSE",   "OPS_DIR", true,"Bachelor's Degree", 6,  "OSHA, NEBOSH, Safety Audits"),
-        // Mid (3)
         new("QS",          "Quantity Surveyor",       3, 5_000m,  10_000m, "PMO",   "PROJECT_MGR", false, "Bachelor's Degree", 4, "BoQ, Cost Estimation"),
         new("SITE_ENG",    "Site Engineer",           3, 4_500m,  9_000m,  "ENG",   "CHIEF_ENG", false, "Bachelor's Degree", 3, "Site Supervision, RC Design"),
         new("ACCOUNTANT",  "Accountant",              3, 4_500m,  8_500m,  "FIN",   "FIN_DIR", false, "Bachelor's Degree", 3, "Accounting, Project Costing"),
         new("HR_OFFICER",  "HR Officer",              3, 4_000m,  8_000m,  "HR",    null,    false, "Bachelor's Degree", 3, "Recruitment, Payroll"),
-        // Junior / Skilled trades (2)
         new("FOREMAN",     "Foreman",                 2, 3_500m,  6_000m,  "SITE",  "SITE_ENG", true, "Diploma",           5, "Crew Leadership, Trades"),
         new("MASON",       "Mason",                   2, 2_500m,  4_500m,  "SITE",  "FOREMAN", false,"Trade Certificate",  3, "Block Laying, Concrete Work"),
         new("CARPENTER",   "Carpenter",               2, 2_500m,  4_500m,  "SITE",  "FOREMAN", false,"Trade Certificate",  3, "Formwork, Joinery"),
@@ -199,7 +190,6 @@ public sealed class ConstructionIndustryProfile : IIndustryProfile
         new("ELECTRICIAN", "Electrician",             2, 3_000m,  5_000m,  "SITE",  "FOREMAN", false,"Trade Certificate",  3, "Wiring, Conduit"),
         new("PLUMBER",     "Plumber",                 2, 2_800m,  4_800m,  "SITE",  "FOREMAN", false,"Trade Certificate",  3, "Pipe Fitting, Installation"),
         new("DRIVER",      "Heavy Equipment Driver",  2, 2_500m,  4_500m,  "SITE",  "FOREMAN", false,"Driver's Licence",   2, "Excavator, Loader"),
-        // Entry (1)
         new("LABOURER",    "Labourer",                1, 1_500m,  2_200m,  "SITE",  "FOREMAN", false,"None",               0, "Manual Labour"),
         new("APPRENTICE",  "Apprentice",              1, 1_200m,  1_800m,  "SITE",  "FOREMAN", false,"Trade Apprentice",   0, "Learning, Assisting Trades")
     ];

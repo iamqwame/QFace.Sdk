@@ -36,6 +36,11 @@
         <!-- Realistic data engine -->
         <PackageReference Include="Bogus" Version="35.6.1" />
 
+        <!-- Phone validation: GhanaPhone() must produce numbers libphonenumber accepts,
+             since the consumer entity layer normalises through the same library and
+             silently drops anything it can't parse. -->
+        <PackageReference Include="libphonenumber-csharp" Version="8.13.52" />
+
         <!-- DI helpers for AddDemoData() extension -->
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
     </ItemGroup>

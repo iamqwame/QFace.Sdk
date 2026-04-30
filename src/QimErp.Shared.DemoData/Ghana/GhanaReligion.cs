@@ -1,9 +1,6 @@
 namespace QimErp.Shared.DemoData.Ghana;
 
-/// <summary>
-/// Religious affiliation in Ghana with denomination breakdowns (2021 census basis).
-/// Used for the <c>Religion</c> and <c>Denomination</c> fields on Employee.
-/// </summary>
+// Population shares per the 2021 Ghana census; weights sum to 1.0.
 public static class GhanaReligion
 {
     public static readonly IReadOnlyList<(string Religion, double Weight)> Distribution =
@@ -15,7 +12,6 @@ public static class GhanaReligion
         ("Other",       0.0130)
     ];
 
-    /// <summary>Christian denominations weighted within the Christian segment.</summary>
     public static readonly IReadOnlyList<(string Denomination, double Weight)> ChristianDenominations =
     [
         ("Pentecostal/Charismatic", 0.4170),
@@ -24,12 +20,11 @@ public static class GhanaReligion
         ("Other Christian",         0.1120)
     ];
 
-    /// <summary>Muslim sects within the Islamic segment.</summary>
     public static readonly IReadOnlyList<(string Denomination, double Weight)> MuslimDenominations =
     [
-        ("Sunni",   0.8500),
-        ("Ahmadi",  0.0900),
-        ("Tijaniyya", 0.0400),
+        ("Sunni",         0.8500),
+        ("Ahmadi",        0.0900),
+        ("Tijaniyya",     0.0400),
         ("Other Islamic", 0.0200)
     ];
 

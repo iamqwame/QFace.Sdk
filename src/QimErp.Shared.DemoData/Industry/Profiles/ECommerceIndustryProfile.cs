@@ -2,10 +2,6 @@ using QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
-/// <summary>
-/// E-commerce industry. Lifted from QimErp.IAM.Seeding.Demo's ECommerceIndustryData.
-/// Stations are HQ + warehouses + last-mile fulfilment hubs.
-/// </summary>
 public sealed class ECommerceIndustryProfile : IIndustryProfile
 {
     public string Code => "ECOMMERCE";
@@ -72,7 +68,6 @@ public sealed class ECommerceIndustryProfile : IIndustryProfile
                 CapacityMax: 200));
         }
 
-        // Last-mile hubs — small dispatch points distributed across cities.
         var hubCount = warehouseCount * 3;
         var hubs = new List<StationSpec>(hubCount);
         for (var i = 0; i < hubCount; i++)
@@ -100,7 +95,7 @@ public sealed class ECommerceIndustryProfile : IIndustryProfile
             [5] = 0.005,
             [4] = 0.040,
             [3] = 0.180,
-            [2] = 0.500, // CSR / warehouse / fulfilment make the bulk
+            [2] = 0.500,
             [1] = 0.275
         },
         ByOrgUnitCode: null);
@@ -114,8 +109,6 @@ public sealed class ECommerceIndustryProfile : IIndustryProfile
             [2] = (2_500m,   5_000m),
             [1] = (1_500m,   3_000m)
         });
-
-    // ─────────── baseline org units (lifted from ECommerceIndustryData) ───────────
 
     private static readonly IReadOnlyList<string> OpsJobs       = ["COO", "OPS_MGR", "OPS_SUPER", "FULFILLMENT", "OPS_ASSIST", "OPS_TRAINEE"];
     private static readonly IReadOnlyList<string> CustomerJobs  = ["CUSTOMER_MGR", "CSR", "CUSTOMER_ASSIST", "CUSTOMER_TRAINEE"];
@@ -197,21 +190,16 @@ public sealed class ECommerceIndustryProfile : IIndustryProfile
         ["ADMIN"]    = 0.10
     };
 
-    // ─────────── job titles (lifted from ECommerceIndustryData) ───────────
-
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [
-        // Executive (5)
         new("CEO",              "Chief Executive Officer",       5, 15_000m, 25_000m, null,        null,         true,  "Master's Degree",   10, "E-commerce Strategy, Business Leadership"),
         new("COO",              "Chief Operating Officer",       5, 12_000m, 20_000m, "OPS",       "CEO",        true,  "Master's Degree",   8,  "Operations Management, Logistics"),
         new("CTO",              "Chief Technology Officer",      5, 13_000m, 22_000m, "IT",        "CEO",        true,  "Master's Degree",   8,  "Technology Leadership, Platform Development"),
-        // Senior (4)
         new("OPS_MGR",          "Operations Manager",            4, 7_000m,  12_000m, "OPS",       "COO",        true,  "Bachelor's Degree", 5,  "Operations Management, Fulfillment"),
         new("CUSTOMER_MGR",     "Customer Care Manager",         4, 6_000m,  10_000m, "CUSTOMER",  null,         true,  "Bachelor's Degree", 5,  "Customer Service, Support Management"),
         new("SALES_MGR",        "Sales Manager",                 4, 7_000m,  12_000m, "SALES",     null,         true,  "Bachelor's Degree", 5,  "Sales Management, Business Development"),
         new("WH_MGR",           "Warehouse Manager",             4, 6_000m,  10_000m, "WAREHOUSE", "COO",        true,  "Bachelor's Degree", 5,  "Warehouse Management, Logistics"),
         new("IT_MGR",           "IT Manager",                    4, 9_000m,  15_000m, "IT",        "CTO",        true,  "Bachelor's Degree", 6,  "IT Operations, E-commerce Platform"),
-        // Mid (3)
         new("OPS_SUPER",        "Operations Supervisor",         3, 4_000m,  7_000m,  "OPS",       "OPS_MGR",    true,  "Diploma",           3,  "Operations Supervision, Order Processing"),
         new("CSR",              "Customer Service Representative",3, 3_000m, 5_500m,  "CUSTOMER",  "CUSTOMER_MGR",false,"High School",      2,  "Customer Service, Support, Returns"),
         new("SALES_EXEC",       "Sales Executive",               3, 4_000m,  7_000m,  "SALES",     "SALES_MGR",  false, "Bachelor's Degree", 2,  "Sales, Account Management, Business Development"),
@@ -219,12 +207,10 @@ public sealed class ECommerceIndustryProfile : IIndustryProfile
         new("FULFILLMENT",      "Order Fulfillment Specialist",  3, 3_000m,  5_500m,  "OPS",       "OPS_SUPER",  false, "High School",       2,  "Order Processing, Packing, Shipping"),
         new("IT_DEV",           "IT Developer",                  3, 7_000m,  12_000m, "IT",        "IT_MGR",     false, "Bachelor's Degree", 3,  "Web Development, E-commerce Platform"),
         new("DIGITAL_MKTG",     "Digital Marketing Specialist",  3, 5_000m,  9_000m,  "SALES",     "SALES_MGR",  false, "Bachelor's Degree", 2,  "Digital Marketing, SEO, Social Media"),
-        // Junior (2)
         new("OPS_ASSIST",       "Operations Assistant",          2, 2_500m,  4_500m,  "OPS",       "OPS_SUPER",  false, "High School",       1,  "Operations Support, Order Entry"),
         new("CUSTOMER_ASSIST",  "Customer Service Assistant",    2, 2_500m,  4_000m,  "CUSTOMER",  "CSR",        false, "High School",       1,  "Customer Support, Basic Inquiries"),
         new("WH_ASSIST",        "Warehouse Assistant",           2, 2_500m,  4_000m,  "WAREHOUSE", "WH_SUPER",   false, "High School",       1,  "Warehouse Support, Picking, Packing"),
         new("SALES_ASSIST",     "Sales Assistant",               2, 3_000m,  5_000m,  "SALES",     "SALES_EXEC", false, "High School",       1,  "Sales Support, Data Entry"),
-        // Entry (1)
         new("OPS_TRAINEE",      "Operations Trainee",            1, 1_500m,  3_000m,  "OPS",       "OPS_ASSIST", false, "High School",       0,  "Learning, Operations Support"),
         new("CUSTOMER_TRAINEE", "Customer Service Trainee",      1, 1_500m,  3_000m,  "CUSTOMER",  "CUSTOMER_ASSIST", false,"High School",   0,  "Learning, Customer Support")
     ];

@@ -2,11 +2,6 @@ using QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
-/// <summary>
-/// Manufacturing industry. Lifted from QimErp.IAM.Seeding.Demo's ManufacturingIndustryData.
-/// Heavy weight at L1/L2 (operators, trainees, labourers); stations are HQ + factory plants
-/// + distribution centres.
-/// </summary>
 public sealed class ManufacturingIndustryProfile : IIndustryProfile
 {
     public string Code => "MANUFACTURING";
@@ -74,7 +69,6 @@ public sealed class ManufacturingIndustryProfile : IIndustryProfile
                 CapacityMax: 600));
         }
 
-        // Distribution centres / depots — smaller satellites near urban demand.
         var depotCount = Math.Max(1, plantCount);
         var depots = new List<StationSpec>(depotCount);
         for (var i = 0; i < depotCount; i++)
@@ -103,7 +97,7 @@ public sealed class ManufacturingIndustryProfile : IIndustryProfile
             [4] = 0.030,
             [3] = 0.110,
             [2] = 0.485,
-            [1] = 0.370 // many entry-level operators / trainees in factories
+            [1] = 0.370
         },
         ByOrgUnitCode: null);
 
@@ -116,8 +110,6 @@ public sealed class ManufacturingIndustryProfile : IIndustryProfile
             [2] = (2_000m,   4_500m),
             [1] = (1_500m,   2_500m)
         });
-
-    // ─────────── baseline org units (lifted from ManufacturingIndustryData) ───────────
 
     private static readonly IReadOnlyList<string> ProductionJobs = ["PLANT_MGR", "PROD_DIR", "PROD_MGR", "PROD_SUPER", "PROD_OPERATOR", "JUNIOR_OPERATOR", "PROD_TRAINEE"];
     private static readonly IReadOnlyList<string> QcJobs         = ["QUALITY_DIR", "QUALITY_MGR", "QC_INSPECTOR", "QC_ASSIST"];
@@ -208,22 +200,17 @@ public sealed class ManufacturingIndustryProfile : IIndustryProfile
         ["ADMIN"]      = 0.05
     };
 
-    // ─────────── job titles (lifted from ManufacturingIndustryData) ───────────
-
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [
-        // Executive (5)
         new("PLANT_MGR",       "Plant Manager",            5, 12_000m, 20_000m, "PRODUCTION",  null,        true,  "Bachelor's Degree", 10, "Operations Management, Manufacturing"),
         new("PROD_DIR",        "Production Director",      5, 10_000m, 18_000m, "PRODUCTION",  "PLANT_MGR", true,  "Bachelor's Degree", 8,  "Production Management, Lean Manufacturing"),
         new("QUALITY_DIR",     "Quality Director",         5, 9_000m,  16_000m, "QC",          "PLANT_MGR", true,  "Bachelor's Degree", 8,  "Quality Management, ISO Standards"),
-        // Senior (4)
         new("PROD_MGR",        "Production Manager",       4, 7_000m,  12_000m, "PRODUCTION",  "PROD_DIR",  true,  "Bachelor's Degree", 6,  "Production Planning, Team Management"),
         new("QUALITY_MGR",     "Quality Manager",          4, 6_500m,  11_000m, "QC",          "QUALITY_DIR", true,"Bachelor's Degree", 5,  "Quality Control, Process Improvement"),
         new("MAINT_MGR",       "Maintenance Manager",      4, 7_000m,  12_000m, "MAINTENANCE", null,        true,  "Bachelor's Degree", 6,  "Maintenance Management, Equipment Reliability"),
         new("HSE_MGR",         "HSE Manager",              4, 6_500m,  11_000m, "HSE",         null,        true,  "Bachelor's Degree", 5,  "Safety Management, Compliance"),
         new("SUPPLY_MGR",      "Supply Chain Manager",     4, 7_000m,  12_000m, "SUPPLY",      null,        true,  "Bachelor's Degree", 5,  "Supply Chain, Procurement, Logistics"),
         new("SENIOR_ENG",      "Senior Engineer",          4, 8_000m,  14_000m, "ENG",         null,        true,  "Bachelor's Degree", 6,  "Process Engineering, Design"),
-        // Mid (3)
         new("PROD_SUPER",      "Production Supervisor",    3, 4_000m,  7_000m,  "PRODUCTION",  "PROD_MGR",  true,  "Diploma",           3,  "Production Supervision, Shift Management"),
         new("QC_INSPECTOR",    "Quality Inspector",        3, 3_500m,  6_000m,  "QC",          "QUALITY_MGR",false,"Diploma",           2,  "Quality Inspection, Testing"),
         new("MAINT_TECH",      "Maintenance Technician",   3, 4_000m,  7_000m,  "MAINTENANCE", "MAINT_MGR", false, "Diploma",           3,  "Equipment Maintenance, Troubleshooting"),
@@ -231,12 +218,10 @@ public sealed class ManufacturingIndustryProfile : IIndustryProfile
         new("HSE_OFFICER",     "HSE Officer",              3, 3_500m,  6_000m,  "HSE",         "HSE_MGR",   false, "Diploma",           2,  "Safety Inspections, Compliance"),
         new("PROC_OFFICER",    "Procurement Officer",      3, 4_000m,  7_000m,  "SUPPLY",      "SUPPLY_MGR",false, "Bachelor's Degree", 2,  "Procurement, Vendor Management"),
         new("PROCESS_ENG",     "Process Engineer",         3, 6_000m,  10_000m, "ENG",         "SENIOR_ENG",false, "Bachelor's Degree", 3,  "Process Design, Improvement"),
-        // Junior (2)
         new("JUNIOR_OPERATOR", "Junior Production Operator",2, 2_000m,  3_500m, "PRODUCTION",  "PROD_OPERATOR", false,"High School",    1,  "Basic Machine Operation"),
         new("QC_ASSIST",       "Quality Assistant",        2, 2_500m,  4_000m,  "QC",          "QC_INSPECTOR",false,"High School",     1,  "Quality Testing Support"),
         new("MAINT_ASSIST",    "Maintenance Assistant",    2, 2_500m,  4_500m,  "MAINTENANCE", "MAINT_TECH", false, "High School",      1,  "Maintenance Support, Cleaning"),
         new("WH_ASSIST",       "Warehouse Assistant",      2, 2_000m,  3_500m,  "SUPPLY",      "PROC_OFFICER",false,"High School",     1,  "Inventory, Material Handling"),
-        // Entry (1)
         new("PROD_TRAINEE",    "Production Trainee",       1, 1_500m,  2_500m,  "PRODUCTION",  "JUNIOR_OPERATOR",false,"High School",  0,  "Learning, Supervised Operations"),
         new("APPRENTICE",      "Apprentice",               1, 1_500m,  2_500m,  "MAINTENANCE", "MAINT_ASSIST",false,"Student",         0,  "Learning, Technical Training")
     ];

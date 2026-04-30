@@ -1,28 +1,10 @@
 namespace QimErp.Shared.DemoData.Industry;
 
-/// <summary>
-/// Pure function: takes an industry's baseline (L1-L4) org units and an employee
-/// distribution, and grows a sized tree to accommodate the target headcount, going
-/// up to 15 levels deep for large corporates by adding regional / area / branch /
-/// team sub-nodes under heavy departments.
-///
-/// Deterministic for a given (industry, tier, count, seed): same inputs → byte-identical tree.
-/// </summary>
 public static class OrgHierarchyBuilder
 {
-    /// <summary>Maximum depth the builder will produce (matches CalBank-style 15-level org charts).</summary>
     public const int MaxDepth = 15;
-
-    /// <summary>
-    /// A leaf-team node tries to land between this many employees — sets the span at which
-    /// we stop subdividing. 12 ≈ a comfortable manager span (1 supervisor + ~10 reports).
-    /// </summary>
     private const int TargetLeafSize = 12;
-
-    /// <summary>Subdivide any node whose share of the headcount exceeds this. Below it, treat as a leaf.</summary>
     private const int SubdivideThreshold = 30;
-
-    /// <summary>Span-of-control range for sub-node fan-out: how many children we add per subdivision.</summary>
     private const int MinFanOut = 3;
     private const int MaxFanOut = 8;
 
@@ -33,13 +15,6 @@ public static class OrgHierarchyBuilder
         OrgUnitKind Kind,
         IReadOnlyList<string> EligibleJobTitleCodes);
 
-    /// <summary>
-    /// Builds the tree.
-    /// </summary>
-    /// <param name="baselineUnits">L1-L4 anchor units from the industry profile (roots + departments).</param>
-    /// <param name="distribution">Employee share per baseline unit code (must sum to ~1.0 across roots' children).</param>
-    /// <param name="targetEmployees">Total demo headcount.</param>
-    /// <param name="seed">RNG seed for deterministic subdivision naming.</param>
     public static OrgHierarchySpec Build(
         IReadOnlyList<BaselineUnit> baselineUnits,
         IReadOnlyDictionary<string, double> distribution,
@@ -55,7 +30,6 @@ public static class OrgHierarchyBuilder
         var nodes = new List<OrgUnitNode>();
         var levelByCode = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        // Step 1 — emit the baseline units as L1..LN by walking from roots.
         foreach (var unit in baselineUnits)
         {
             var level = unit.ParentCode is null ? 1 : levelByCode[unit.ParentCode] + 1;
@@ -74,8 +48,6 @@ public static class OrgHierarchyBuilder
                 EligibleJobTitleCodes: unit.EligibleJobTitleCodes));
         }
 
-        // Step 2 — subdivide any node above the threshold by adding regional/area/branch/team children.
-        // We iterate until no node exceeds the threshold or we hit MaxDepth.
         for (var pass = 0; pass < MaxDepth; pass++)
         {
             var candidates = nodes
@@ -88,8 +60,8 @@ public static class OrgHierarchyBuilder
                 var children = SubdivideNode(parent, rng).ToList();
                 if (children.Count == 0) continue;
 
-                // Replace parent's headcount with the sum-of-children expectation; the parent
-                // becomes a "container" node with 0 direct headcount.
+                // Once subdivided, the parent becomes a container with 0 direct headcount;
+                // the sum lives on its newly-emitted children.
                 var idx = nodes.FindIndex(n => n.Code == parent.Code);
                 nodes[idx] = parent with { TargetHeadcount = 0 };
                 nodes.AddRange(children);
@@ -105,7 +77,6 @@ public static class OrgHierarchyBuilder
         var nextKind = NextKind(parent.Kind);
         if (nextKind is null) yield break;
 
-        // Decide fan-out so the resulting children are around the target leaf size.
         var idealFanOut = Math.Max(MinFanOut, Math.Min(MaxFanOut, parent.TargetHeadcount / TargetLeafSize));
         var actualFanOut = Math.Clamp(idealFanOut + rng.Next(-1, 2), MinFanOut, MaxFanOut);
         var perChild = parent.TargetHeadcount / actualFanOut;
@@ -126,10 +97,6 @@ public static class OrgHierarchyBuilder
         }
     }
 
-    /// <summary>
-    /// Decides the next kind down from the given parent kind. Returns null if the parent
-    /// is already a Team (we do not subdivide teams).
-    /// </summary>
     private static OrgUnitKind? NextKind(OrgUnitKind parent) => parent switch
     {
         OrgUnitKind.Executive => OrgUnitKind.Function,

@@ -1,6 +1,5 @@
 namespace QimErp.Shared.DemoData.Industry;
 
-/// <summary>The fully-sized org hierarchy for a tenant — output of <see cref="IIndustryProfile.BuildOrgHierarchy"/>.</summary>
 public sealed record OrgHierarchySpec(IReadOnlyList<OrgUnitNode> Nodes);
 
 public sealed record OrgUnitNode(
@@ -51,7 +50,6 @@ public sealed record StationSpec(
     int CapacityMin,
     int CapacityMax);
 
-/// <summary>Distribution of employees by rank level (1=entry … 5=executive) and optionally by org unit code.</summary>
 public sealed record EmployeeDistributionSpec(
     IReadOnlyDictionary<int, double> ByRankLevel,
     IReadOnlyDictionary<string, double>? ByOrgUnitCode);

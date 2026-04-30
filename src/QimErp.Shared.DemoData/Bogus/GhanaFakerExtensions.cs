@@ -3,16 +3,9 @@ using GhanaData = QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Bogus;
 
-/// <summary>
-/// Bogus extensions that produce Ghana-realistic data. All methods take a
-/// <see cref="Faker"/> so they participate in deterministic seeding via
-/// <c>new Faker { Random = new Randomizer(seed) }</c>.
-/// </summary>
 public static class GhanaFakerExtensions
 {
     public enum Gender { Male, Female }
-
-    // ───────── names ─────────
 
     public static string GhanaFirstName(this Faker f, Gender gender) =>
         gender == Gender.Male
@@ -33,15 +26,27 @@ public static class GhanaFakerExtensions
     public static string GhanaFullNameWithMiddle(this Faker f, Gender gender) =>
         $"{f.GhanaFirstName(gender)} {f.GhanaMiddleName(gender)} {f.GhanaLastName()}";
 
-    // ───────── telecom ─────────
+    private static readonly PhoneNumbers.PhoneNumberUtil _phoneUtil = PhoneNumbers.PhoneNumberUtil.GetInstance();
 
-    /// <summary>Generates a +233 mobile number on the given carrier (or random carrier weighted by market share).</summary>
+    // Phones must pass libphonenumber Ghana validation, since the consumer entity
+    // layer normalises through the same library and silently drops anything that
+    // doesn't parse. Retry up to 8 times before falling back to a known-good MTN canary.
     public static string GhanaPhone(this Faker f, GhanaData.GhanaTelecom.Carrier? carrier = null)
     {
-        var resolvedCarrier = carrier ?? PickCarrier(f);
-        var prefixes = GhanaData.GhanaTelecom.PrefixesFor(resolvedCarrier);
-        var prefix = f.Random.ListItem(prefixes.AsList());
-        return $"+233{prefix}{f.Random.Number(1_000_000, 9_999_999)}";
+        for (var attempt = 0; attempt < 8; attempt++)
+        {
+            var resolvedCarrier = carrier ?? PickCarrier(f);
+            var prefixes = GhanaData.GhanaTelecom.PrefixesFor(resolvedCarrier);
+            var prefix = f.Random.ListItem(prefixes.AsList());
+            var candidate = $"+233{prefix}{f.Random.Number(1_000_000, 9_999_999)}";
+            try
+            {
+                var parsed = _phoneUtil.Parse(candidate, "GH");
+                if (_phoneUtil.IsValidNumber(parsed)) return candidate;
+            }
+            catch (PhoneNumbers.NumberParseException) { }
+        }
+        return "+233241234567";
     }
 
     private static GhanaData.GhanaTelecom.Carrier PickCarrier(Faker f)
@@ -54,8 +59,6 @@ public static class GhanaFakerExtensions
             _      => GhanaData.GhanaTelecom.Carrier.AT
         };
     }
-
-    // ───────── geography ─────────
 
     public static string GhanaRegion(this Faker f) =>
         f.Random.ListItem(GhanaData.GhanaGeography.Regions.AsList());
@@ -71,7 +74,6 @@ public static class GhanaFakerExtensions
     public static string GhanaStreet(this Faker f) =>
         $"{f.Random.ListItem(GhanaData.GhanaGeography.Streets.AsList())} {f.Random.Number(1, 9999)}";
 
-    /// <summary>Ghana Post GPS code, e.g. "GA-543-7821" — region prefix + 3-digit area + 4-digit suffix.</summary>
     public static string GhanaGpsCode(this Faker f, string? region = null)
     {
         var resolved = region ?? f.Random.ListItem(GhanaData.GhanaGeography.Regions.AsList());
@@ -79,9 +81,6 @@ public static class GhanaFakerExtensions
         return $"{prefix}-{f.Random.Number(100, 999)}-{f.Random.Number(1000, 9999)}";
     }
 
-    // ───────── identification ─────────
-
-    /// <summary>Produces a format-conformant Ghana Card number (NOT a real ID).</summary>
     public static string GhanaCard(this Faker f) =>
         f.Random.Replace(GhanaData.GhanaIdentification.GhanaCardPattern);
 
@@ -106,8 +105,6 @@ public static class GhanaFakerExtensions
         return $"{leftA}{leftB}{f.Random.Number(10000, 99999)}{rightA}{rightB}";
     }
 
-    // ───────── ethnicity / religion (method names disambiguated from class names) ─────────
-
     public static string GhanaEthnicGroup(this Faker f) =>
         PickWeighted(f, GhanaData.GhanaEthnicity.Distribution);
 
@@ -121,15 +118,11 @@ public static class GhanaFakerExtensions
         _           => string.Empty
     };
 
-    // ───────── banking ─────────
-
     public static GhanaData.GhanaBanks.Bank GhanaBank(this Faker f) =>
         f.Random.ListItem(GhanaData.GhanaBanks.CommercialBanks.AsList());
 
     public static string GhanaAccountNumber(this Faker f) =>
         f.Random.ReplaceNumbers("#############");
-
-    // ───────── helpers ─────────
 
     private static string PickWeighted(Faker f, IReadOnlyList<(string Value, double Weight)> distribution)
     {
@@ -144,11 +137,8 @@ public static class GhanaFakerExtensions
         return distribution[^1].Value;
     }
 
-    /// <summary>
-    /// Bogus's <c>Randomizer.ListItem</c> wants <see cref="IList{T}"/>; our data exposes
-    /// <see cref="IReadOnlyList{T}"/>. This adapter avoids per-call <c>ToList()</c>
-    /// allocation by caching the materialised list per source instance.
-    /// </summary>
+    // Bogus's Randomizer.ListItem wants IList<T>; our data exposes IReadOnlyList<T>.
+    // Cache the materialised list per source so we don't allocate on every pick.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> _listCache = new();
 
     private static IList<T> AsList<T>(this IReadOnlyList<T> source)
