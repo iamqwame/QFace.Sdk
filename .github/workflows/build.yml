@@ -84,26 +84,28 @@ jobs:
           
           echo "Documentation setup complete!"
 
-      - name: Build and Pack SDK projects
+      - name: Build and Pack NuGet projects
         run: |
           mkdir -p ./nupkgs
-          
-          # First, restore and build all QFace.Sdk projects
-          for project in ./src/QFace.Sdk.*/*.csproj; do
+
+          for project in ./src/*/*.csproj; do
             project_name=$(basename "$(dirname "$project")")
-            
-            # Skip template projects
-            if [[ "$project_name" == "QFace.WebApi.Template" ]]; then
-              echo "Skipping template project: $project_name"
+
+            if ! grep -q "<PackageId>" "$project"; then
+              echo "  ⏭ Skipping $project_name (no PackageId)"
               continue
             fi
-            
-            echo "Processing $project..."
+            if grep -q "<IsPackable>false</IsPackable>" "$project"; then
+              echo "  ⏭ Skipping $project_name (IsPackable=false)"
+              continue
+            fi
+
+            echo "📦 Processing $project_name..."
             dotnet restore "$project"
             dotnet build "$project" -c Release --no-restore
             dotnet pack "$project" -c Release --no-build -o ./nupkgs
           done
-          
+
           echo "Created packages:"
           ls -la ./nupkgs/
 
