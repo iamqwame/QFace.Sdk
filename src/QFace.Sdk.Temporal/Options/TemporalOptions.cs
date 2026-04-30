@@ -77,8 +77,11 @@ public sealed class TemporalOptions
     /// Centralises the convention so callers can write the unsuffixed name and the
     /// SDK applies the environment-specific routing tag.
     /// </summary>
-    public string WithTaskQueueSuffix(string baseQueue) =>
-        string.IsNullOrEmpty(TaskQueueSuffix) ? baseQueue : baseQueue + TaskQueueSuffix;
+    public string WithTaskQueueSuffix(string baseQueue)
+    {
+        if (string.IsNullOrEmpty(TaskQueueSuffix)) return baseQueue;
+        return baseQueue.EndsWith(TaskQueueSuffix, StringComparison.Ordinal) ? baseQueue : baseQueue + TaskQueueSuffix;
+    }
 
     /// <summary>
     /// Enable Temporal's worker versioning feature.
