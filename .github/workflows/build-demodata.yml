@@ -1,0 +1,35 @@
+name: Build and Publish QimErp.Shared.DemoData
+
+on:
+  push:
+    branches: [main, master, developments]
+    tags: ["v*.*.*"]
+    paths:
+      - 'src/QimErp.Shared.DemoData/**'
+      - '.github/workflows/build-demodata.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build and Pack
+        run: |
+          mkdir -p ./nupkgs
+          dotnet restore ./src/QimErp.Shared.DemoData/QimErp.Shared.DemoData.csproj
+          dotnet build ./src/QimErp.Shared.DemoData/QimErp.Shared.DemoData.csproj -c Release --no-restore
+          dotnet pack ./src/QimErp.Shared.DemoData/QimErp.Shared.DemoData.csproj -c Release --no-build -o ./nupkgs
+
+      - name: Publish to NuGet
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/developments' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') && hashFiles('./nupkgs/*.nupkg') != ''
+        run: |
+          for package in ./nupkgs/*.nupkg; do
+            dotnet nuget push "$package" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+          done
