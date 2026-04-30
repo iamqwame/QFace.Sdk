@@ -31,7 +31,9 @@ public static class TemporalWorkerServiceCollectionExtensions
                 "Temporal:TaskQueue must be set in configuration when calling " +
                 "AddTemporalWorker(configuration) without an explicit taskQueue parameter.");
 
-        return services.BuildWorker(opts, opts.TaskQueue);
+        // Suffix applied here so callers see the convention enforced once, in the SDK,
+        // rather than at every call site.
+        return services.BuildWorker(opts, opts.WithTaskQueueSuffix(opts.TaskQueue));
     }
 
     /// <summary>
@@ -49,7 +51,9 @@ public static class TemporalWorkerServiceCollectionExtensions
             throw new ArgumentException("taskQueue must not be empty.", nameof(taskQueue));
 
         var opts = ReadOptions(configuration);
-        return services.BuildWorker(opts, taskQueue);
+        // Pass the BASE queue name; the SDK appends Temporal:TaskQueueSuffix uniformly
+        // so every deployment routes to its own workers.
+        return services.BuildWorker(opts, opts.WithTaskQueueSuffix(taskQueue));
     }
 
     /// <summary>
@@ -67,7 +71,7 @@ public static class TemporalWorkerServiceCollectionExtensions
 
         var opts = new TemporalOptions();
         configure(opts);
-        return services.BuildWorker(opts, taskQueue);
+        return services.BuildWorker(opts, opts.WithTaskQueueSuffix(taskQueue));
     }
 
     // ── private ───────────────────────────────────────────────────────────────

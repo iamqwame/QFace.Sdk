@@ -63,6 +63,24 @@ public sealed class TemporalOptions
     public string TaskQueue { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optional suffix appended to every task-queue name this app interacts with —
+    /// worker registrations, workflow starts via <c>IWorkflowStarter</c>, and any
+    /// queue passed to <see cref="WithTaskQueueSuffix"/>. Lets multiple deployments
+    /// share a Temporal namespace without racing for the same activities (e.g.
+    /// local-dev sets "-local", staging sets "-staging", production stays empty).
+    /// Empty (default) means no suffix.
+    /// </summary>
+    public string TaskQueueSuffix { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Returns <paramref name="baseQueue"/> with <see cref="TaskQueueSuffix"/> appended.
+    /// Centralises the convention so callers can write the unsuffixed name and the
+    /// SDK applies the environment-specific routing tag.
+    /// </summary>
+    public string WithTaskQueueSuffix(string baseQueue) =>
+        string.IsNullOrEmpty(TaskQueueSuffix) ? baseQueue : baseQueue + TaskQueueSuffix;
+
+    /// <summary>
     /// Enable Temporal's worker versioning feature.
     /// When false, WorkerDeploymentOptions are still created (required by Temporalio 1.11+)
     /// but useWorkerVersioning is set to false so all tasks are delivered to this worker.

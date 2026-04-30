@@ -1,34 +1,43 @@
 using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Temporalio.Client;
 using Temporalio.Exceptions;
 using QFace.Sdk.Temporal.Abstractions;
+using QFace.Sdk.Temporal.Options;
 using Temporalio.Api.Enums.V1;
 
 namespace QFace.Sdk.Temporal.Implementations;
 
 internal sealed class WorkflowStarter(
     ITemporalClient client,
+    IOptions<TemporalOptions> options,
     ILogger<WorkflowStarter> logger) : IWorkflowStarter
 {
+    private readonly TemporalOptions _opts = options.Value;
+
     public async Task<WorkflowStartResult> StartOrIgnoreAsync<TWorkflow>(
         string workflowId,
         string taskQueue,
         Expression<Func<TWorkflow, Task>> startExpression,
         CancellationToken cancellationToken = default)
     {
+        // Callers pass the BASE queue name; the SDK appends Temporal:TaskQueueSuffix
+        // so each environment routes to its own workers without coordination.
+        var resolvedTaskQueue = _opts.WithTaskQueueSuffix(taskQueue);
+
         try
         {
             var handle = await client.StartWorkflowAsync(
                 startExpression,
-                new WorkflowOptions(workflowId, taskQueue)
+                new WorkflowOptions(workflowId, resolvedTaskQueue)
                 {
                     IdConflictPolicy = WorkflowIdConflictPolicy.UseExisting
                 });
 
             logger.LogDebug(
-                "[WorkflowStarter] Started or reused workflow. WorkflowId={WorkflowId}, RunId={RunId}",
-                workflowId, handle.ResultRunId);
+                "[WorkflowStarter] Started or reused workflow. WorkflowId={WorkflowId}, RunId={RunId}, TaskQueue={TaskQueue}",
+                workflowId, handle.ResultRunId, resolvedTaskQueue);
 
             return new WorkflowStartResult
             {
@@ -64,18 +73,20 @@ internal sealed class WorkflowStarter(
         Expression<Func<TWorkflow, Task>> startExpression,
         CancellationToken cancellationToken = default)
     {
+        var resolvedTaskQueue = _opts.WithTaskQueueSuffix(taskQueue);
+
         try
         {
             var handle = await client.StartWorkflowAsync(
                 startExpression,
-                new WorkflowOptions(workflowId, taskQueue)
+                new WorkflowOptions(workflowId, resolvedTaskQueue)
                 {
                     IdConflictPolicy = WorkflowIdConflictPolicy.Fail
                 });
 
             logger.LogDebug(
-                "[WorkflowStarter] Started workflow. WorkflowId={WorkflowId}, RunId={RunId}",
-                workflowId, handle.ResultRunId);
+                "[WorkflowStarter] Started workflow. WorkflowId={WorkflowId}, RunId={RunId}, TaskQueue={TaskQueue}",
+                workflowId, handle.ResultRunId, resolvedTaskQueue);
 
             return new WorkflowStartResult
             {

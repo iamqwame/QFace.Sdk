@@ -51,4 +51,37 @@ public static class TemporalNaming
         var host = ExtractHost(address).ToLowerInvariant();
         return host is "localhost" or "127.0.0.1" or "::1" or "0.0.0.0";
     }
+
+    /// <summary>
+    /// Workflow-side helper for deriving the active <c>Temporal:TaskQueueSuffix</c>
+    /// from the queue this workflow itself is running on. Use inside a Temporal
+    /// workflow when constructing the queue name for a child workflow or
+    /// <c>ActivityOptions.TaskQueue</c> — the suffix flows from the workflow's
+    /// own queue, so child dispatches stay within the same environment.
+    ///
+    /// <para>Workflows cannot read <c>IConfiguration</c> deterministically, so
+    /// this is the workflow-side equivalent of <c>TemporalOptions.WithTaskQueueSuffix</c>.</para>
+    ///
+    /// <para>Example, inside a workflow whose own queue is e.g. <c>"qimerp-iam-tenant-onboarding-local"</c>:</para>
+    /// <code>
+    /// var childQueue = TemporalNaming.SuffixedFromCurrentQueue(
+    ///     baseQueue: "qimerp-corehr-employee-tenant-setup",
+    ///     currentQueue: Workflow.Info.TaskQueue,
+    ///     currentQueueBase: "qimerp-iam-tenant-onboarding");
+    /// // → "qimerp-corehr-employee-tenant-setup-local"
+    /// </code>
+    /// </summary>
+    /// <param name="baseQueue">The unsuffixed target queue name.</param>
+    /// <param name="currentQueue">The queue this workflow is running on (e.g. <c>Workflow.Info.TaskQueue</c>).</param>
+    /// <param name="currentQueueBase">The unsuffixed name of the queue this workflow registers on.</param>
+    /// <returns><paramref name="baseQueue"/> with the suffix derived from <paramref name="currentQueue"/> appended.</returns>
+    public static string SuffixedFromCurrentQueue(string baseQueue, string currentQueue, string currentQueueBase)
+    {
+        if (string.IsNullOrEmpty(currentQueue) || string.IsNullOrEmpty(currentQueueBase))
+            return baseQueue;
+        if (!currentQueue.StartsWith(currentQueueBase, StringComparison.Ordinal))
+            return baseQueue;
+        var suffix = currentQueue[currentQueueBase.Length..];
+        return string.IsNullOrEmpty(suffix) ? baseQueue : baseQueue + suffix;
+    }
 }
