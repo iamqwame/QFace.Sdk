@@ -1,10 +1,7 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.Extensions.Options;
 using System.Runtime.CompilerServices;
 using System.Transactions;
-using QFace.Sdk.RabbitMq.Services;
 using QimErp.Shared.Common.Events;
-using QimErp.Shared.Common.Options;
 using QimErp.Shared.Common.Services;
 using QimErp.Shared.Common.Services.Auth;
 using QimErp.Shared.Common.Services.Workflow;
@@ -15,13 +12,10 @@ public class AuditEntitySaveChangesInterceptor(
     ICurrentUserService userContextService,
     ILogger<AuditEntitySaveChangesInterceptor> logger,
     IServiceProvider serviceProvider,
-    IOptions<RabbitMqOptions> rabbitMqOptions,
     IConfiguration? configuration = null,
     IPublisher? publisher = null)
     : SaveChangesInterceptor
 {
-    private readonly RabbitMqOptions _rabbitMqOptions = rabbitMqOptions.Value;
-
     private readonly ConditionalWeakTable<DbContext, List<IDomainEvent>> _contextEvents = [];
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
@@ -43,7 +37,7 @@ public class AuditEntitySaveChangesInterceptor(
             SetTenantIdOnEntities(context);
 
             // Bulk-seed fast path: skip workflow processing and event capture.
-            // Audit metadata still applied so seeded rows have CreatedBy/At, but no events flow to RabbitMQ.
+            // Audit metadata still applied so seeded rows have CreatedBy/At, but no events fire.
             if (BulkSeedScope.IsSuppressed)
             {
                 AddAuditMetadata(context);
@@ -233,33 +227,22 @@ public class AuditEntitySaveChangesInterceptor(
     {
         if (events.Count == 0) return;
 
-        var rabbitMqPublisher = serviceProvider.GetService<IRabbitMqPublisher>();
         var failedEvents = new List<(IDomainEvent Event, Exception Exception)>();
 
         foreach (var domainEvent in events)
         {
             try
             {
-                var exchangeName = GetExchangeNameForEvent(domainEvent);
-
-                if (!string.IsNullOrEmpty(exchangeName) && rabbitMqPublisher != null)
+                if (publisher != null)
                 {
-                    // Use IRabbitMqPublisher with explicit exchange name for workflow events
-                    await rabbitMqPublisher.PublishAsync(domainEvent, exchangeName);
-                    logger.LogDebug("Successfully published {EventType} to exchange {ExchangeName}",
-                        domainEvent.GetType().Name, exchangeName);
-                }
-                else if (publisher != null)
-                {
-                    // Fallback to IPublisher for non-workflow events or if IRabbitMqPublisher is not available
                     await publisher.Publish(domainEvent, cancellationToken);
                     logger.LogDebug("Successfully published {EventType} using IPublisher", domainEvent.GetType().Name);
                 }
                 else
                 {
-                    logger.LogWarning("No publisher available for event {EventType}. Event will not be published.",
+                    logger.LogWarning("No IPublisher registered. Event {EventType} will not be dispatched in-process.",
                         domainEvent.GetType().Name);
-                    failedEvents.Add((domainEvent, new InvalidOperationException("No publisher available")));
+                    failedEvents.Add((domainEvent, new InvalidOperationException("No IPublisher registered")));
                 }
             }
             catch (Exception ex)
@@ -282,17 +265,6 @@ public class AuditEntitySaveChangesInterceptor(
 
             await StoreFailedEventsAsync(failedEvents, cancellationToken);
         }
-    }
-
-    private string? GetExchangeNameForEvent(IDomainEvent domainEvent)
-    {
-        return domainEvent switch
-        {
-            WorkflowChangedEvent => _rabbitMqOptions.Exchanges.WorkflowChanged,
-            WorkflowStatusChangedEvent => _rabbitMqOptions.Exchanges.WorkflowStatusChanged,
-            WorkflowCompletedEvent => _rabbitMqOptions.Exchanges.WorkflowCompleted,
-            _ => null // Return null to use IPublisher fallback for other events
-        };
     }
 
     private bool IsCriticalEvent(IDomainEvent domainEvent)
@@ -553,73 +525,49 @@ public class AuditEntitySaveChangesInterceptor(
                         workflowHistoryId, entity.EntityType, GetEntityId(entity));
                 }
 
-                var actorService = serviceProvider.GetService<IActorService>();
-                if (actorService != null)
+                var workflowMessage = new WorkflowEventMessage
                 {
-                    logger.LogDebug("[CaptureWorkflowEvents] IActorService found. Creating WorkflowEventMessage for {EntityType} {EntityId}",
+                    EntityType = entity.EntityType,
+                    EntityId = GetEntityId(entity),
+                    EntityName = GetEntityDisplayName(entity),
+                    WorkflowCode = workflowCode ?? string.Empty,
+                    WorkflowId = workflowHistoryId,
+                    RequiredApprovalLevel = null,
+                    InitiatedBy = userContextService?.GetUserEmail() ?? currentUser,
+                    Module = moduleName,
+                    EntityData = GetEntityData(entity),
+                    TenantId = resolvedTenantId,
+                    TriggeredBy = currentUser,
+                    UserName = userContextService?.GetUserName(),
+                    CurrentState = currentState,
+                    NextStepCode = nextStepCode
+                };
+
+                logger.LogDebug("[CaptureWorkflowEvents] Created WorkflowEventMessage for {EntityType} {EntityId}. WorkflowId={WorkflowId}, WorkflowCode={WorkflowCode}, TenantId={TenantId} (source: {TenantIdSource})",
+                    entity.EntityType, GetEntityId(entity), workflowHistoryId, workflowCode, resolvedTenantId, tenantIdSource);
+
+                var bridge = serviceProvider.GetService<IWorkflowTriggerBridge>();
+                if (bridge == null)
+                {
+                    logger.LogWarning("⚠️ [CaptureWorkflowEvents] IWorkflowTriggerBridge is not registered. Workflow approval-required event will not be triggered for {EntityType} {EntityId}.",
                         entity.EntityType, GetEntityId(entity));
-
-                    var workflowMessage = new WorkflowEventMessage
-                    {
-                        EntityType = entity.EntityType,
-                        EntityId = GetEntityId(entity),
-                        EntityName = GetEntityDisplayName(entity),
-                        WorkflowCode = workflowCode ?? string.Empty,
-                        WorkflowId = workflowHistoryId,
-                        RequiredApprovalLevel = null,
-                        InitiatedBy = userContextService?.GetUserEmail() ?? currentUser,
-                        Module = moduleName,
-                        EntityData = GetEntityData(entity),
-                        TenantId = resolvedTenantId,
-                        TriggeredBy = currentUser,
-                        UserName = userContextService?.GetUserName(),
-                        CurrentState = currentState,
-                        NextStepCode = nextStepCode
-                    };
-
-                    logger.LogDebug("[CaptureWorkflowEvents] Created WorkflowEventMessage for {EntityType} {EntityId}. WorkflowId={WorkflowId}, WorkflowCode={WorkflowCode}, TenantId={TenantId} (source: {TenantIdSource})",
-                        entity.EntityType, GetEntityId(entity), workflowHistoryId, workflowCode, resolvedTenantId, tenantIdSource);
-
-                    var bridge = serviceProvider.GetService<IWorkflowTriggerBridge>();
-                    var handledByTemporal = false;
-                    if (bridge != null)
-                    {
-                        try
-                        {
-                            handledByTemporal = await bridge.TryTriggerTemporalWorkflowAsync(workflowMessage, cancellationToken);
-                            if (handledByTemporal)
-                                logger.LogInformation("✅ [CaptureWorkflowEvents] Temporal workflow triggered for {EntityType} {EntityId} (skipping event publish)", entity.EntityType, GetEntityId(entity));
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, "❌ [CaptureWorkflowEvents] WorkflowTriggerBridge failed for {EntityType} {EntityId}. Falling back to event publish. Error: {ErrorMessage}",
-                                entity.EntityType, GetEntityId(entity), ex.Message);
-                        }
-                    }
-
-                    if (!handledByTemporal)
-                    {
-                        try
-                        {
-                            logger.LogDebug("[CaptureWorkflowEvents] Calling actorService.Tell<WorkflowEventPublisherActor> for {EntityType} {EntityId}",
-                                entity.EntityType, GetEntityId(entity));
-
-                            actorService.Tell<WorkflowEventPublisherActor>(workflowMessage);
-
-                            logger.LogInformation("✅ [CaptureWorkflowEvents] Successfully told WorkflowEventPublisherActor to publish workflow approval required event for {EntityType} {EntityId} with WorkflowId={WorkflowId}",
-                                entity.EntityType, GetEntityId(entity), workflowHistoryId);
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, "❌ [CaptureWorkflowEvents] Failed to tell WorkflowEventPublisherActor for {EntityType} {EntityId}. Event will not be published. Error: {ErrorMessage}",
-                                entity.EntityType, GetEntityId(entity), ex.Message);
-                        }
-                    }
                 }
                 else
                 {
-                    logger.LogWarning("⚠️ [CaptureWorkflowEvents] IActorService is NULL. Workflow approval required event will not be published for {EntityType} {EntityId}",
-                        entity.EntityType, GetEntityId(entity));
+                    try
+                    {
+                        var handled = await bridge.TryTriggerTemporalWorkflowAsync(workflowMessage, cancellationToken);
+                        if (handled)
+                            logger.LogInformation("✅ [CaptureWorkflowEvents] Temporal workflow triggered for {EntityType} {EntityId}", entity.EntityType, GetEntityId(entity));
+                        else
+                            logger.LogWarning("⚠️ [CaptureWorkflowEvents] WorkflowTriggerBridge returned false for {EntityType} {EntityId}. No workflow was started.",
+                                entity.EntityType, GetEntityId(entity));
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "❌ [CaptureWorkflowEvents] WorkflowTriggerBridge failed for {EntityType} {EntityId}. Error: {ErrorMessage}",
+                            entity.EntityType, GetEntityId(entity), ex.Message);
+                    }
                 }
             }
             else
@@ -645,7 +593,7 @@ public class AuditEntitySaveChangesInterceptor(
         }
 
         // Collect domain events from all AuditableEntity instances (e.g., WorkflowTemplate, WorkflowConfiguration)
-        // This ensures events added via AddDomainEvent() are published to RabbitMQ
+        // so AddDomainEvent() events flow through MediatR's IPublisher in-process.
         var auditableEntities = context.ChangeTracker.Entries<AuditableEntity>()
             .Where(e => e.State is EntityState.Added or EntityState.Modified)
             .ToList();

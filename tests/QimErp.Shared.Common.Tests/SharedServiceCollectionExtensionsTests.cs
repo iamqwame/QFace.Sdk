@@ -35,10 +35,6 @@ public class SharedServiceCollectionExtensionsTests
         var systemOptions = provider.GetService<IOptions<SystemOptions>>();
         systemOptions.Should().NotBeNull();
         systemOptions!.Value.DefaultUserId.Should().Be("system");
-
-        var rabbitMqOptions = provider.GetService<IOptions<RabbitMqOptions>>();
-        rabbitMqOptions.Should().NotBeNull();
-        rabbitMqOptions!.Value.Exchanges.WorkflowApprovalRequired.Should().Be(RabbitMqExchanges.DefaultWorkflowApprovalRequired);
     }
 
     [Fact]
@@ -58,16 +54,11 @@ public class SharedServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddDbContextWithOutbox_WithConfiguration_BindsOptions()
+    public void AddDbContextWithOutbox_WithConfiguration_ResolvesInterceptor()
     {
         // Arrange
-        const string customExchange = "custom.workflow.approval.exchange";
-        var configData = new Dictionary<string, string?>
-        {
-            ["RabbitMq:Exchanges:WorkflowApprovalRequired"] = customExchange
-        };
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configData!)
+            .AddInMemoryCollection(new Dictionary<string, string?>())
             .Build();
 
         var services = new ServiceCollection();
@@ -75,11 +66,11 @@ public class SharedServiceCollectionExtensionsTests
         services.AddDbContextWithOutbox<TestApplicationDbContext>(TestConnectionString, configuration);
 
         // Act
-        var provider = services.BuildServiceProvider();
-        var rabbitMqOptions = provider.GetRequiredService<IOptions<RabbitMqOptions>>();
+        using var scope = services.BuildServiceProvider().CreateScope();
+        var interceptor = scope.ServiceProvider.GetService<AuditEntitySaveChangesInterceptor>();
 
         // Assert
-        rabbitMqOptions.Value.Exchanges.WorkflowApprovalRequired.Should().Be(customExchange);
+        interceptor.Should().NotBeNull();
     }
 
     [Fact]

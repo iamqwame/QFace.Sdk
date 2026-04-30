@@ -6,7 +6,6 @@ namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 /// <summary>
 /// Implements IWorkflowTriggerBridge using Temporal.
 /// Called by AuditEntitySaveChangesInterceptor when an IWorkflowEnabled entity is saved.
-/// Returning true tells the interceptor to skip WorkflowEventPublisherActor entirely.
 ///
 /// Uses IApprovalWorkflowStarter (not raw ITemporalClient) for:
 ///   - Stable workflow ID format (TemporalNaming.WorkflowId — no string drift)
@@ -27,11 +26,9 @@ public sealed class TemporalWorkflowTriggerBridge(
         if (!result.Started && !result.AlreadyRunning)
         {
             // StartAsync caught an exception and returned a failure result.
-            // Log and return false — interceptor falls back to the actor path.
             logger.LogError(
                 "[TemporalWorkflowTriggerBridge] Failed to start workflow. " +
-                "EntityType={EntityType}, EntityId={EntityId}, Error={Error}. " +
-                "Falling back to WorkflowEventPublisherActor.",
+                "EntityType={EntityType}, EntityId={EntityId}, Error={Error}.",
                 message.EntityType, message.EntityId, result.ErrorMessage);
 
             return false;
@@ -43,6 +40,6 @@ public sealed class TemporalWorkflowTriggerBridge(
             result.AlreadyRunning ? "already running (skipped)" : "started",
             result.WorkflowId, message.EntityType, message.EntityId);
 
-        return true; // interceptor skips WorkflowEventPublisherActor
+        return true;
     }
 }

@@ -55,8 +55,7 @@ public class ConsumeTopicAttribute : Attribute
 }
 
 /// <summary>
-/// Attribute to mark a class as a Kafka consumer
-/// Similar to RabbitMQ's ConsumerAttribute but Kafka-specific
+/// Attribute to mark a class as a Kafka consumer.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
 public class KafkaConsumerAttribute : Attribute

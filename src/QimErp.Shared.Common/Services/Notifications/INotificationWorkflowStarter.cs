@@ -3,8 +3,8 @@ using QimErp.Shared.Common.Events;
 namespace QimErp.Shared.Common.Services.Notifications;
 
 /// <summary>
-/// Fires a <c>NotificationWorkflow</c> via Temporal from any module — no RabbitMQ publish,
-/// no HTTP API call, no exchange name required.
+/// Fires a <c>NotificationWorkflow</c> via Temporal from any module — no HTTP API call
+/// or exchange name required.
 ///
 /// Registered automatically by <see cref="QimErp.Shared.Common.Extensions.TemporalServiceCollectionExtensions.AddTemporalWorkflow"/>.
 /// </summary>

@@ -32,7 +32,7 @@ namespace QimErp.Shared.Common.Extensions;
 public static class SharedServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers QimErp configuration options (FrontendSettings, System, RabbitMq).
+    /// Registers QimErp configuration options (FrontendSettings, System).
     /// Call from consuming application startup.
     /// </summary>
     public static IServiceCollection AddQimErpConfiguration(this IServiceCollection services, IConfiguration configuration)
@@ -40,20 +40,18 @@ public static class SharedServiceCollectionExtensions
         services.AddQimErpConfigurationWithDefaults();
         services.Configure<FrontendSettings>(configuration.GetSection(FrontendSettings.SectionName));
         services.Configure<SystemOptions>(configuration.GetSection(SystemOptions.SectionName));
-        services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
         return services;
     }
 
     /// <summary>
     /// Registers QimErp options with default values.
     /// Use when IConfiguration is not available (e.g. AddDbContextWithOutbox without config).
-    /// Ensures IOptions&lt;T&gt; resolves for FrontendSettings, SystemOptions, RabbitMqOptions.
+    /// Ensures IOptions&lt;T&gt; resolves for FrontendSettings and SystemOptions.
     /// </summary>
     public static IServiceCollection AddQimErpConfigurationWithDefaults(this IServiceCollection services)
     {
         services.Configure<FrontendSettings>(_ => { });
         services.Configure<SystemOptions>(_ => { });
-        services.Configure<RabbitMqOptions>(_ => { });
         return services;
     }
 

@@ -7,8 +7,8 @@ namespace QimErp.Shared.Common.Services;
 /// to skip workflow initiation, status-change capture, and domain-event publishing
 /// during high-volume seeding.
 ///
-/// Without this, seeding 10k employees would fan out 10k EmployeeChangedEvents,
-/// 10k workflow lookups, and 10k RabbitMQ publishes — saturating the bus.
+/// Without this, seeding 10k employees would fan out 10k EmployeeChangedEvents
+/// and 10k workflow lookups — pointless overhead for fixture data.
 /// </summary>
 public static class BulkSeedScope
 {

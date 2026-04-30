@@ -45,7 +45,7 @@ public static class TemporalServiceCollectionExtensions
         services.TryAddSingleton<IApprovalWorkflowQueryClient, ApprovalWorkflowQueryClient>();
         services.TryAddSingleton<IApprovalWorkflowTerminator,  ApprovalWorkflowTerminator>();
 
-        // Bridge — replaces WorkflowEventPublisherActor in the interceptor
+        // Bridge — drives Temporal workflow triggers from the audit interceptor.
         services.TryAddSingleton<IWorkflowTriggerBridge, TemporalWorkflowTriggerBridge>();
 
         // Notification starter — any service injects INotificationWorkflowStarter to fire emails/SMS

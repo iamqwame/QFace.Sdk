@@ -22,7 +22,6 @@ global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
 global using Npgsql;
 global using QFace.Sdk.ActorSystems;
-global using QimErp.Shared.Common.Actors;
 global using QimErp.Shared.Common.Contracts;
 global using QimErp.Shared.Common.Database.Configurations;
 global using QimErp.Shared.Common.Entities;
