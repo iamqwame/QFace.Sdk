@@ -7,7 +7,7 @@
 
         <!-- NuGet Package Metadata -->
         <PackageId>QimErp.Shared.DemoData</PackageId>
-        <Version>1.1.0</Version>
+        <Version>1.2.2</Version>
         <Authors>IAmQwame</Authors>
         <Company>QimErp</Company>
         <Description>

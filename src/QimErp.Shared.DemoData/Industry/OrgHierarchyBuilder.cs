@@ -8,12 +8,26 @@ public static class OrgHierarchyBuilder
     private const int MinFanOut = 3;
     private const int MaxFanOut = 8;
 
+    /// <summary>
+    /// One curated org unit emitted by an industry profile's tier (Startup / SME /
+    /// Corporate / NonProfit). Carries the description / budget / cost-center / phone /
+    /// email metadata the UI surfaces. New fields default to empty so existing profile
+    /// constants compile while they're being migrated; the row factory falls back to
+    /// procedural defaults derived from headcount + the company TLD when blank.
+    /// </summary>
     public sealed record BaselineUnit(
         string Code,
         string Name,
         string? ParentCode,
         OrgUnitKind Kind,
-        IReadOnlyList<string> EligibleJobTitleCodes);
+        IReadOnlyList<string> EligibleJobTitleCodes,
+        string Description = "",
+        decimal BudgetMin = 0,
+        decimal BudgetMax = 0,
+        string CostCenter = "",
+        string Purpose = "",
+        string Phone = "",
+        string Email = "");
 
     public static OrgHierarchySpec Build(
         IReadOnlyList<BaselineUnit> baselineUnits,
@@ -45,7 +59,14 @@ public static class OrgHierarchyBuilder
                 Level: level,
                 Kind: unit.Kind,
                 TargetHeadcount: headcount,
-                EligibleJobTitleCodes: unit.EligibleJobTitleCodes));
+                EligibleJobTitleCodes: unit.EligibleJobTitleCodes,
+                Description: unit.Description,
+                BudgetMin: unit.BudgetMin,
+                BudgetMax: unit.BudgetMax,
+                CostCenter: unit.CostCenter,
+                Purpose: unit.Purpose,
+                Phone: unit.Phone,
+                Email: unit.Email));
         }
 
         for (var pass = 0; pass < MaxDepth; pass++)
@@ -86,6 +107,14 @@ public static class OrgHierarchyBuilder
         {
             var head = perChild + (i < remainder ? 1 : 0);
             var (suffix, label) = ChildLabel(parent.Kind, nextKind.Value, i);
+            // Children inherit the parent's description/budget/purpose so deep
+            // subdivisions never land with a "—" UI cell. Budget shrinks to the
+            // child's headcount share so the rollup stays sensible. Cost-center is
+            // suffixed so each child has a distinct one. Phone/email default to
+            // empty here; the row factory derives them from the workEmailDomain.
+            var headcountShare = parent.TargetHeadcount > 0
+                ? (decimal)head / parent.TargetHeadcount
+                : 1m;
             yield return new OrgUnitNode(
                 Code: $"{parent.Code}.{suffix}",
                 Name: $"{parent.Name} - {label}",
@@ -93,7 +122,18 @@ public static class OrgHierarchyBuilder
                 Level: parent.Level + 1,
                 Kind: nextKind.Value,
                 TargetHeadcount: head,
-                EligibleJobTitleCodes: parent.EligibleJobTitleCodes);
+                EligibleJobTitleCodes: parent.EligibleJobTitleCodes,
+                Description: !string.IsNullOrEmpty(parent.Description)
+                    ? $"{parent.Description} — {label} sub-unit"
+                    : "",
+                BudgetMin: Math.Round(parent.BudgetMin * headcountShare, 0),
+                BudgetMax: Math.Round(parent.BudgetMax * headcountShare, 0),
+                CostCenter: !string.IsNullOrEmpty(parent.CostCenter)
+                    ? $"{parent.CostCenter}.{suffix}"
+                    : "",
+                Purpose: parent.Purpose,
+                Phone: "",
+                Email: "");
         }
     }
 

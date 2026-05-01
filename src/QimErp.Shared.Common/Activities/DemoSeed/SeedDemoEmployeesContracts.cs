@@ -34,6 +34,14 @@ public sealed class SeedDemoEmployeesRequest
     public required string SystemUserName { get; set; }
     public required string WorkEmailDomain { get; set; }
     public string? ParentWorkflowId { get; set; }
+
+    /// <summary>
+    /// Company display name (e.g. "Cal Bank", "Analic Systems Ltd"). Threaded into the
+    /// row factory so static profile descriptions / responsibilities / KPIs that carry
+    /// the {Company} placeholder render naturally for each tenant. When missing, the
+    /// row factory falls back to "the company" so descriptions still read sensibly.
+    /// </summary>
+    public string? CompanyName { get; set; }
 }
 
 public sealed class SeedDemoEmployeesResult
