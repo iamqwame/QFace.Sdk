@@ -1,4 +1,3 @@
-using Bogus;
 using GhanaData = QimErp.Shared.DemoData.Ghana;
 
 namespace QimErp.Shared.DemoData.Bogus;

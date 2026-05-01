@@ -1,18 +1,15 @@
-using Bogus;
-using QimErp.Shared.DemoData.Bogus;
-
 namespace QimErp.Shared.DemoData.Media;
 
 // Real-photo URLs only. Vector / generated avatars (DiceBear, ui-avatars,
 // Pravatar, Robohash) are deliberately excluded so every employee gets a face.
-// Mixes randomuser.me (99/gender) and xsgames.co (78/gender) — same sources
-// the Cal Bank reference spreadsheet uses.
+// Curated set of stable Unsplash CDN headshots — randomuser.me and xsgames.co
+// were intermittently 404'ing in production, so the pools were swapped for
+// hand-picked Unsplash photo IDs that mix age, ethnicity, attire and
+// head-and-shoulder framing.
 public static class PortraitCatalog
 {
-    private const string RandomUserBase = "https://randomuser.me/api/portraits";
-    private const string XsgamesBase    = "https://xsgames.co/randomusers/assets/avatars";
-    private const int RandomUserIndexCount = 99;
-    private const int XsgamesIndexCount    = 78;
+    private const string UnsplashUrlFormat =
+        "https://images.unsplash.com/photo-{0}?w=400&q=80&fit=crop&crop=faces";
 
     private static readonly string[] _malePortraits = BuildMalePool();
     private static readonly string[] _femalePortraits = BuildFemalePool();
@@ -63,19 +60,102 @@ public static class PortraitCatalog
         return faker.Random.ListItem(pool);
     }
 
+    /// <summary>
+    /// Returns a portrait URL for the employee at <paramref name="employeeIndex" /> in the seeded list.
+    /// Index 0 → AdminLeaderPhoto (admin / tenant creator).
+    /// Index 1 → SecondLeaderPhoto (second senior leader).
+    /// Index ≥ 2 → 70% chance of returning a deterministic-by-(seed, index) URL from the matching gender pool, 30% chance of returning null (frontend renders initials).
+    /// Determinism: same (seed, index, gender) tuple always returns the same URL — so a re-seed with the same RandomSeed produces the same photo distribution.
+    /// </summary>
+    public static string? PickPortraitForEmployee(int employeeIndex, GhanaFakerExtensions.Gender gender, int seed)
+    {
+        if (employeeIndex == 0) return AdminLeaderPhoto;
+        if (employeeIndex == 1) return SecondLeaderPhoto;
+
+        var rng = new Random(HashCode.Combine(seed, employeeIndex));
+        if (rng.NextDouble() < 0.30) return null;
+
+        var pool = gender == GhanaFakerExtensions.Gender.Female ? _femalePortraits : _malePortraits;
+        return pool[rng.Next(pool.Length)];
+    }
+
     private static string[] BuildMalePool()
     {
-        var pool = new List<string>(RandomUserIndexCount + XsgamesIndexCount);
-        for (var i = 1; i <= RandomUserIndexCount; i++) pool.Add($"{RandomUserBase}/men/{i}.jpg");
-        for (var i = 1; i <= XsgamesIndexCount; i++) pool.Add($"{XsgamesBase}/male/{i}.jpg");
-        return pool.ToArray();
+        // Curated Unsplash photo IDs for male headshots — diverse ages,
+        // ethnicities, professional attire, head-and-shoulder framing.
+        // Duplicates removed from the source list.
+        var photoIds = new[]
+        {
+            "1507003211169-0a1dd7228f2d",
+            "1500648767791-00dcc994a43e",
+            "1506794778202-cad84cf45f1d",
+            "1472099645785-5658abf4ff4e",
+            "1519085360753-af0119f7cbe7",
+            "1568602471122-7832951cc4c5",
+            "1531427186611-ecfd6d936c79",
+            "1463453091185-61582044d556",
+            "1502323777036-f29e3972d82f",
+            "1542178243-bc20204b769f",
+            "1552058544-f2b08422138a",
+            "1488161628813-04466f872be2",
+            "1463725506904-04a3548e8a0c",
+            "1542909168-82c3e7fdca5c",
+            "1542909192-2f2241a0d8c3",
+            "1546961342-c98c91dc8fcf",
+            "1474176857210-7287d38d27c6",
+            "1492447216082-4726bf04d1fb",
+            "1521119989659-a83eee488004",
+            "1500048993953-d23a436266cf",
+            "1556157382-97eda2d62296",
+            "1539571696857-5a6c4b1bd3a8",
+            "1607990281513-2c110a25bd8c",
+            "1545167622-3a6ac756afa4",
+            "1528892952291-009c663ce843",
+            "1504593811423-6dd665756598",
+            "1521572163474-6864f9cf17ab",
+            "1438761681033-6461ffad8d80",
+            "1463100099107-aa0980c362e6",
+        };
+
+        return photoIds.Select(id => string.Format(UnsplashUrlFormat, id)).ToArray();
     }
 
     private static string[] BuildFemalePool()
     {
-        var pool = new List<string>(RandomUserIndexCount + XsgamesIndexCount);
-        for (var i = 1; i <= RandomUserIndexCount; i++) pool.Add($"{RandomUserBase}/women/{i}.jpg");
-        for (var i = 1; i <= XsgamesIndexCount; i++) pool.Add($"{XsgamesBase}/female/{i}.jpg");
-        return pool.ToArray();
+        // Curated Unsplash photo IDs for female headshots — diverse ages,
+        // ethnicities, professional attire, head-and-shoulder framing.
+        // Duplicates removed from the source list.
+        var photoIds = new[]
+        {
+            "1573497019940-1c28c88b4f3e",
+            "1438761681033-6461ffad8d80",
+            "1494790108377-be9c29b29330",
+            "1531123897727-8f129e1688ce",
+            "1487412720507-e7ab37603c6f",
+            "1502823403499-6ccfcf4fb453",
+            "1573496359142-b8d87734a5a2",
+            "1521252659862-eec69941b71f",
+            "1517841905240-472988babdf9",
+            "1517363898874-737b62a7db91",
+            "1620577751996-2d2d8e26e5db",
+            "1502685104226-ee32379fefbe",
+            "1573497620053-ea5300f94f21",
+            "1539571696857-5a6c4b1bd3a8",
+            "1554151228-14d9def656e4",
+            "1546961342-c98c91dc8fcf",
+            "1518082593638-b4a1ac28b94d",
+            "1519085360753-af0119f7cbe7",
+            "1531746020798-e6953c6e8e04",
+            "1551836022-d5d88e9218df",
+            "1607746882042-944635dfe10e",
+            "1593104547489-5cfb3839a3b5",
+            "1488426862026-3ee34a7d66df",
+            "1525134479668-1bee5c7c6845",
+            "1559963911-46569d80b73f",
+            "1485875437342-9b39470b3d95",
+            "1541823709867-1b206113eafd",
+        };
+
+        return photoIds.Select(id => string.Format(UnsplashUrlFormat, id)).ToArray();
     }
 }

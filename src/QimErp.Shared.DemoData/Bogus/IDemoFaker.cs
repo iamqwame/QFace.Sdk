@@ -1,5 +1,3 @@
-using Bogus;
-
 namespace QimErp.Shared.DemoData.Bogus;
 
 public interface IDemoFaker

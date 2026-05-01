@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using QimErp.Shared.DemoData.Bogus;
 using QimErp.Shared.DemoData.Industry;
 using QimErp.Shared.DemoData.Industry.Profiles;
 

@@ -1,5 +1,3 @@
-using QimErp.Shared.DemoData.Ghana;
-
 namespace QimErp.Shared.DemoData.Industry.Profiles;
 
 public sealed class BankingIndustryProfile : IIndustryProfile
