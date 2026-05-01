@@ -213,6 +213,30 @@ public sealed class TelecommunicationsIndustryProfile : IIndustryProfile
         new("JUNIOR_FIELD_TECH",  "Junior Field Technician",  2, 3_000m,  5_500m,  "TECH_SUPPORT", "FIELD_TECH",false, "High School",       1,  "Field Support, Learning"),
         new("SALES_ASSIST",       "Sales Assistant",          2, 3_000m,  5_500m,  "SALES",        "SALES_EXEC",false, "High School",       1,  "Sales Support, Data Entry"),
         new("NET_TRAINEE",        "Network Trainee",          1, 2_000m,  4_000m,  "NETOPS",       "JUNIOR_NET_ENG",false,"Student",       0,  "Learning, Network Support"),
-        new("CUSTOMER_TRAINEE",   "Customer Service Trainee", 1, 2_000m,  3_500m,  "CUSTOMER",     "CUSTOMER_ASSIST",false,"High School",  0,  "Learning, Customer Support")
+        new("CUSTOMER_TRAINEE",   "Customer Service Trainee", 1, 2_000m,  3_500m,  "CUSTOMER",     "CUSTOMER_ASSIST",false,"High School",  0,  "Learning, Customer Support"),
+        // ── Expansion ────────────────────────────────────────────────────────
+        new("CCO_TELCO",          "Chief Commercial Officer",   5, 16_000m, 28_000m, "SALES",       null,           true, "Master's Degree",  10, "Commercial Strategy, Revenue"),
+        new("CTO_TELCO",          "Chief Technology Officer",   5, 16_000m, 28_000m, "NETOPS",      null,           true, "Master's Degree",  12, "Network Strategy, Architecture"),
+        new("HEAD_NETWORK",       "Head of Network Operations", 5, 13_000m, 22_000m, "NETOPS",      "CTO_TELCO",    true, "Master's Degree",  10, "Network Performance, NOC Operations"),
+        new("HEAD_CUSTOMER",      "Head of Customer Experience",5, 12_000m, 20_000m, "CUSTOMER",    null,           true, "Master's Degree",  10, "CX Strategy, NPS, Service Quality"),
+        new("HEAD_TECH_SUPPORT",  "Head of Technical Support",  5, 11_000m, 18_000m, "TECH_SUPPORT",null,           true, "Master's Degree",  10, "Tier-3 Support, SLAs"),
+        new("RF_ENG",             "RF Engineer",                4, 8_000m,  13_500m, "NETOPS",      "HEAD_NETWORK", true, "Bachelor's in EE", 6,  "RF Planning, Site Survey, Optimization"),
+        new("CORE_NETWORK_ENG",   "Core Network Engineer",      4, 8_500m,  14_000m, "NETOPS",      "HEAD_NETWORK", true, "Bachelor's in CS", 6,  "Core Network, Signalling, Routing"),
+        new("FIBRE_ENG",          "Fibre & Transmission Engineer",4,7_500m, 12_500m, "NETOPS",      "HEAD_NETWORK", true, "Bachelor's in EE", 5,  "Fibre, DWDM, Microwave Links"),
+        new("BSS_ENG",            "BSS Engineer",               4, 8_000m,  13_500m, "IT",          null,           true, "Bachelor's in CS", 6,  "Billing, CRM, Order Management"),
+        new("OSS_ENG",            "OSS Engineer",               4, 8_000m,  13_500m, "NETOPS",      "HEAD_NETWORK", true, "Bachelor's in CS", 6,  "Network Management, Provisioning"),
+        new("REGIONAL_NOC",       "Regional NOC Manager",       4, 7_500m,  12_500m, "NETOPS",      "HEAD_NETWORK", true, "Bachelor's Degree",6,  "Regional Network, Incident Management"),
+        new("FIELD_TECH",         "Field Technician",           3, 4_500m,  8_000m,  "NETOPS",      "REGIONAL_NOC", false,"Diploma",         2,  "Site Maintenance, Tower Climbing"),
+        new("NOC_OPERATOR",       "NOC Operator",               3, 4_500m,  7_500m,  "NETOPS",      "REGIONAL_NOC", false,"Diploma",         2,  "24/7 Network Monitoring, First Response"),
+        new("DATA_ANALYST_TELCO", "Data Analyst",               3, 5_000m,  9_000m,  "IT",          null,           false,"Bachelor's Degree",2, "Network KPIs, Customer Analytics"),
+        new("BUSINESS_DEV_TELCO", "Business Development Officer",3,5_500m,  9_500m,  "SALES",       "CCO_TELCO",    false,"Bachelor's Degree",3, "Enterprise Sales, Partnerships"),
+        new("ACCOUNT_MGR_TELCO",  "Account Manager",            3, 5_000m,  9_000m,  "SALES",       "CCO_TELCO",    false,"Bachelor's Degree",2, "Enterprise Account Management"),
+        new("RETENTION_OFFICER",  "Customer Retention Officer", 3, 4_000m,  7_500m,  "CUSTOMER",    "HEAD_CUSTOMER",false,"Bachelor's Degree",2, "Churn Reduction, Loyalty Programs"),
+        new("SOC_ANALYST",        "SOC Analyst",                3, 6_000m,  10_500m, "IT",          null,           false,"Bachelor's in CS", 3,  "Security Monitoring, Incident Triage"),
+        new("CALL_CENTER",        "Call Centre Agent",          2, 2_500m,  4_500m,  "CUSTOMER",    "CUSTOMER_ASSIST",false,"High School",  0,  "Inbound Calls, Customer Inquiries"),
+        new("SHOP_AGENT",         "Service Centre Agent",       2, 2_500m,  4_500m,  "CUSTOMER",    "CUSTOMER_ASSIST",false,"High School",  1,  "Walk-in Service, SIM Sales"),
+        new("FIBRE_INSTALLER",    "Fibre Installer",            2, 3_000m,  5_500m,  "NETOPS",      "FIELD_TECH",   false,"Trade Certificate",1, "Last-mile Fibre Installation"),
+        new("NETWORK_INTERN",     "Network Engineering Intern", 1, 1_800m,  3_500m,  "NETOPS",      "FIELD_TECH",   false,"Student",         0, "Learning, Field Engineering Support"),
+        new("BSS_INTERN",         "BSS Intern",                 1, 1_800m,  3_500m,  "IT",          "BSS_ENG",      false,"Student",         0, "Learning, BSS Support")
     ];
 }

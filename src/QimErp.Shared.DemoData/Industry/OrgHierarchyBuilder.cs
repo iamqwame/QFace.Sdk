@@ -109,24 +109,47 @@ public static class OrgHierarchyBuilder
         _                     => null
     };
 
+    // 17 regions — every official Ghana region so a fan-out of 8 never repeats at one parent.
     private static readonly string[] RegionLabels =
     [
-        "Greater Accra", "Ashanti", "Northern", "Western", "Central",
-        "Eastern", "Volta", "Upper East", "Upper West", "Bono", "Ahafo"
+        "Greater Accra", "Ashanti", "Northern", "Western", "Western North",
+        "Central", "Eastern", "Volta", "Oti", "Upper East", "Upper West",
+        "Bono", "Bono East", "Ahafo", "North East", "Savannah", "Brong Ahafo"
     ];
 
+    // 25 area labels — geographic + functional. Spans north/south/east/west, urban/rural,
+    // commercial/industrial/residential so a corporate seed has variety at every level.
     private static readonly string[] AreaLabels =
     [
         "Central Area", "Northern Area", "Southern Area", "Eastern Area", "Western Area",
-        "Industrial Area", "Commercial Area", "Suburban Area"
+        "Industrial Area", "Commercial Area", "Suburban Area", "Metropolitan Area",
+        "Urban Area", "Rural Area", "Coastal Area", "Inland Area", "Highland Area",
+        "Lowland Area", "Riverside Area", "Lakeshore Area", "Border Area", "Cross-Border Area",
+        "Free Zone Area", "Mining Area", "Agricultural Area", "Tourism Area",
+        "Diaspora Area", "Special Economic Area"
     ];
 
+    // 50 branch labels — Greater Accra suburbs + Kumasi suburbs + every regional capital
+    // + secondary towns. Path-uniqueness on the parent prefix means duplicates across
+    // industries are fine; duplicates *within one parent* are what we avoid here. Pool >
+    // MaxFanOut (8) by a wide margin.
     private static readonly string[] BranchLabels =
     [
-        "Main Branch", "Adum Branch", "Tema Branch", "Spintex Branch", "Madina Branch",
-        "Kasoa Branch", "Kumasi Branch", "Takoradi Branch", "Tamale Branch", "Cape Coast Branch",
-        "Sunyani Branch", "Ho Branch", "Koforidua Branch", "Wa Branch", "Bolgatanga Branch",
-        "East Legon Branch", "Osu Branch", "Lapaz Branch", "Achimota Branch", "Airport City Branch"
+        // Greater Accra
+        "Main Branch", "Tema Branch", "Spintex Branch", "Madina Branch", "Kasoa Branch",
+        "East Legon Branch", "Osu Branch", "Lapaz Branch", "Achimota Branch",
+        "Airport City Branch", "Ridge Branch", "Cantonments Branch", "Labone Branch",
+        "Adenta Branch", "Ashaiman Branch", "Dansoman Branch", "Dome Branch",
+        "Ashongman Branch", "Pokuase Branch", "Amasaman Branch",
+        // Ashanti
+        "Adum Branch", "Kumasi Branch", "Asokwa Branch", "Bantama Branch", "Suame Branch",
+        "Tafo Branch", "Manhyia Branch", "Obuasi Branch", "Ejisu Branch", "Konongo Branch",
+        // Other regional capitals
+        "Takoradi Branch", "Tamale Branch", "Cape Coast Branch", "Sunyani Branch",
+        "Ho Branch", "Koforidua Branch", "Wa Branch", "Bolgatanga Branch", "Sekondi Branch",
+        "Techiman Branch", "Berekum Branch", "Bekwai Branch", "Mampong Branch",
+        "Hohoe Branch", "Nkawkaw Branch", "Nsawam Branch", "Tarkwa Branch",
+        "Winneba Branch", "Akim Oda Branch", "Bawku Branch"
     ];
 
     private static (string Suffix, string Label) ChildLabel(OrgUnitKind parentKind, OrgUnitKind childKind, int index)

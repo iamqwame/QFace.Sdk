@@ -207,34 +207,75 @@ public sealed class BankingIndustryProfile : IIndustryProfile
 
     private static readonly IReadOnlyList<JobTitleSpec> _jobTitles =
     [
-        // Executive (5)
-        new("CEO",          "Chief Executive Officer",  5, 20_000m, 35_000m, null,         null,         true,  "Master's Degree",   12, "Banking Leadership, Strategic Planning"),
-        new("CRO",          "Chief Risk Officer",       5, 18_000m, 30_000m, "RISK",       "CEO",        true,  "Master's Degree",   10, "Risk Management, Regulatory Compliance"),
-        new("CTO",          "Chief Technology Officer", 5, 17_000m, 28_000m, "IT",         "CEO",        true,  "Master's Degree",   10, "Banking Technology, Digital Transformation"),
-        new("HEAD_RETAIL",  "Head of Retail Banking",   5, 15_000m, 25_000m, "RETAIL",     "CEO",        true,  "Master's Degree",   8,  "Retail Banking Strategy, Branch Network"),
-        new("HEAD_CORP",    "Head of Corporate Banking",5, 15_000m, 25_000m, "CORPORATE",  "CEO",        true,  "Master's Degree",   8,  "Corporate Banking, Business Development"),
-        // Senior (4)
-        new("BRANCH_MGR",   "Branch Manager",           4, 8_000m,  14_000m, "RETAIL",     "HEAD_RETAIL",true,  "Bachelor's Degree", 6,  "Branch Operations, Customer Service, Sales"),
-        new("REL_MGR",      "Relationship Manager",     4, 7_000m,  12_000m, "CORPORATE",  "HEAD_CORP",  true,  "Bachelor's Degree", 5,  "Client Relationship, Business Development"),
-        new("RISK_MGR",     "Risk Manager",             4, 9_000m,  15_000m, "RISK",       "CRO",        true,  "Bachelor's Degree", 6,  "Risk Assessment, Compliance, Regulatory Reporting"),
-        new("COMPLIANCE",   "Compliance Officer",       4, 7_000m,  12_000m, "RISK",       "CRO",        true,  "Bachelor's Degree", 5,  "Regulatory Compliance, Audit, Policy"),
-        new("TREASURY_MGR", "Treasury Manager",         4, 10_000m, 16_000m, "TREASURY",   "CEO",        true,  "Bachelor's Degree", 6,  "Liquidity Management, Foreign Exchange"),
-        new("IT_MGR",       "IT Manager",               4, 9_000m,  15_000m, "IT",         "CTO",        true,  "Bachelor's Degree", 6,  "IT Operations, Banking Systems, Security"),
-        // Mid (3)
-        new("LOAN_OFFICER", "Loan Officer",             3, 4_000m,  8_000m,  "RETAIL",     "BRANCH_MGR", false, "Bachelor's Degree", 2,  "Loan Processing, Credit Analysis, Customer Service"),
-        new("TELLER",       "Teller",                   3, 2_500m,  5_000m,  "RETAIL",     "BRANCH_MGR", false, "High School",       1,  "Cash Handling, Customer Service, Transactions"),
-        new("CORP_OFFICER", "Corporate Banking Officer",3, 6_000m,  11_000m, "CORPORATE",  "REL_MGR",    false, "Bachelor's Degree", 3,  "Corporate Banking, Credit Analysis, Business Development"),
-        new("RISK_ANALYST", "Risk Analyst",             3, 5_000m,  9_000m,  "RISK",       "RISK_MGR",   false, "Bachelor's Degree", 2,  "Risk Analysis, Data Analysis, Reporting"),
-        new("OPS_OFFICER",  "Operations Officer",       3, 4_000m,  7_500m,  "OPS",        null,         false, "Bachelor's Degree", 2,  "Transaction Processing, Operations, Reconciliation"),
-        new("ACCOUNTANT",   "Accountant",               3, 5_000m,  9_000m,  "FINANCE",    null,         false, "Bachelor's Degree", 2,  "Accounting, Financial Reporting, Bookkeeping"),
-        new("IT_OFFICER",   "IT Officer",               3, 6_000m,  11_000m, "IT",         "IT_MGR",     false, "Bachelor's Degree", 3,  "Banking Systems, Network Administration, Support"),
-        // Junior (2)
-        new("JUNIOR_TELLER","Junior Teller",            2, 2_000m,  3_500m,  "RETAIL",     "TELLER",     false, "High School",       0,  "Cash Handling, Basic Transactions"),
-        new("CSR",          "Customer Service Rep",     2, 2_500m,  4_500m,  "RETAIL",     "BRANCH_MGR", false, "High School",       1,  "Customer Service, Account Inquiries"),
-        new("OPS_ASSIST",   "Operations Assistant",     2, 2_500m,  4_500m,  "OPS",        "OPS_OFFICER",false, "High School",       1,  "Transaction Processing Support, Filing"),
-        new("JUNIOR_ACCOUNTANT","Junior Accountant",    2, 3_000m,  5_500m,  "FINANCE",    "ACCOUNTANT", false, "Diploma",           1,  "Basic Accounting, Data Entry"),
-        // Entry (1)
-        new("TELLER_TRAINEE","Teller Trainee",          1, 1_500m,  2_500m,  "RETAIL",     "TELLER",     false, "High School",       0,  "Learning, Supervised Transactions"),
-        new("OPS_INTERN",   "Operations Intern",        1, 1_500m,  2_500m,  "OPS",        "OPS_OFFICER",false, "Student",           0,  "Learning, Operations Support")
+        // ── Executive (rank 5) ────────────────────────────────────────────────
+        new("CEO",            "Chief Executive Officer",       5, 20_000m, 35_000m, null,         null,         true,  "Master's Degree",   12, "Banking Leadership, Strategic Planning"),
+        new("DEPUTY_MD",      "Deputy Managing Director",      5, 18_000m, 30_000m, "EXEC",       "CEO",        true,  "Master's Degree",   12, "Executive Strategy, Stakeholder Management"),
+        new("CFO",            "Chief Financial Officer",       5, 18_000m, 32_000m, "FINANCE",    "CEO",        true,  "Master's Degree",   12, "Financial Strategy, Capital Markets"),
+        new("CRO",            "Chief Risk Officer",            5, 18_000m, 30_000m, "RISK",       "CEO",        true,  "Master's Degree",   10, "Risk Management, Regulatory Compliance"),
+        new("CTO",            "Chief Technology Officer",      5, 17_000m, 28_000m, "IT",         "CEO",        true,  "Master's Degree",   10, "Banking Technology, Digital Transformation"),
+        new("CHRO",           "Chief People Officer",          5, 16_000m, 26_000m, "HR",         "CEO",        true,  "Master's Degree",   10, "Human Capital Strategy, Talent Management"),
+        new("COO",            "Chief Operating Officer",       5, 18_000m, 30_000m, "OPS",        "CEO",        true,  "Master's Degree",   12, "Operational Excellence, Business Processes"),
+        new("HEAD_RETAIL",    "Head of Retail Banking",        5, 15_000m, 25_000m, "RETAIL",     "CEO",        true,  "Master's Degree",   8,  "Retail Banking Strategy, Branch Network"),
+        new("HEAD_CORP",      "Head of Corporate Banking",     5, 15_000m, 25_000m, "CORPORATE",  "CEO",        true,  "Master's Degree",   8,  "Corporate Banking, Business Development"),
+        new("HEAD_INVEST",    "Head of Investment Banking",    5, 16_000m, 28_000m, "INVESTMENT", "CEO",        true,  "Master's Degree",   10, "Capital Markets, M&A Advisory"),
+        new("HEAD_TREASURY",  "Head of Treasury",              5, 15_000m, 26_000m, "TREASURY",   "CEO",        true,  "Master's Degree",   10, "Treasury Strategy, Asset & Liability Management"),
+        new("HEAD_DIGITAL",   "Head of Digital Banking",       5, 14_000m, 24_000m, "IT",         "CTO",        true,  "Master's Degree",   8,  "Digital Strategy, Mobile Banking"),
+
+        // ── Senior (rank 4) ───────────────────────────────────────────────────
+        new("REGIONAL_MGR",   "Regional Manager",              4, 11_000m, 18_000m, "RETAIL",     "HEAD_RETAIL",true,  "Bachelor's Degree", 8,  "Regional Operations, Branch Oversight"),
+        new("BRANCH_MGR",     "Branch Manager",                4, 8_000m,  14_000m, "RETAIL",     "REGIONAL_MGR",true, "Bachelor's Degree", 6,  "Branch Operations, Customer Service, Sales"),
+        new("REL_MGR",        "Relationship Manager",          4, 7_000m,  12_000m, "CORPORATE",  "HEAD_CORP",  true,  "Bachelor's Degree", 5,  "Client Relationship, Business Development"),
+        new("WEALTH_MGR",     "Wealth Manager",                4, 10_000m, 18_000m, "INVESTMENT", "HEAD_INVEST",true,  "Bachelor's Degree", 6,  "Private Banking, Investment Advisory"),
+        new("RISK_MGR",       "Risk Manager",                  4, 9_000m,  15_000m, "RISK",       "CRO",        true,  "Bachelor's Degree", 6,  "Risk Assessment, Compliance, Regulatory Reporting"),
+        new("CREDIT_MGR",     "Credit Manager",                4, 9_000m,  15_000m, "RISK",       "CRO",        true,  "Bachelor's Degree", 6,  "Credit Underwriting, Loan Portfolio Management"),
+        new("AUDIT_MGR",      "Internal Audit Manager",        4, 9_000m,  15_000m, "RISK",       "CRO",        true,  "Bachelor's Degree", 6,  "Internal Audit, Process Review"),
+        new("COMPLIANCE_MGR", "Compliance Manager",            4, 8_000m,  13_000m, "RISK",       "CRO",        true,  "Bachelor's Degree", 5,  "Regulatory Compliance, AML, Policy"),
+        new("AML_OFFICER",    "AML Officer",                   4, 7_500m,  12_500m, "RISK",       "COMPLIANCE_MGR",true,"Bachelor's Degree", 5,"Anti-Money Laundering, KYC, Sanctions Screening"),
+        new("COMPLIANCE",     "Compliance Officer",            4, 7_000m,  12_000m, "RISK",       "COMPLIANCE_MGR",true,"Bachelor's Degree", 5,"Regulatory Compliance, Audit, Policy"),
+        new("TREASURY_MGR",   "Treasury Manager",              4, 10_000m, 16_000m, "TREASURY",   "HEAD_TREASURY",true,"Bachelor's Degree", 6, "Liquidity Management, Foreign Exchange"),
+        new("FX_TRADER",      "FX Trader",                     4, 11_000m, 19_000m, "TREASURY",   "TREASURY_MGR",true,"Bachelor's Degree",  5, "Foreign Exchange Trading, Market Analysis"),
+        new("IT_MGR",         "IT Manager",                    4, 9_000m,  15_000m, "IT",         "CTO",        true,  "Bachelor's Degree", 6,  "IT Operations, Banking Systems, Security"),
+        new("INFOSEC_MGR",    "Information Security Manager",  4, 10_000m, 17_000m, "IT",         "CTO",        true,  "Bachelor's Degree", 7,  "Cybersecurity, Threat Management, Incident Response"),
+        new("FINANCE_MGR",    "Finance Manager",               4, 9_000m,  15_000m, "FINANCE",    "CFO",        true,  "Bachelor's Degree", 6,  "Financial Reporting, Budgeting, Forecasting"),
+        new("HR_MGR",         "HR Manager",                    4, 7_500m,  13_000m, "HR",         "CHRO",       true,  "Bachelor's Degree", 6,  "Employee Relations, Talent Acquisition, L&D"),
+        new("MARKETING_MGR",  "Marketing Manager",             4, 7_500m,  12_500m, "EXEC",       "CEO",        true,  "Bachelor's Degree", 5,  "Brand Management, Customer Acquisition, Campaigns"),
+
+        // ── Mid (rank 3) ──────────────────────────────────────────────────────
+        new("LOAN_OFFICER",   "Loan Officer",                  3, 4_000m,  8_000m,  "RETAIL",     "BRANCH_MGR", false, "Bachelor's Degree", 2,  "Loan Processing, Credit Analysis, Customer Service"),
+        new("MORTGAGE_OFFICER","Mortgage Officer",             3, 4_500m,  8_500m,  "RETAIL",     "BRANCH_MGR", false, "Bachelor's Degree", 2,  "Mortgage Origination, Property Valuation"),
+        new("BUSINESS_DEV",   "Business Development Officer",  3, 5_000m,  9_500m,  "CORPORATE",  "REL_MGR",    false, "Bachelor's Degree", 3,  "Pipeline Generation, Client Acquisition"),
+        new("DIGITAL_OFFICER","Digital Banking Officer",       3, 5_500m,  10_000m, "IT",         "HEAD_DIGITAL",false,"Bachelor's Degree",  3, "Mobile Banking, Online Channels, UX"),
+        new("DATA_ANALYST",   "Data Analyst",                  3, 5_500m,  10_000m, "IT",         "IT_MGR",     false, "Bachelor's Degree", 3,  "SQL, Reporting, Dashboards, Data Modelling"),
+        new("TELLER",         "Teller",                        3, 2_500m,  5_000m,  "RETAIL",     "BRANCH_MGR", false, "High School",       1,  "Cash Handling, Customer Service, Transactions"),
+        new("CORP_OFFICER",   "Corporate Banking Officer",     3, 6_000m,  11_000m, "CORPORATE",  "REL_MGR",    false, "Bachelor's Degree", 3,  "Corporate Banking, Credit Analysis, Business Development"),
+        new("INVEST_ANALYST", "Investment Analyst",            3, 6_500m,  11_500m, "INVESTMENT", "WEALTH_MGR", false, "Bachelor's Degree", 3,  "Equity Research, Valuation Models, Pitch Decks"),
+        new("RISK_ANALYST",   "Risk Analyst",                  3, 5_000m,  9_000m,  "RISK",       "RISK_MGR",   false, "Bachelor's Degree", 2,  "Risk Analysis, Data Analysis, Reporting"),
+        new("CREDIT_ANALYST", "Credit Analyst",                3, 5_500m,  9_500m,  "RISK",       "CREDIT_MGR", false, "Bachelor's Degree", 3,  "Credit Underwriting, Cashflow Analysis"),
+        new("AUDIT_OFFICER",  "Internal Audit Officer",        3, 5_000m,  9_000m,  "RISK",       "AUDIT_MGR",  false, "Bachelor's Degree", 2,  "Internal Audit Procedures, Walkthrough Testing"),
+        new("OPS_OFFICER",    "Operations Officer",            3, 4_000m,  7_500m,  "OPS",        "COO",        false, "Bachelor's Degree", 2,  "Transaction Processing, Operations, Reconciliation"),
+        new("CARDS_OFFICER",  "Cards & Payments Officer",      3, 4_500m,  8_000m,  "OPS",        "OPS_OFFICER",false, "Bachelor's Degree", 2,  "Card Issuance, Payments, Dispute Resolution"),
+        new("CLEARING_OFFICER","Clearing & Settlement Officer",3, 4_500m,  8_000m,  "OPS",        "OPS_OFFICER",false, "Bachelor's Degree", 2,  "Clearing, Cheque Processing, Inter-Bank Settlement"),
+        new("ACCOUNTANT",     "Accountant",                    3, 5_000m,  9_000m,  "FINANCE",    "FINANCE_MGR",false, "Bachelor's Degree", 2,  "Accounting, Financial Reporting, Bookkeeping"),
+        new("IT_OFFICER",     "IT Officer",                    3, 6_000m,  11_000m, "IT",         "IT_MGR",     false, "Bachelor's Degree", 3,  "Banking Systems, Network Administration, Support"),
+        new("HR_OFFICER",     "HR Officer",                    3, 4_500m,  8_000m,  "HR",         "HR_MGR",     false, "Bachelor's Degree", 2,  "Recruitment, Employee Records, Payroll Liaison"),
+        new("MARKETING_EXEC", "Marketing Executive",           3, 4_000m,  7_500m,  "EXEC",       "MARKETING_MGR",false,"Bachelor's Degree",2, "Campaign Execution, Social Media, Content"),
+
+        // ── Junior (rank 2) ───────────────────────────────────────────────────
+        new("JUNIOR_TELLER",  "Junior Teller",                 2, 2_000m,  3_500m,  "RETAIL",     "TELLER",     false, "High School",       0,  "Cash Handling, Basic Transactions"),
+        new("CSR",            "Customer Service Rep",          2, 2_500m,  4_500m,  "RETAIL",     "BRANCH_MGR", false, "High School",       1,  "Customer Service, Account Inquiries"),
+        new("OPS_ASSIST",     "Operations Assistant",          2, 2_500m,  4_500m,  "OPS",        "OPS_OFFICER",false, "High School",       1,  "Transaction Processing Support, Filing"),
+        new("HR_ASSIST",      "HR Assistant",                  2, 2_500m,  4_500m,  "HR",         "HR_OFFICER", false, "Diploma",           1,  "Onboarding Coordination, HR Records, Filing"),
+        new("JUNIOR_ACCOUNTANT","Junior Accountant",           2, 3_000m,  5_500m,  "FINANCE",    "ACCOUNTANT", false, "Diploma",           1,  "Basic Accounting, Data Entry"),
+        new("IT_ASSIST",      "IT Support Assistant",          2, 3_000m,  5_500m,  "IT",         "IT_OFFICER", false, "Diploma",           1,  "Helpdesk, Hardware Support, Account Provisioning"),
+        new("BRANCH_ASSIST",  "Branch Operations Assistant",   2, 2_500m,  4_500m,  "RETAIL",     "BRANCH_MGR", false, "High School",       1,  "Branch Floor Support, Queue Management"),
+
+        // ── Entry (rank 1) ────────────────────────────────────────────────────
+        new("TELLER_TRAINEE", "Teller Trainee",                1, 1_500m,  2_500m,  "RETAIL",     "TELLER",     false, "High School",       0,  "Learning, Supervised Transactions"),
+        new("OPS_INTERN",     "Operations Intern",             1, 1_500m,  2_500m,  "OPS",        "OPS_OFFICER",false, "Student",           0,  "Learning, Operations Support"),
+        new("FINANCE_INTERN", "Finance Intern",                1, 1_500m,  2_500m,  "FINANCE",    "ACCOUNTANT", false, "Student",           0,  "Learning, Financial Records Support"),
+        new("RISK_INTERN",    "Risk & Compliance Intern",      1, 1_500m,  2_500m,  "RISK",       "RISK_ANALYST",false,"Student",           0,  "Learning, Risk & Compliance Support"),
+        new("IT_INTERN",      "IT Intern",                     1, 1_500m,  2_500m,  "IT",         "IT_OFFICER", false, "Student",           0,  "Learning, Helpdesk Shadowing"),
+        new("HR_INTERN",      "HR Intern",                     1, 1_500m,  2_500m,  "HR",         "HR_OFFICER", false, "Student",           0,  "Learning, HR Administration Support"),
+        new("CUSTOMER_INTERN","Customer Service Intern",       1, 1_500m,  2_500m,  "RETAIL",     "CSR",        false, "Student",           0,  "Learning, Customer Service Shadowing")
     ];
 }

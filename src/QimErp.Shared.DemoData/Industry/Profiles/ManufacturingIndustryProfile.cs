@@ -223,6 +223,26 @@ public sealed class ManufacturingIndustryProfile : IIndustryProfile
         new("MAINT_ASSIST",    "Maintenance Assistant",    2, 2_500m,  4_500m,  "MAINTENANCE", "MAINT_TECH", false, "High School",      1,  "Maintenance Support, Cleaning"),
         new("WH_ASSIST",       "Warehouse Assistant",      2, 2_000m,  3_500m,  "SUPPLY",      "PROC_OFFICER",false,"High School",     1,  "Inventory, Material Handling"),
         new("PROD_TRAINEE",    "Production Trainee",       1, 1_500m,  2_500m,  "PRODUCTION",  "JUNIOR_OPERATOR",false,"High School",  0,  "Learning, Supervised Operations"),
-        new("APPRENTICE",      "Apprentice",               1, 1_500m,  2_500m,  "MAINTENANCE", "MAINT_ASSIST",false,"Student",         0,  "Learning, Technical Training")
+        new("APPRENTICE",      "Apprentice",               1, 1_500m,  2_500m,  "MAINTENANCE", "MAINT_ASSIST",false,"Student",         0,  "Learning, Technical Training"),
+        // ── Expansion ────────────────────────────────────────────────────────
+        new("PLANT_DIR",       "Plant Director",           5, 14_000m, 24_000m, "PRODUCTION",  null,         true,  "Engineering Master's", 12, "Plant Strategy, Multi-line Operations"),
+        new("HEAD_QC",         "Head of Quality",          5, 12_000m, 20_000m, "QC",          null,         true,  "Engineering Master's", 10, "Quality Strategy, Compliance"),
+        new("HEAD_SUPPLY",     "Head of Supply Chain",     5, 12_000m, 20_000m, "SUPPLY",      null,         true,  "Master's Degree",      10, "Logistics, Procurement, Distribution"),
+        new("PRODUCTION_MGR",  "Production Manager",       4, 8_000m,  13_000m, "PRODUCTION",  "PLANT_DIR",  true,  "Engineering Bachelor's",6, "Production Planning, Line Output"),
+        new("MAINTENANCE_MGR", "Maintenance Manager",      4, 7_500m,  12_500m, "MAINTENANCE", null,         true,  "Engineering Bachelor's",6, "Preventive Maintenance, Reliability"),
+        new("QA_MGR",          "QA Manager",               4, 7_000m,  12_000m, "QUALITY",     "HEAD_QC",    true,  "Bachelor's Degree",     6, "QA Standards, ISO Compliance"),
+        new("HSE_MFG_MGR",     "HSE Manager",              4, 7_500m,  12_000m, "PRODUCTION",  null,         true,  "OHS Bachelor's",        6, "Health, Safety & Environment"),
+        new("SUPPLY_MGR",      "Supply Chain Manager",     4, 7_500m,  12_500m, "SUPPLY",      "HEAD_SUPPLY",true,  "Bachelor's Degree",     6, "Procurement, Vendor Management"),
+        new("LINE_SUPERVISOR", "Production Line Supervisor",3,5_000m,  8_500m,  "PRODUCTION",  "PRODUCTION_MGR",false,"Diploma",            3, "Line Supervision, Output Targets"),
+        new("MACHINE_OP",      "Machine Operator",         3, 3_500m,  6_500m,  "PRODUCTION",  "LINE_SUPERVISOR",false,"Trade Certificate",2,  "Machine Operation, SOP Compliance"),
+        new("QC_INSPECTOR",    "QC Inspector",             3, 4_000m,  7_500m,  "QC",          "HEAD_QC",    false, "Diploma",               2, "Inspection, Defect Reporting"),
+        new("ELECTRICIAN_MFG", "Industrial Electrician",   3, 4_500m,  8_000m,  "MAINTENANCE", "MAINTENANCE_MGR",false,"Trade Certificate", 3, "Power Systems, Wiring, Repairs"),
+        new("MECHANIC",        "Industrial Mechanic",      3, 4_500m,  8_000m,  "MAINTENANCE", "MAINTENANCE_MGR",false,"Trade Certificate", 3, "Machine Repair, Mechanical Systems"),
+        new("WAREHOUSE_OP",    "Warehouse Operator",       2, 2_500m,  4_500m,  "SUPPLY",      "SUPPLY_MGR", false, "High School",           1, "Stock Handling, Receiving, Issuing"),
+        new("FORKLIFT_OP",     "Forklift Operator",        2, 2_500m,  4_500m,  "SUPPLY",      "SUPPLY_MGR", false, "Forklift Licence",      1, "Forklift, Pallet Handling"),
+        new("PROCURE_OFF",     "Procurement Officer",      3, 4_500m,  8_000m,  "SUPPLY",      "SUPPLY_MGR", false, "Bachelor's Degree",     2, "Sourcing, RFQ, Vendor Management"),
+        new("PACKAGING_OP",    "Packaging Operator",       2, 2_000m,  3_500m,  "PRODUCTION",  "LINE_SUPERVISOR",false,"High School",       1, "Packaging, Labelling, Final Pack"),
+        new("PROD_INTERN",     "Production Intern",        1, 1_500m,  2_500m,  "PRODUCTION",  "LINE_SUPERVISOR",false,"Student",          0, "Learning, Production Floor Support"),
+        new("QC_INTERN",       "QC Intern",                1, 1_500m,  2_500m,  "QC",          "QC_INSPECTOR",false,"Student",              0, "Learning, Quality Inspection")
     ];
 }

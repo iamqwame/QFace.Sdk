@@ -197,6 +197,27 @@ public sealed class ServiceIndustryProfile : IIndustryProfile
         new("PROJECT_ASSIST",       "Project Assistant",     2, 3_000m,  5_000m,  "DELIVERY", "PROJECT_COORD", false, "Diploma",           1,  "Administrative Support, Documentation"),
         new("CSR",                  "Customer Service Rep",  2, 2_500m,  4_500m,  "OPS",      null,            false, "High School",       1,  "Customer Service, Support"),
         new("INTERN",               "Intern",                1, 1_500m,  3_000m,  "ADVISORY", "ASSOCIATE",     false, "Student",           0,  "Learning, Research, Support"),
-        new("TRAINEE",              "Trainee",               1, 2_000m,  3_500m,  "DELIVERY", "PROJECT_ASSIST",false, "High School",       0,  "Learning, Basic Tasks")
+        new("TRAINEE",              "Trainee",               1, 2_000m,  3_500m,  "DELIVERY", "PROJECT_ASSIST",false, "High School",       0,  "Learning, Basic Tasks"),
+        // ── Expansion ────────────────────────────────────────────────────────
+        new("MANAGING_PARTNER",     "Managing Partner",      5, 18_000m, 30_000m, "EXEC",     null,           true,  "Master's Degree",   12, "Firm Strategy, Client Relationships"),
+        new("HEAD_ADVISORY",        "Head of Advisory",      5, 14_000m, 24_000m, "ADVISORY", null,           true,  "Master's Degree",   10, "Advisory Strategy, Client Engagement"),
+        new("HEAD_DELIVERY",        "Head of Delivery",      5, 13_000m, 22_000m, "DELIVERY", null,           true,  "Master's Degree",   10, "Programme Delivery, PMO Oversight"),
+        new("HEAD_OPS",             "Head of Operations",    5, 12_000m, 20_000m, "OPS",      null,           true,  "Master's Degree",   10, "Operational Excellence"),
+        new("PARTNER_ADVISORY",     "Partner",               4, 12_000m, 20_000m, "ADVISORY", "HEAD_ADVISORY",true,  "Master's Degree",   10, "Client Portfolio, Engagement Leadership"),
+        new("ENGAGEMENT_MGR",       "Engagement Manager",    4, 8_000m,  13_000m, "ADVISORY", "PARTNER_ADVISORY",true,"Bachelor's Degree", 6,  "Engagement Delivery, Quality Review"),
+        new("DELIVERY_MGR",         "Delivery Manager",      4, 7_500m,  12_500m, "DELIVERY", "HEAD_DELIVERY",true,  "Bachelor's Degree", 6,  "Project Delivery, Resource Planning"),
+        new("ACCOUNT_DIR",          "Account Director",      4, 9_000m,  15_000m, "SALES",    null,           true,  "Bachelor's Degree", 7,  "Key Account Management, Pipeline"),
+        new("SENIOR_CONSULTANT",    "Senior Consultant",     4, 7_500m,  12_500m, "ADVISORY", "ENGAGEMENT_MGR",true, "Bachelor's Degree", 5,  "Consulting Delivery, Methodology"),
+        new("CONSULTANT",           "Consultant",            3, 5_500m,  10_000m, "ADVISORY", "SENIOR_CONSULTANT",false,"Bachelor's Degree",3,"Analysis, Recommendations, Reports"),
+        new("PROJECT_MGR_SVC",      "Project Manager",       3, 6_000m,  10_500m, "DELIVERY", "DELIVERY_MGR", false, "Bachelor's Degree", 4,  "Project Plans, Stakeholder Reporting"),
+        new("BUSINESS_ANALYST",     "Business Analyst",      3, 5_000m,  9_000m,  "ADVISORY", "CONSULTANT",   false, "Bachelor's Degree", 3,  "Requirements, Process Mapping"),
+        new("ACCOUNT_MGR_SVC",      "Account Manager",       3, 5_500m,  9_500m,  "SALES",    "ACCOUNT_DIR",  false, "Bachelor's Degree", 3,  "Client Retention, Upselling"),
+        new("OPS_OFFICER_SVC",      "Operations Officer",    3, 4_500m,  8_000m,  "OPS",      "HEAD_OPS",     false, "Bachelor's Degree", 2,  "Workflow Coordination, Service Levels"),
+        new("FINANCE_SVC",          "Finance Officer",       3, 4_500m,  8_000m,  "FINANCE",  null,           false, "Bachelor's Degree", 2,  "Invoicing, Reconciliation"),
+        new("HR_SVC",               "HR Officer",            3, 4_500m,  8_000m,  "HR",       null,           false, "Bachelor's Degree", 2,  "Recruitment, Onboarding"),
+        new("RESEARCH_ANALYST",     "Research Analyst",      3, 5_000m,  9_000m,  "ADVISORY", "CONSULTANT",   false, "Bachelor's Degree", 2,  "Industry Research, Benchmarking"),
+        new("OFFICE_MGR",           "Office Manager",        2, 3_500m,  6_000m,  "ADMIN",    null,           false, "Diploma",           2,  "Office Administration, Vendor Liaison"),
+        new("EXEC_ASSIST",          "Executive Assistant",   2, 3_500m,  6_500m,  "ADMIN",    null,           false, "Diploma",           2,  "Executive Calendar, Travel, Documents"),
+        new("CONSULT_INTERN",       "Consulting Intern",     1, 1_800m,  3_200m,  "ADVISORY", "CONSULTANT",   false, "Student",           0,  "Learning, Engagement Support")
     ];
 }

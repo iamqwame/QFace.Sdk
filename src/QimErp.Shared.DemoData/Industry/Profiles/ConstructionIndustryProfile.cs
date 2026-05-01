@@ -191,6 +191,25 @@ public sealed class ConstructionIndustryProfile : IIndustryProfile
         new("PLUMBER",     "Plumber",                 2, 2_800m,  4_800m,  "SITE",  "FOREMAN", false,"Trade Certificate",  3, "Pipe Fitting, Installation"),
         new("DRIVER",      "Heavy Equipment Driver",  2, 2_500m,  4_500m,  "SITE",  "FOREMAN", false,"Driver's Licence",   2, "Excavator, Loader"),
         new("LABOURER",    "Labourer",                1, 1_500m,  2_200m,  "SITE",  "FOREMAN", false,"None",               0, "Manual Labour"),
-        new("APPRENTICE",  "Apprentice",              1, 1_200m,  1_800m,  "SITE",  "FOREMAN", false,"Trade Apprentice",   0, "Learning, Assisting Trades")
+        new("APPRENTICE",  "Apprentice",              1, 1_200m,  1_800m,  "SITE",  "FOREMAN", false,"Trade Apprentice",   0, "Learning, Assisting Trades"),
+        // ── Expansion ────────────────────────────────────────────────────────
+        new("PROJECT_DIR",   "Project Director",            5, 14_000m, 24_000m, "PMO",   null,         true,  "Civil Eng. Master's",   12, "Programme Strategy, Stakeholder Management"),
+        new("CHIEF_ENG",     "Chief Engineer",              5, 13_000m, 22_000m, "ENG",   null,         true,  "Civil Eng. Master's",   12, "Engineering Standards, Design Review"),
+        new("CHIEF_QS",      "Chief Quantity Surveyor",     5, 12_000m, 20_000m, "PMO",   "PROJECT_DIR",true,  "QS Master's",           12, "Cost Planning, Tendering Strategy"),
+        new("HSE_MGR",       "HSE Manager",                 4, 8_000m,  13_000m, "SITE",  null,         true,  "OHS Bachelor's",        6,  "Health, Safety & Environment, Risk Mitigation"),
+        new("STRUCT_ENG",    "Structural Engineer",         4, 9_000m,  15_000m, "ENG",   "CHIEF_ENG",  true,  "Civil Eng. Bachelor's", 6,  "Structural Analysis, Design"),
+        new("MEP_ENG",       "MEP Engineer",                4, 8_500m,  14_000m, "ENG",   "CHIEF_ENG",  true,  "Mech/Elec Bachelor's",  6,  "Mechanical, Electrical, Plumbing Design"),
+        new("ARCHITECT",     "Architect",                   4, 7_500m,  13_000m, "ENG",   "CHIEF_ENG",  true,  "Architecture Master's", 5,  "Architectural Design, Drawings"),
+        new("PROCUREMENT_MGR","Procurement Manager",        4, 7_500m,  12_500m, "PROC",  null,         true,  "Bachelor's Degree",     6,  "Vendor Management, Tendering"),
+        new("QS_OFFICER",    "Quantity Surveyor",           3, 5_000m,  9_000m,  "PMO",   "CHIEF_QS",   false, "QS Bachelor's",         3,  "BoQ, Cost Estimation, Valuation"),
+        new("SITE_ENG",      "Site Engineer",               3, 5_000m,  9_000m,  "SITE",  null,         false, "Civil Eng. Bachelor's", 2,  "Site Supervision, Quality Control"),
+        new("ELECTRICIAN",   "Electrician",                 3, 3_500m,  6_500m,  "SITE",  "FOREMAN",    false, "Trade Certificate",     2,  "Wiring, Power Distribution, Maintenance"),
+        new("PLUMBER",       "Plumber",                     3, 3_500m,  6_500m,  "SITE",  "FOREMAN",    false, "Trade Certificate",     2,  "Piping, Drainage, Water Systems"),
+        new("CARPENTER",     "Carpenter",                   3, 3_500m,  6_000m,  "SITE",  "FOREMAN",    false, "Trade Certificate",     2,  "Framing, Joinery, Formwork"),
+        new("MASON",         "Mason",                       3, 3_500m,  6_000m,  "SITE",  "FOREMAN",    false, "Trade Certificate",     2,  "Brickwork, Concrete, Plastering"),
+        new("STORE_KEEPER",  "Site Store Keeper",           2, 2_500m,  4_500m,  "PROC",  null,         false, "Diploma",               1,  "Material Receipt, Issue, Inventory"),
+        new("CAD_DRAFTER",   "CAD Drafter",                 3, 4_000m,  7_000m,  "ENG",   "ARCHITECT",  false, "Diploma in CAD",        2,  "Drawings, Detailing, Revisions"),
+        new("HSE_OFFICER",   "HSE Officer",                 3, 4_000m,  7_000m,  "SITE",  "HSE_MGR",    false, "OHS Diploma",           2,  "Toolbox Talks, Inspections, Reporting"),
+        new("SITE_INTERN",   "Site Engineering Intern",     1, 1_500m,  2_500m,  "SITE",  "SITE_ENG",   false, "Student",               0,  "Learning, Site Engineering Support")
     ];
 }

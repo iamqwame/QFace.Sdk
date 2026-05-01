@@ -212,6 +212,25 @@ public sealed class ECommerceIndustryProfile : IIndustryProfile
         new("WH_ASSIST",        "Warehouse Assistant",           2, 2_500m,  4_000m,  "WAREHOUSE", "WH_SUPER",   false, "High School",       1,  "Warehouse Support, Picking, Packing"),
         new("SALES_ASSIST",     "Sales Assistant",               2, 3_000m,  5_000m,  "SALES",     "SALES_EXEC", false, "High School",       1,  "Sales Support, Data Entry"),
         new("OPS_TRAINEE",      "Operations Trainee",            1, 1_500m,  3_000m,  "OPS",       "OPS_ASSIST", false, "High School",       0,  "Learning, Operations Support"),
-        new("CUSTOMER_TRAINEE", "Customer Service Trainee",      1, 1_500m,  3_000m,  "CUSTOMER",  "CUSTOMER_ASSIST", false,"High School",   0,  "Learning, Customer Support")
+        new("CUSTOMER_TRAINEE", "Customer Service Trainee",      1, 1_500m,  3_000m,  "CUSTOMER",  "CUSTOMER_ASSIST", false,"High School",   0,  "Learning, Customer Support"),
+        // ── Expansion ────────────────────────────────────────────────────────
+        new("CMO_ECOM",       "Chief Marketing Officer",     5, 14_000m, 24_000m, "EXEC",     null,         true,  "Master's Degree",   10, "Marketing Strategy, Brand"),
+        new("CFO_ECOM",       "Chief Financial Officer",     5, 14_000m, 23_000m, "FINANCE",  null,         true,  "Master's Degree",   10, "Financial Strategy, Capital"),
+        new("HEAD_GROWTH",    "Head of Growth",              5, 12_000m, 20_000m, "SALES",    null,         true,  "Master's Degree",   8,  "Customer Acquisition, Retention"),
+        new("HEAD_PRODUCT",   "Head of Product",             5, 12_000m, 20_000m, "PROGRAMS", null,         true,  "Master's Degree",   8,  "Product Strategy, Roadmap"),
+        new("LOGISTICS_MGR",  "Logistics Manager",           4, 7_500m,  12_500m, "OPS",      null,         true,  "Bachelor's Degree", 6,  "Last-mile Delivery, Fleet"),
+        new("WAREHOUSE_MGR",  "Warehouse Manager",           4, 7_000m,  12_000m, "OPS",      null,         true,  "Bachelor's Degree", 6,  "Inventory, Pick-Pack-Ship"),
+        new("BRAND_MGR",      "Brand Manager",               4, 7_000m,  12_000m, "SALES",    "HEAD_GROWTH",true,  "Bachelor's Degree", 5,  "Brand Standards, Campaigns"),
+        new("MERCH_MGR",      "Merchandising Manager",       4, 7_000m,  12_000m, "SALES",    null,         true,  "Bachelor's Degree", 5,  "Catalogue, Pricing, Promotions"),
+        new("UX_DESIGNER",    "UX Designer",                 3, 5_500m,  10_000m, "PROGRAMS", "HEAD_PRODUCT",false,"Design Bachelor's", 3,  "User Research, Wireframes, Prototyping"),
+        new("DATA_ANALYST",   "Data Analyst",                3, 5_500m,  10_000m, "IT",       null,         false, "Bachelor's Degree", 3,  "SQL, Reporting, Funnel Analysis"),
+        new("DIGITAL_MKT",    "Digital Marketer",            3, 4_500m,  8_500m,  "SALES",    "BRAND_MGR",  false, "Bachelor's Degree", 2,  "Paid Media, SEO, Email"),
+        new("SOCIAL_MEDIA",   "Social Media Specialist",     3, 4_000m,  7_500m,  "SALES",    "BRAND_MGR",  false, "Bachelor's Degree", 2,  "Content, Community Management"),
+        new("RIDER",          "Delivery Rider",              2, 1_800m,  3_200m,  "OPS",      "LOGISTICS_MGR",false,"High School",     0,  "Last-mile Delivery, Routing"),
+        new("DISPATCH",       "Dispatch Officer",            2, 2_500m,  4_500m,  "OPS",      "LOGISTICS_MGR",false,"Diploma",         1,  "Order Allocation, Rider Coordination"),
+        new("WAREHOUSE_PICKER","Warehouse Picker",           1, 1_500m,  2_800m,  "OPS",      "WAREHOUSE_MGR",false,"High School",     0,  "Pick & Pack, Quality Control"),
+        new("CUSTOMER_AGENT", "Customer Service Agent",      2, 2_500m,  4_500m,  "CUSTOMER", null,         false, "High School",       1,  "Order Support, Refunds"),
+        new("RETURNS_OFFICER","Returns & Refunds Officer",   2, 2_500m,  4_500m,  "CUSTOMER", "CUSTOMER_AGENT",false,"Diploma",        1,  "Returns Processing, RMA"),
+        new("PRODUCT_INTERN", "Product Intern",              1, 1_500m,  2_500m,  "PROGRAMS", "HEAD_PRODUCT",false,"Student",          0,  "Learning, Product Support")
     ];
 }

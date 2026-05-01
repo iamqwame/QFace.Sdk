@@ -216,6 +216,27 @@ public sealed class HealthcareIndustryProfile : IIndustryProfile
         new("LAB_ASSIST",   "Lab Assistant",           2, 2_000m,  4_000m,  "LAB",      "LAB_TECH",   false, "High School",                    1,  "Sample Collection, Basic Lab Tasks"),
         new("MED_RECORDS",  "Medical Records Officer", 2, 2_500m,  4_500m,  "ADMIN",    null,         false, "High School",                    1,  "Medical Records Management, Filing"),
         new("NURSE_INTERN", "Nursing Intern",          1, 1_500m,  2_500m,  "NURSING",  "JUNIOR_NURSE", false,"Student",                       0,  "Learning, Supervised Patient Care"),
-        new("PHARM_INTERN", "Pharmacy Intern",         1, 1_500m,  2_500m,  "PHARMACY", "PHARM_ASSIST", false,"Student",                       0,  "Learning, Supervised Dispensing")
+        new("PHARM_INTERN", "Pharmacy Intern",         1, 1_500m,  2_500m,  "PHARMACY", "PHARM_ASSIST", false,"Student",                       0,  "Learning, Supervised Dispensing"),
+        // ── Expansion ────────────────────────────────────────────────────────
+        new("CNO",          "Chief Nursing Officer",        5, 13_000m, 22_000m, "NURSING",  "HOSP_ADMIN", true,  "Master's in Nursing",            10, "Nursing Strategy, Standards of Care"),
+        new("HEAD_PHARM",   "Head of Pharmacy",             5, 11_000m, 18_000m, "PHARMACY", "HOSP_ADMIN", true,  "Pharmacy Doctorate",             10, "Pharmacy Operations, Formulary Strategy"),
+        new("HEAD_LAB",     "Head of Laboratory",           5, 11_000m, 18_000m, "LAB",      "HOSP_ADMIN", true,  "Lab Sciences Master's",          10, "Lab Operations, Pathology Oversight"),
+        new("SURGEON",      "Surgeon",                      4, 12_000m, 22_000m, "CLINICAL", "MED_DIR",    true,  "MD + Surgical Fellowship",       8,  "Surgery, Operating Theatre"),
+        new("ANAESTHETIST", "Anaesthesiologist",            4, 11_000m, 20_000m, "CLINICAL", "MED_DIR",    true,  "MD + Anaesthesia Specialty",     7,  "Anaesthesia, Peri-operative Care"),
+        new("PAEDIATRICIAN","Paediatrician",                4, 10_000m, 18_000m, "CLINICAL", "MED_DIR",    true,  "MD + Paediatrics",               6,  "Paediatric Care, Child Health"),
+        new("OBGYN",        "OB-GYN",                       4, 10_000m, 18_000m, "CLINICAL", "MED_DIR",    true,  "MD + OB-GYN",                    6,  "Maternal & Reproductive Health"),
+        new("DENTIST",      "Dentist",                      4, 7_000m,  13_000m, "CLINICAL", "MED_DIR",    true,  "Dental Surgery Degree",          5,  "Dental Care, Oral Surgery"),
+        new("MIDWIFE",      "Midwife",                      3, 3_500m,  6_500m,  "NURSING",  "SENIOR_NURSE",false,"Midwifery Diploma",              2, "Antenatal, Delivery, Postnatal Care"),
+        new("PHYSIO",       "Physiotherapist",              3, 4_500m,  8_000m,  "CLINICAL", "DOCTOR",     false, "Physiotherapy Degree",           2,  "Rehabilitation, Manual Therapy"),
+        new("DIETITIAN",    "Dietitian",                    3, 4_000m,  7_000m,  "CLINICAL", "DOCTOR",     false, "Nutrition & Dietetics Degree",   2,  "Nutritional Counselling, Diet Plans"),
+        new("PSYCHOLOGIST", "Clinical Psychologist",        3, 5_000m,  9_000m,  "CLINICAL", "DOCTOR",     false, "Psychology Master's",            3,  "Mental Health Assessment, Therapy"),
+        new("RADIOLOGIST",  "Radiologist",                  3, 8_000m,  14_000m, "RADIOLOGY","HOSP_ADMIN", false, "MD + Radiology",                 5,  "Diagnostic Imaging Interpretation"),
+        new("BIOMEDICAL",   "Biomedical Scientist",         3, 4_500m,  8_000m,  "LAB",      "LAB_TECH",   false, "Biomedical Sciences Degree",     2,  "Lab Diagnostics, Specimen Analysis"),
+        new("ICT_HEALTH",   "Health Informatics Officer",   3, 5_500m,  9_500m,  "IT",       "HOSP_ADMIN", false, "Bachelor's Degree",              3,  "EMR Systems, Health Data Management"),
+        new("WARD_ASSIST",  "Ward Assistant",               2, 2_000m,  3_500m,  "NURSING",  "JUNIOR_NURSE",false,"High School",                    1, "Patient Mobility, Ward Hygiene"),
+        new("RECEPTIONIST", "Reception & Front Desk",       2, 2_000m,  3_500m,  "ADMIN",    null,         false, "High School",                    1,  "Patient Reception, Appointments"),
+        new("BILLING_OFF",  "Billing Officer",              2, 2_500m,  4_500m,  "ADMIN",    "MED_RECORDS",false, "Diploma",                        1,  "Billing, Insurance Claims"),
+        new("MED_INTERN",   "Medical Intern",               1, 2_000m,  3_500m,  "CLINICAL", "DOCTOR",     false, "Student",                        0,  "Supervised Clinical Rotations"),
+        new("LAB_INTERN",   "Lab Intern",                   1, 1_500m,  2_500m,  "LAB",      "LAB_ASSIST", false, "Student",                        0,  "Supervised Lab Practice")
     ];
 }

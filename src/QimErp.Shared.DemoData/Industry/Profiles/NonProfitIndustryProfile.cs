@@ -196,6 +196,26 @@ public sealed class NonProfitIndustryProfile : IIndustryProfile
         new("ADMIN_ASSIST",       "Administrative Assistant",      2, 2_500m,  4_500m, "ADMIN",    null,         false, "High School",       1, "Administrative Support, Filing"),
         new("FUNDRAISING_ASSIST", "Fundraising Assistant",         2, 3_000m,  5_000m, "GRANTS",   "FUNDRAISING_COORD",false,"High School", 1, "Fundraising Support, Events"),
         new("VOLUNTEER_COORD",    "Volunteer Coordinator",         2, 3_000m,  5_000m, "PROGRAMS", "PROGRAM_MGR",false, "High School",       1, "Volunteer Management, Coordination"),
-        new("PROGRAM_INTERN",     "Program Intern",                1, 1_500m,  3_000m, "PROGRAMS", "PROGRAM_ASSIST",false,"Student",        0, "Learning, Program Support")
+        new("PROGRAM_INTERN",     "Program Intern",                1, 1_500m,  3_000m, "PROGRAMS", "PROGRAM_ASSIST",false,"Student",        0, "Learning, Program Support"),
+        // ── Expansion ────────────────────────────────────────────────────────
+        new("DEPUTY_DIR",         "Deputy Country Director",       5, 12_000m, 20_000m, "EXEC",     null,            true, "Master's Degree",   10, "Programs Strategy, External Relations"),
+        new("HEAD_PROGRAMS",      "Head of Programs",              5, 11_000m, 18_000m, "PROGRAMS", null,            true, "Master's Degree",   10, "Programme Design, Impact Measurement"),
+        new("HEAD_GRANTS",        "Head of Grants",                5, 10_000m, 17_000m, "GRANTS",   null,            true, "Master's Degree",   8,  "Donor Stewardship, Grant Strategy"),
+        new("HEAD_ADVOCACY",      "Head of Advocacy",              5, 10_000m, 17_000m, "ADVOCACY", null,            true, "Master's Degree",   8,  "Policy Influence, Public Affairs"),
+        new("HEAD_FINANCE_NP",    "Head of Finance",               5, 10_000m, 17_000m, "FINANCE",  null,            true, "Master's Degree",   10, "Donor Reporting, Audit Compliance"),
+        new("FIELD_MGR",          "Field Manager",                 4, 7_000m,  11_500m, "FIELD",    null,            true, "Bachelor's Degree", 6,  "Field Operations, Community Engagement"),
+        new("PROGRAM_MGR",        "Program Manager",               4, 7_500m,  12_500m, "PROGRAMS", "HEAD_PROGRAMS", true, "Bachelor's Degree", 6,  "Program Implementation, M&E"),
+        new("GRANTS_MGR",         "Grants Manager",                4, 7_000m,  12_000m, "GRANTS",   "HEAD_GRANTS",   true, "Bachelor's Degree", 6,  "Proposal Writing, Donor Reporting"),
+        new("M_AND_E_OFFICER",    "Monitoring & Evaluation Officer",3,5_500m,  9_500m,  "PROGRAMS", "PROGRAM_MGR",   false,"Bachelor's Degree", 3,  "M&E Frameworks, Data Collection"),
+        new("FIELD_OFFICER",      "Field Officer",                 3, 4_000m,  7_500m,  "FIELD",    "FIELD_MGR",     false,"Bachelor's Degree", 2,  "Community Mobilisation, Activity Delivery"),
+        new("ADVOCACY_OFFICER",   "Advocacy Officer",              3, 4_500m,  8_000m,  "ADVOCACY", "HEAD_ADVOCACY", false,"Bachelor's Degree", 2,  "Policy Briefs, Stakeholder Engagement"),
+        new("COMMS_OFFICER",      "Communications Officer",        3, 4_500m,  8_000m,  "ADVOCACY", "HEAD_ADVOCACY", false,"Bachelor's Degree", 2,  "Press, Social Media, Storytelling"),
+        new("FINANCE_NP",         "Finance Officer",               3, 4_500m,  8_000m,  "FINANCE",  "HEAD_FINANCE_NP",false,"Bachelor's Degree",2, "Disbursements, Reconciliation"),
+        new("HR_NP",              "HR Officer",                    3, 4_000m,  7_500m,  "ADMIN",    null,            false,"Bachelor's Degree", 2,  "Recruitment, Staffing, HR Records"),
+        new("VOLUNTEER_COORD",    "Volunteer Coordinator",         3, 3_500m,  6_500m,  "PROGRAMS", "PROGRAM_MGR",   false,"Bachelor's Degree", 2,  "Volunteer Recruitment, Training"),
+        new("DRIVER_NP",          "Field Driver",                  2, 2_500m,  4_000m,  "FIELD",    "FIELD_OFFICER", false,"High School + Licence",1,"Field Movement, Vehicle Care"),
+        new("STORE_NP",           "Logistics Store Officer",       2, 2_500m,  4_500m,  "ADMIN",    null,            false,"Diploma",           1,  "Stock Receipts, Issues, Field Logistics"),
+        new("FIELD_INTERN",       "Field Intern",                  1, 1_500m,  2_500m,  "FIELD",    "FIELD_OFFICER", false,"Student",           0,  "Learning, Field Support"),
+        new("M_AND_E_INTERN",     "M&E Intern",                    1, 1_500m,  2_500m,  "PROGRAMS", "M_AND_E_OFFICER",false,"Student",         0,  "Learning, M&E Support")
     ];
 }

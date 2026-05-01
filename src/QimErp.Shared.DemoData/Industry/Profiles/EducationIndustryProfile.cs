@@ -209,6 +209,27 @@ public sealed class EducationIndustryProfile : IIndustryProfile
         new("STUDENT_ASSIST",  "Student Services Assistant",2,2_500m, 4_000m, "STUDENT_SERVICES", "STUDENT_OFFICER",false,"High School",  1, "Student Support, Reception"),
         new("LIBRARY_ASSIST",  "Library Assistant",       2, 2_000m,  3_500m, "SUPPORT",          "LIBRARIAN", false, "High School",       1, "Library Support, Shelving"),
         new("TA",              "Teaching Assistant",      1, 1_500m,  3_000m, "ACADEMIC",         "ASSIST_TEACHER", false, "Student",      0, "Learning, Teaching Support"),
-        new("INTERN",          "Intern",                  1, 1_500m,  2_500m, "ADMIN",            "ADMIN_ASSIST",   false, "Student",      0, "Learning, Administrative Support")
+        new("INTERN",          "Intern",                  1, 1_500m,  2_500m, "ADMIN",            "ADMIN_ASSIST",   false, "Student",      0, "Learning, Administrative Support"),
+        // ── Expansion ────────────────────────────────────────────────────────
+        new("VICE_HEAD",       "Deputy Head Teacher",     5, 11_000m, 18_000m, "ACADEMIC",         null,             true,  "Master's in Education",  10, "Curriculum Oversight, Teacher Mentoring"),
+        new("FACULTY_DEAN",    "Faculty Dean",            5, 12_000m, 20_000m, "ACADEMIC",         null,             true,  "PhD",                    12, "Faculty Strategy, Research Leadership"),
+        new("REGISTRAR",       "Registrar",               5, 9_000m,  15_000m, "STUDENT_SERVICES", null,             true,  "Master's Degree",        10, "Records, Admissions, Examinations"),
+        new("HEAD_FINANCE",    "Bursar",                  5, 9_000m,  15_000m, "FINANCE",          null,             true,  "Master's Degree",        10, "School Finance, Fees Collection"),
+        new("HEAD_LIBRARY",    "Chief Librarian",         4, 5_500m,  9_500m,  "ACADEMIC",         null,             true,  "Library Sciences Master's",6,"Library Operations, Cataloguing"),
+        new("DEPT_HEAD",       "Head of Department",      4, 7_000m,  12_000m, "ACADEMIC",         "FACULTY_DEAN",   true,  "Master's Degree",        7,  "Departmental Strategy, Staff Management"),
+        new("EXAMS_OFFICER",   "Examinations Officer",    4, 5_000m,  8_500m,  "ACADEMIC",         "REGISTRAR",      true,  "Bachelor's Degree",      5,  "Exam Logistics, Invigilation"),
+        new("ADMISSIONS_MGR",  "Admissions Manager",      4, 5_500m,  9_000m,  "STUDENT_SERVICES", "REGISTRAR",      true,  "Bachelor's Degree",      5,  "Admissions, Outreach"),
+        new("LECTURER",        "Lecturer",                3, 5_500m,  9_500m,  "ACADEMIC",         "DEPT_HEAD",      false, "Master's Degree",        3,  "Teaching, Lecture Delivery"),
+        new("RESEARCHER",      "Research Fellow",         3, 5_500m,  9_500m,  "ACADEMIC",         "FACULTY_DEAN",   false, "PhD Candidate",          3,  "Research Projects, Publications"),
+        new("LIBRARIAN",       "Librarian",               3, 4_000m,  7_000m,  "ACADEMIC",         "HEAD_LIBRARY",   false, "Bachelor's Degree",      2,  "Cataloguing, Reader Services"),
+        new("LAB_TECH_EDU",    "Science Lab Technician",  3, 3_500m,  6_500m,  "ACADEMIC",         "DEPT_HEAD",      false, "Diploma",                2,  "Practical Sessions, Equipment Care"),
+        new("SCHOOL_NURSE",    "School Nurse",            3, 3_500m,  6_500m,  "STUDENT_SERVICES", null,             false, "Nursing Diploma",        2,  "Student Health, First Aid"),
+        new("COUNSELLOR",      "Student Counsellor",      3, 4_000m,  7_500m,  "STUDENT_SERVICES", null,             false, "Psychology Bachelor's",  2,  "Guidance, Counselling, Wellbeing"),
+        new("IT_OFFICER_EDU",  "IT Officer",              3, 4_500m,  8_000m,  "IT",               null,             false, "Bachelor's Degree",      3,  "School Systems, Computer Lab Support"),
+        new("CATERER",         "Catering Officer",        2, 2_500m,  4_500m,  "SUPPORT",          null,             false, "Diploma",                1,  "Meal Planning, Kitchen Operations"),
+        new("DRIVER",          "School Driver",           2, 2_000m,  3_500m,  "SUPPORT",          null,             false, "High School + Licence",  1,  "Student Transport, Vehicle Maintenance"),
+        new("SECURITY",        "Security Officer",        2, 2_000m,  3_500m,  "SUPPORT",          null,             false, "High School",            1,  "Campus Security, Visitor Control"),
+        new("CLEANER",         "Cleaning Staff",          1, 1_500m,  2_500m,  "SUPPORT",          null,             false, "Basic Education",        0,  "Cleaning, Sanitation"),
+        new("TEACHING_INTERN", "Teaching Practice Intern",1, 1_500m,  2_500m,  "ACADEMIC",         "LECTURER",       false, "Student",                0,  "Supervised Teaching")
     ];
 }
