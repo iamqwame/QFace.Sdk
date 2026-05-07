@@ -384,7 +384,7 @@ public class AuditEntitySaveChangesInterceptor(
         string moduleName = GetModuleFromConfiguration();
 
         List<EntityEntry<IWorkflowEnabled>> statusChanges = context.ChangeTracker.Entries<IWorkflowEnabled>()
-            .Where(e => e.State is EntityState.Added or EntityState.Modified)
+            .Where(e => e.State is EntityState.Added or EntityState.Modified && e.Entity.IsWorkflowEnabled)
             .ToList();
 
         foreach (EntityEntry<IWorkflowEnabled> entry in statusChanges)

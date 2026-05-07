@@ -81,6 +81,7 @@ public sealed class DemoSeedState
     public PhaseStatus TenantOnboarding { get; set; } = new();
     public PhaseStatus EmployeeSeed { get; set; } = new();
     public PhaseStatus LeaveSeed { get; set; } = new();
+    public PhaseStatus PayrollSeed { get; set; } = new();
     public PhaseStatus EmployeeSync { get; set; } = new();
     public PhaseStatus Finalisation { get; set; } = new();
     public List<StepFailureInfo> Failures { get; } = new();
