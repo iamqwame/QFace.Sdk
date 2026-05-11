@@ -60,6 +60,7 @@ public sealed class SeedDemoEmployeesResult
 public sealed class SeedProgress
 {
     public string Phase { get; set; } = "Pending"; // Pending | OrgScaffolding | Employees | Supervisors | Done
+    public string? SubPhase { get; set; }           // e.g. "Importing employees (1/2)" | "Seeding profiles (2/2)"
     public int Total { get; set; }
     public int Completed { get; set; }
     public DateTime? StartedAtUtc { get; set; }

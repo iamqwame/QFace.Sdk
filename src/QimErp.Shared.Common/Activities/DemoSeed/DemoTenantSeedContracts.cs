@@ -102,6 +102,7 @@ public sealed class DemoSeedState
 public sealed class PhaseStatus
 {
     public string Phase { get; set; } = "Pending"; // Pending | Running | Completed | Failed | Skipped
+    public string? SubPhase { get; set; }           // e.g. "Importing employees (1/2)" | "Seeding profiles (2/2)"
     public int? Total { get; set; }
     public int? Completed { get; set; }
     public DateTime? StartedAtUtc { get; set; }
