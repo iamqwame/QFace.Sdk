@@ -8,7 +8,6 @@ global using FluentValidation;
 global using QimErp.Shared.Common.ExceptionHandlers;
 global using QimErp.Shared.Common.Entities.Helpers;
 global using Humanizer;
-global using MassTransit;
 global using QFace.Sdk.Extensions;
 global using MediatR;
 global using Microsoft.AspNetCore.Builder;

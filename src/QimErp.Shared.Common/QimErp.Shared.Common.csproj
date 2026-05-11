@@ -7,7 +7,7 @@
         
         <!-- NuGet Package Metadata -->
         <PackageId>QimErp.Shared.Common</PackageId>
-        <Version>3.5.3</Version>
+        <Version>3.5.4</Version>
         <Authors>IAmQwame</Authors>
         <Company>QimErp</Company>
         <Description>Shared common library for QimErp microservices ERP system. Contains common entities, contracts, services, and utilities used across all QimErp modules.</Description>
@@ -71,9 +71,8 @@
         <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
     </ItemGroup>
     
-    <!-- Messaging & Actor System -->
+    <!-- Actor System -->
     <ItemGroup>
-        <PackageReference Include="MassTransit.EntityFrameworkCore" Version="8.3.4" />
         <PackageReference Include="Akka" Version="1.5.24" />
         <PackageReference Include="Akka.DependencyInjection" Version="1.5.24" />
     </ItemGroup>
