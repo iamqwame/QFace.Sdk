@@ -82,6 +82,17 @@ public sealed class DemoSeedState
     public PhaseStatus EmployeeSeed { get; set; } = new();
     public PhaseStatus LeaveSeed { get; set; } = new();
     public PhaseStatus PayrollSeed { get; set; } = new();
+    public PhaseStatus BenefitSeed { get; set; } = new();
+    public PhaseStatus EmployeeEngagementSeed { get; set; } = new();
+    public PhaseStatus LearningSeed { get; set; } = new();
+    public PhaseStatus NotificationsSeed { get; set; } = new();
+    public PhaseStatus PerformanceSeed { get; set; } = new();
+    public PhaseStatus PlatformWorkflowSeed { get; set; } = new();
+    public PhaseStatus RecruitmentSeed { get; set; } = new();
+    public PhaseStatus SurveySeed { get; set; } = new();
+    public PhaseStatus TalentSeed { get; set; } = new();
+    public PhaseStatus TenantBillingSeed { get; set; } = new();
+    public PhaseStatus WorkforcePlanningSeed { get; set; } = new();
     public PhaseStatus EmployeeSync { get; set; } = new();
     public PhaseStatus Finalisation { get; set; } = new();
     public List<StepFailureInfo> Failures { get; } = new();
