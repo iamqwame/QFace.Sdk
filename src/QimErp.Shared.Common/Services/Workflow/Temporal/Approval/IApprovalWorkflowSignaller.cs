@@ -41,4 +41,32 @@ public interface IApprovalWorkflowSignaller
         string entityId,
         ApprovalSignal signal,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a reassign signal for the given step, transferring approval responsibility
+    /// to <paramref name="newApproverId"/>. The running ApprovalWorkflow may use this to
+    /// update its in-memory approver assignment and re-route notifications.
+    /// </summary>
+    Task<ApprovalSignalResult> ReassignStepAsync(
+        string entityType,
+        string entityId,
+        string stepCode,
+        string newApproverId,
+        string? comment,
+        ApprovalSignal signal,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Signal payload sent when an approval step is reassigned to a different approver.
+/// </summary>
+public class ReassignSignal
+{
+    public string StepCode { get; set; } = "";
+    public string NewApproverId { get; set; } = "";
+    public string? Comment { get; set; }
+    public string ReassignedBy { get; set; } = "";
+    public string? ReassignedByName { get; set; }
+    public string? ReassignedById { get; set; }
+    public DateTime ActedAt { get; set; } = DateTime.UtcNow;
 }

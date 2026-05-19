@@ -10,8 +10,9 @@ internal sealed class ApprovalWorkflowSignaller(
 {
     // Signal method names must exactly match the [WorkflowSignal] method names
     // defined on ApprovalWorkflow. If these drift, signals silently go nowhere.
-    private const string ApproveSignal = "ApproveStepAsync";
-    private const string RejectSignal  = "RejectStepAsync";
+    private const string ApproveSignal  = "ApproveStepAsync";
+    private const string RejectSignal   = "RejectStepAsync";
+    private const string ReassignSignal = "ReassignStepAsync";
 
     public async Task<ApprovalSignalResult> ApproveStepAsync(
         string entityType,
@@ -50,6 +51,43 @@ internal sealed class ApprovalWorkflowSignaller(
 
         var result = await signaller.SendSignalAsync(
             workflowId, RejectSignal, signal, cancellationToken);
+
+        return new ApprovalSignalResult
+        {
+            Success      = result.Success,
+            WorkflowGone = result.WorkflowGone,
+            ErrorMessage = result.ErrorMessage
+        };
+    }
+
+    public async Task<ApprovalSignalResult> ReassignStepAsync(
+        string entityType,
+        string entityId,
+        string stepCode,
+        string newApproverId,
+        string? comment,
+        ApprovalSignal signal,
+        CancellationToken cancellationToken = default)
+    {
+        var workflowId = TemporalNaming.WorkflowId("approval", entityType, entityId);
+
+        logger.LogInformation(
+            "[ApprovalWorkflowSignaller] Sending reassign signal. WorkflowId={WorkflowId}, Step={StepCode}, NewApproverId={NewApproverId}",
+            workflowId, stepCode, newApproverId);
+
+        var payload = new ReassignSignal
+        {
+            StepCode         = stepCode,
+            NewApproverId    = newApproverId,
+            Comment          = comment,
+            ReassignedBy     = signal.ApprovedBy,
+            ReassignedByName = signal.ApprovedByName,
+            ReassignedById   = signal.ApprovedById,
+            ActedAt          = signal.ActedAt
+        };
+
+        var result = await signaller.SendSignalAsync(
+            workflowId, ReassignSignal, payload, cancellationToken);
 
         return new ApprovalSignalResult
         {
