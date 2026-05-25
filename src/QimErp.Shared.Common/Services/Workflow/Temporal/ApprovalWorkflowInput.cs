@@ -17,6 +17,14 @@ public class ApprovalWorkflowInput
     public string Module { get; set; } = "";
     public string? InitiatedBy { get; set; }
     public string? InitiatedByName { get; set; }
+    /// <summary>
+    /// Initiator's resolved profile picture URL. Populated by <c>ApprovalWorkflow.RunAsync</c>
+    /// after a single call to <c>IApproverResolverActivity.ResolveInitiatorByEmailAsync</c>,
+    /// before the workflow record is persisted, so the row carries it from the start.
+    /// </summary>
+    public string? InitiatedByImage { get; set; }
+    /// <summary>Initiator's resolved Employee Id (Guid string). Empty for system actors.</summary>
+    public string? InitiatedByEmployeeId { get; set; }
 
     /// <summary>StepCode of the first step — set by the interceptor.</summary>
     public string? CurrentState { get; set; }

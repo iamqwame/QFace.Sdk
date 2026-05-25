@@ -29,6 +29,7 @@ public class WorkflowStep
     public List<WorkflowCondition> Conditions { get; set; } = [];
     public WorkflowStepAction OnApproval { get; set; } = new();
     public WorkflowStepAction OnRejection { get; set; } = new();
+    public List<string> BypassRoles { get; set; } = [];
 }
 
 public class WorkflowApprover

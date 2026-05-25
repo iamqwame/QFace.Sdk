@@ -40,6 +40,8 @@ public class EmployeeChangedEvent : DomainEvent
 
     public bool SendInvitation { get; set; }
     public bool SetDefaultPassword { get; set; }
+    public bool MustChangePassword { get; set; } = true;
+    public bool IsSeed { get; set; }
 
     public EmployeeChangedEvent()
     {
@@ -123,6 +125,18 @@ public class EmployeeChangedEvent : DomainEvent
     
     public EmployeeChangedEvent WithInvitation(bool sendInvitation = true) { SendInvitation = sendInvitation; return this; }
     public EmployeeChangedEvent WithDefaultPassword(bool set = true) { SetDefaultPassword = set; return this; }
+    public EmployeeChangedEvent WithMustChangePassword(bool required = true) { MustChangePassword = required; return this; }
+    public EmployeeChangedEvent AsSeedSync(bool isSeed = true)
+    {
+        IsSeed = isSeed;
+        if (isSeed)
+        {
+            SetDefaultPassword = true;
+            MustChangePassword = true;
+            SendInvitation = false;
+        }
+        return this;
+    }
 }
 
 

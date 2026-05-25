@@ -1,3 +1,4 @@
+using Temporalio.Activities;
 using QimErp.Shared.Common.Workflow.Entities;
 
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;
@@ -10,13 +11,8 @@ public interface INotificationActivity
 {
     /// <summary>
     /// Notifies the approvers for the given step that their action is required.
-    /// Called at the start of every step iteration in the workflow loop.
-    ///
-    /// <paramref name="resolvedApprovers"/> is pre-resolved by the module via
-    /// <see cref="IApproverResolverActivity.ResolveApproversAsync"/> — it carries name, email,
-    /// employee code, and profile picture so personalised emails can be sent without
-    /// a second database round-trip inside the notification activity.
     /// </summary>
+    [Activity]
     Task NotifyStepApproversAsync(
         ApprovalWorkflowInput input,
         WorkflowStep step,
@@ -26,6 +22,7 @@ public interface INotificationActivity
     /// <summary>
     /// Notifies the original requester that a step was approved and the workflow moved forward.
     /// </summary>
+    [Activity]
     Task SendRequesterStepUpdateAsync(
         ApprovalWorkflowInput input,
         WorkflowStep approvedStep,
@@ -36,6 +33,7 @@ public interface INotificationActivity
     /// <summary>
     /// Notifies all relevant parties that the entire workflow completed successfully.
     /// </summary>
+    [Activity]
     Task SendCompletionNotificationAsync(
         ApprovalWorkflowInput input,
         WorkflowDefinition definition);
@@ -43,6 +41,7 @@ public interface INotificationActivity
     /// <summary>
     /// Notifies the requester (and optionally approvers) that the workflow was rejected.
     /// </summary>
+    [Activity]
     Task SendRejectionNotificationAsync(
         ApprovalWorkflowInput input,
         WorkflowStep rejectedAtStep,
@@ -52,6 +51,7 @@ public interface INotificationActivity
     /// <summary>
     /// Notifies escalation recipients when a step times out with no response.
     /// </summary>
+    [Activity]
     Task SendTimeoutEscalationAsync(
         ApprovalWorkflowInput input,
         WorkflowStep timedOutStep,
