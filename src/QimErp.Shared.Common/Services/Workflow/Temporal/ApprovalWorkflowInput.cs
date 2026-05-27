@@ -29,6 +29,17 @@ public class ApprovalWorkflowInput
     /// <summary>StepCode of the first step — set by the interceptor.</summary>
     public string? CurrentState { get; set; }
 
+    /// <summary>Last approver on the final step — set by ApprovalWorkflow before FinalizeApprovalAsync.</summary>
+    public string? LastApprovedBy { get; set; }
+    public string? LastApprovedByName { get; set; }
+    public string? LastApprovedById { get; set; }
+
+    /// <summary>
+    /// Entity snapshot captured at workflow start (camelCase keys). Persisted on the platform
+    /// workflow record for instance-detail UIs — entity-agnostic across all modules.
+    /// </summary>
+    public Dictionary<string, object> EntityData { get; set; } = new();
+
     /// <summary>Build from the WorkflowEventMessage the interceptor produces.</summary>
     public static ApprovalWorkflowInput From(WorkflowEventMessage message) => new()
     {
@@ -41,6 +52,7 @@ public class ApprovalWorkflowInput
         Module          = message.Module,
         InitiatedBy     = message.InitiatedBy,
         InitiatedByName = message.UserName,
-        CurrentState    = message.CurrentState
+        CurrentState    = message.CurrentState,
+        EntityData      = message.EntityData ?? new Dictionary<string, object>()
     };
 }

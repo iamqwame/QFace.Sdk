@@ -7,23 +7,15 @@ namespace QimErp.Shared.Common.Services.Workflow;
 /// </summary>
 public interface IWorkflowConfigCacheService
 {
-    /// <summary>
-    /// Gets the workflow configuration for a module and entity type from cache.
-    /// </summary>
-    Task<EntityWorkflowConfig?> GetEntityConfigAsync(string module, string entityType);
+    Task<EntityWorkflowConfig?> GetEntityConfigAsync(string module, string entityType, string? tenantId = null);
 
-    /// <summary>
-    /// Checks if workflow is enabled for a specific module, entity type and operation.
-    /// </summary>
-    Task<bool> IsWorkflowEnabledAsync(string module, string entityType, string operation);
+    Task<bool> IsWorkflowEnabledAsync(string module, string entityType, string operation, string? tenantId = null);
 
-    /// <summary>
-    /// Gets the workflow code for a specific module, entity type and operation.
-    /// </summary>
-    Task<string?> GetWorkflowCodeAsync(string module, string entityType, string operation);
+    Task<string?> GetWorkflowCodeAsync(string module, string entityType, string operation, string? tenantId = null);
 
-    /// <summary>
-    /// Gets the trigger conditions for a specific module, entity type and operation.
-    /// </summary>
-    Task<List<WorkflowTriggerCondition>> GetTriggerConditionsAsync(string module, string entityType, string operation);
+    Task<List<WorkflowTriggerCondition>> GetTriggerConditionsAsync(
+        string module,
+        string entityType,
+        string operation,
+        string? tenantId = null);
 }

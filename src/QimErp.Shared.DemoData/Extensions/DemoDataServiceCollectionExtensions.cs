@@ -25,5 +25,6 @@ public static class DemoDataServiceCollectionExtensions
         yield return new ECommerceIndustryProfile();
         yield return new TelecommunicationsIndustryProfile();
         yield return new NonProfitIndustryProfile();
+        yield return new SalonBeautyIndustryProfile();
     }
 }

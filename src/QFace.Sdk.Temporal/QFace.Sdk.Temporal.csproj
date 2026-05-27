@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <PackageId>QFace.Sdk.Temporal</PackageId>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <Authors>IAmQwame</Authors>
     <Company>QFace</Company>
     <Description>
@@ -24,8 +24,8 @@
 
   <ItemGroup>
     <!-- Single home for Temporalio in the entire mono-repo -->
-    <PackageReference Include="Temporalio"                           Version="1.11.1" />
-    <PackageReference Include="Temporalio.Extensions.Hosting"        Version="1.11.1" />
+    <PackageReference Include="Temporalio"                           Version="1.14.1" />
+    <PackageReference Include="Temporalio.Extensions.Hosting"        Version="1.14.1" />
 
     <!-- Health checks -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.0" />

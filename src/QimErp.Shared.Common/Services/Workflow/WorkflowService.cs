@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Options;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Services.MultiTenancy;
 
 namespace QimErp.Shared.Common.Services.Workflow;
 
 public class WorkflowService(
     IWorkflowConfigCacheService configCacheService,
+    ITenantContext tenantContext,
     IOptions<SystemOptions> systemOptions,
     ILogger<WorkflowService> logger,
     ICurrentUserService? currentUserService = null)
@@ -17,18 +19,19 @@ public class WorkflowService(
         try
         {
             string entityType = entity.EntityType;
-            
-            // If module is not provided, cannot check workflow configuration
+            var tenantId = ResolveTenantId(entity);
+
             if (string.IsNullOrWhiteSpace(module))
             {
                 logger.LogDebug("Module not provided for ShouldTriggerWorkflow. Skipping workflow configuration check for {EntityType}", entityType);
                 return false;
             }
 
-            if (!await configCacheService.IsWorkflowEnabledAsync(module, entityType, operation))
+            if (!await configCacheService.IsWorkflowEnabledAsync(module, entityType, operation, tenantId))
                 return false;
 
-            List<WorkflowTriggerCondition> conditions = await configCacheService.GetTriggerConditionsAsync(module, entityType, operation);
+            List<WorkflowTriggerCondition> conditions =
+                await configCacheService.GetTriggerConditionsAsync(module, entityType, operation, tenantId);
             if (!conditions.Any())
                 return true;
 
@@ -206,6 +209,22 @@ public class WorkflowService(
             return comparable.CompareTo(expectedValue);
         }
         return 0;
+    }
+
+    private string ResolveTenantId(IWorkflowEnabled entity)
+    {
+        var tenantId = currentUserService?.GetTenantId();
+        if (!string.IsNullOrWhiteSpace(tenantId))
+            return tenantId;
+
+        tenantId = tenantContext.TenantId;
+        if (!string.IsNullOrWhiteSpace(tenantId))
+            return tenantId;
+
+        if (entity is AuditableEntity auditableEntity && !string.IsNullOrWhiteSpace(auditableEntity.TenantId))
+            return auditableEntity.TenantId;
+
+        return string.Empty;
     }
 }
 

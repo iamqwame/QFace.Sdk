@@ -103,7 +103,7 @@ public class WorkflowApprovalProcessor(
             entity.WorkflowCompletedAt = @event.ApprovedAt != default ? @event.ApprovedAt : DateTime.UtcNow;
             entity.WorkflowCompletedByEmail = @event.ApprovedBy;
             entity.WorkflowCompletedByEmployeeId = @event.TriggeredBy;
-            entity.WorkflowCompletedByName = @event.UserName;
+            entity.WorkflowCompletedByName = @event.UserName ?? @event.ApprovedBy;
             if (!string.IsNullOrWhiteSpace(@event.Comments))
             {
                 entity.WorkflowComments = @event.Comments;
