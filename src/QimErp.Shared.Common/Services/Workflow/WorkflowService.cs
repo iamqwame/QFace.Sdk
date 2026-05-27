@@ -35,7 +35,7 @@ public class WorkflowService(
             if (!conditions.Any())
                 return true;
 
-            return await EvaluateConditions(entity, conditions);
+            return WorkflowTriggerConditionEvaluator.EvaluateAll(entity, conditions);
         }
         catch (Exception ex)
         {
@@ -155,60 +155,6 @@ public class WorkflowService(
             logger.LogError(ex, "Error completing workflow {WorkflowHistoryId}", workflowHistoryId);
             throw;
         }
-    }
-
-    private async Task<bool> EvaluateConditions(IWorkflowEnabled entity, List<WorkflowTriggerCondition> conditions)
-    {
-        foreach (WorkflowTriggerCondition condition in conditions)
-        {
-            if (!EvaluateCondition(entity, condition))
-                return false;
-        }
-        return true;
-    }
-
-    private bool EvaluateCondition(IWorkflowEnabled entity, WorkflowTriggerCondition condition)
-    {
-        Type entityType = entity.GetType();
-        PropertyInfo? property = entityType.GetProperty(condition.Field);
-        
-        if (property == null)
-        {
-            logger.LogWarning("Property {PropertyName} not found on {EntityType}", condition.Field, entityType.Name);
-            return false;
-        }
-
-        object? actualValue = property.GetValue(entity);
-        return EvaluateValue(actualValue, condition.Operator, condition.Value);
-    }
-
-    private bool EvaluateValue(object? actualValue, WorkflowOperators @operator, object expectedValue)
-    {
-        return @operator switch
-        {
-            WorkflowOperators.Equals => Equals(actualValue, expectedValue),
-            WorkflowOperators.NotEquals => !Equals(actualValue, expectedValue),
-            WorkflowOperators.GreaterThan => CompareValues(actualValue, expectedValue) > 0,
-            WorkflowOperators.LessThan => CompareValues(actualValue, expectedValue) < 0,
-            WorkflowOperators.GreaterThanOrEqual => CompareValues(actualValue, expectedValue) >= 0,
-            WorkflowOperators.LessThanOrEqual => CompareValues(actualValue, expectedValue) <= 0,
-            WorkflowOperators.Contains => actualValue?.ToString()?.Contains(expectedValue?.ToString() ?? "") == true,
-            WorkflowOperators.StartsWith => actualValue?.ToString()?.StartsWith(expectedValue?.ToString() ?? "") == true,
-            WorkflowOperators.EndsWith => actualValue?.ToString()?.EndsWith(expectedValue?.ToString() ?? "") == true,
-            _ => false
-        };
-    }
-
-
-
-
-    private int CompareValues(object? actualValue, object expectedValue)
-    {
-        if (actualValue is IComparable comparable && expectedValue is IComparable)
-        {
-            return comparable.CompareTo(expectedValue);
-        }
-        return 0;
     }
 
     private string ResolveTenantId(IWorkflowEnabled entity)

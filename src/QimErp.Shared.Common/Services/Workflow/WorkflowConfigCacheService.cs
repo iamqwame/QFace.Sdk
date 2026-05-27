@@ -52,8 +52,6 @@ public class WorkflowConfigCacheService : IWorkflowConfigCacheService
         return operation.ToUpper(CultureInfo.CurrentCulture) switch
         {
             "CREATE" => config.CreateWorkflowCode,
-            "UPDATE" => config.UpdateWorkflowCode,
-            "DELETE" => config.DeleteWorkflowCode,
             _ => null
         };
     }
@@ -70,8 +68,6 @@ public class WorkflowConfigCacheService : IWorkflowConfigCacheService
         return operation.ToUpper(CultureInfo.CurrentCulture) switch
         {
             "CREATE" => config.CreateTriggerConditions,
-            "UPDATE" => config.UpdateTriggerConditions,
-            "DELETE" => config.DeleteTriggerConditions,
             _ => []
         };
     }

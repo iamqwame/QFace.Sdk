@@ -24,19 +24,43 @@ public class EntityWorkflowConfig
     public bool EnableWorkflowForDelete { get; set; } = false;
     
     public string? CreateWorkflowCode { get; set; }
-    public string? UpdateWorkflowCode { get; set; }
-    public string? DeleteWorkflowCode { get; set; }
+    public List<WorkflowOperationRoute> UpdateWorkflowRoutes { get; set; } = [];
+    public List<WorkflowOperationRoute> DeleteWorkflowRoutes { get; set; } = [];
     
     public List<WorkflowTriggerCondition> CreateTriggerConditions { get; set; } = [];
-    public List<WorkflowTriggerCondition> UpdateTriggerConditions { get; set; } = [];
-    public List<WorkflowTriggerCondition> DeleteTriggerConditions { get; set; } = [];
     
-    public List<string> SignificantFieldsForUpdate { get; set; } = [];
     public bool AutoSubmitOnCreate { get; set; } = true;
     public bool PreventDirectSaveOnCreate { get; set; } = true;
     public decimal? AmountThreshold { get; set; }
     public List<string> ExcludeRoles { get; set; } = [];
     public List<string> ExcludeUsers { get; set; } = [];
+
+    public IEnumerable<string> GetAllWorkflowCodes()
+    {
+        if (!string.IsNullOrWhiteSpace(CreateWorkflowCode))
+            yield return CreateWorkflowCode;
+
+        foreach (var route in UpdateWorkflowRoutes)
+        {
+            if (!string.IsNullOrWhiteSpace(route.WorkflowCode))
+                yield return route.WorkflowCode;
+        }
+
+        foreach (var route in DeleteWorkflowRoutes)
+        {
+            if (!string.IsNullOrWhiteSpace(route.WorkflowCode))
+                yield return route.WorkflowCode;
+        }
+    }
+}
+
+public class WorkflowOperationRoute
+{
+    public string WorkflowCode { get; set; } = "";
+    public string? Name { get; set; }
+    public int Priority { get; set; }
+    public List<string> SignificantFields { get; set; } = [];
+    public List<WorkflowTriggerCondition> Conditions { get; set; } = [];
 }
 
 public class WorkflowTriggerCondition
@@ -46,4 +70,3 @@ public class WorkflowTriggerCondition
     public string Value { get; set; } = "";
     public string? Description { get; set; }
 }
-

@@ -54,7 +54,9 @@ public abstract class WorkflowEnabledEntity : AuditableEntity, IWorkflowEnabled
     public bool CanBeEdited()
     {
         if (_isWorkflowDisabledForSeeding) return true;
-        return WorkflowStatus is WorkflowStatus.NotStarted or WorkflowStatus.Rejected;
+        return WorkflowStatus is WorkflowStatus.NotStarted
+            or WorkflowStatus.Rejected
+            or WorkflowStatus.Approved;
     }
 
     public bool CanBeDeleted()

@@ -426,7 +426,7 @@ public class AuditEntitySaveChangesInterceptor(
                 Comments = entity.WorkflowComments,
                 ChangedBy = currentUser,
                 Module = moduleName,
-                EntityData = GetEntityData(entity)
+                EntityData = GetEntityData(entry)
             };
 
             events.Add(statusChangeEvent);
@@ -544,7 +544,7 @@ public class AuditEntitySaveChangesInterceptor(
                     RequiredApprovalLevel = null,
                     InitiatedBy = userContextService?.GetUserEmail() ?? currentUser,
                     Module = moduleName,
-                    EntityData = GetEntityData(entity),
+                    EntityData = GetEntityData(entry),
                     TenantId = resolvedTenantId,
                     TriggeredBy = currentUser,
                     UserName = userContextService?.GetUserName(),
@@ -596,7 +596,7 @@ public class AuditEntitySaveChangesInterceptor(
                     CompletedBy = currentUser,
                     Comments = entity.WorkflowComments,
                     Module = moduleName,
-                    EntityData = GetEntityData(entity)
+                    EntityData = GetEntityData(entry)
                 });
             }
         }
@@ -656,6 +656,7 @@ public class AuditEntitySaveChangesInterceptor(
             EntityWorkflowConfig? entityWorkflowConfig = null;
 
             string? workflowCode = GetWorkflowCodeFromEntity(entity);
+            var skipWorkflowInitiation = false;
 
             if (string.IsNullOrWhiteSpace(workflowCode))
             {
@@ -670,13 +671,7 @@ public class AuditEntitySaveChangesInterceptor(
                     if (config != null)
                     {
                         entityWorkflowConfig = config;
-                        workflowCode = operation.ToUpper() switch
-                        {
-                            "CREATE" => config.CreateWorkflowCode,
-                            "UPDATE" => config.UpdateWorkflowCode,
-                            "DELETE" => config.DeleteWorkflowCode,
-                            _ => null
-                        };
+                        var changedFields = WorkflowFieldChangeDetector.DetectChangedFields(entry);
 
                         if (IsUserExcluded(config, currentUser, userRoles))
                             continue;
@@ -699,13 +694,31 @@ public class AuditEntitySaveChangesInterceptor(
                             }
                         }
 
-                        // Validate SignificantFieldsForUpdate if this is an UPDATE operation
-                        if (entry.State == EntityState.Modified && config.SignificantFieldsForUpdate.Any())
+                        workflowCode = operation.ToUpperInvariant() switch
                         {
-                            ValidateSignificantFields(entity, config.SignificantFieldsForUpdate);
+                            "CREATE" when WorkflowInterceptDecisions.ShouldStartCreateWorkflow(config, entity)
+                                => config.CreateWorkflowCode,
+                            "UPDATE" when config.EnableWorkflowForUpdate
+                                => WorkflowRouteResolver.ResolveUpdateRoute(config, changedFields, entity)?.WorkflowCode,
+                            "DELETE" when config.EnableWorkflowForDelete
+                                => WorkflowRouteResolver.ResolveDeleteRoute(config, changedFields, entity)?.WorkflowCode,
+                            _ => null
+                        };
+
+                        if (operation is "UPDATE" or "DELETE" && string.IsNullOrWhiteSpace(workflowCode))
+                        {
+                            logger.LogDebug(
+                                "No matching {Operation} workflow route for {EntityType}. Changed fields: {ChangedFields}",
+                                operation, entity.EntityType, string.Join(", ", changedFields));
+                            skipWorkflowInitiation = true;
                         }
                     }
                 }
+            }
+
+            if (skipWorkflowInitiation)
+            {
+                continue;
             }
 
             PublishedWorkflowDefinition? publishedDefinition = null;
@@ -766,7 +779,7 @@ public class AuditEntitySaveChangesInterceptor(
                 }
                 else if (operation == "UPDATE")
                 {
-                    if (ShouldInitiateWorkflowOnUpdate(entity))
+                    if (WorkflowInterceptDecisions.ShouldInitiateWorkflowOnUpdate(entity))
                     {
                         logger.LogDebug("Calling InitiateWorkflowAsync for {EntityType} UPDATE operation. WorkflowCode={WorkflowCode}, CurrentWorkflowStatus={CurrentStatus}",
                             entity.EntityType, workflowCode, entity.WorkflowStatus);
@@ -782,6 +795,16 @@ public class AuditEntitySaveChangesInterceptor(
                             "Skipping workflow initiation for {EntityType} UPDATE. WorkflowStatus={Status}",
                             entity.EntityType, entity.WorkflowStatus);
                     }
+                }
+                else if (operation == "DELETE" && !string.IsNullOrWhiteSpace(workflowCode))
+                {
+                    logger.LogDebug("Calling InitiateWorkflowAsync for {EntityType} DELETE operation. WorkflowCode={WorkflowCode}",
+                        entity.EntityType, workflowCode);
+
+                    await workflowService.InitiateWorkflowAsync(entity, operation, resolvedDefinition);
+
+                    logger.LogInformation("Successfully initiated workflow for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}",
+                        entity.EntityType, operation, entity.WorkflowCode, entity.WorkflowStatus, entity.CurrentWorkflowHistoryId);
                 }
             }
             else if (publishedDefinition != null && !publishedDefinition.IsActive)
@@ -858,7 +881,7 @@ public class AuditEntitySaveChangesInterceptor(
                             logger.LogInformation("Successfully initiated workflow (fallback path) for {EntityType} {Operation}. WorkflowCode={WorkflowCode}, WorkflowStatus={WorkflowStatus}, CurrentWorkflowHistoryId={WorkflowHistoryId}",
                                 entity.EntityType, operation, entity.WorkflowCode, entity.WorkflowStatus, entity.CurrentWorkflowHistoryId);
                         }
-                        else if (operation == "UPDATE" && ShouldInitiateWorkflowOnUpdate(entity))
+                        else if (operation == "UPDATE" && WorkflowInterceptDecisions.ShouldInitiateWorkflowOnUpdate(entity))
                         {
                             if (!string.IsNullOrWhiteSpace(workflowCode))
                             {
@@ -906,13 +929,6 @@ public class AuditEntitySaveChangesInterceptor(
     private static bool IsCreateWorkflowRequired(EntityWorkflowConfig? config) =>
         config?.EnableWorkflowForCreate == true
         && !string.IsNullOrWhiteSpace(config.CreateWorkflowCode);
-
-    /// <summary>
-    /// Only start an UPDATE workflow when the entity is not already in an active/completed approval cycle.
-    /// Never re-initiate after approval finalization (Approved) or while steps are in flight (InProgress).
-    /// </summary>
-    private static bool ShouldInitiateWorkflowOnUpdate(IWorkflowEnabled entity) =>
-        entity.WorkflowStatus is WorkflowStatus.NotStarted or WorkflowStatus.Rejected;
 
     private string ResolveTenantIdForEntity(IWorkflowEnabled entity)
     {
@@ -1239,55 +1255,6 @@ public class AuditEntitySaveChangesInterceptor(
     }
 
     /// <summary>
-    /// Validates that significant fields for update exist on the entity
-    /// Logs warnings for missing fields but doesn't fail (graceful degradation)
-    /// </summary>
-    private void ValidateSignificantFields(IWorkflowEnabled entity, List<string> significantFields)
-    {
-        if (significantFields == null || !significantFields.Any())
-            return;
-
-        var entityType = entity.GetType();
-        var missingFields = new List<string>();
-
-        foreach (var fieldName in significantFields)
-        {
-            if (!ValidateFieldExists(entity, fieldName))
-            {
-                missingFields.Add(fieldName);
-            }
-        }
-
-        if (missingFields.Any())
-        {
-            logger.LogWarning(
-                "Some significant fields for update do not exist on entity {EntityType}: {MissingFields}. " +
-                "These fields will be ignored during workflow evaluation.",
-                entityType.Name, string.Join(", ", missingFields));
-        }
-    }
-
-    /// <summary>
-    /// Checks if a field exists on the entity using reflection
-    /// </summary>
-    private bool ValidateFieldExists(IWorkflowEnabled entity, string fieldName)
-    {
-        if (string.IsNullOrWhiteSpace(fieldName))
-            return false;
-
-        var entityType = entity.GetType();
-        var property = entityType.GetProperty(fieldName,
-            System.Reflection.BindingFlags.Public |
-            System.Reflection.BindingFlags.Instance |
-            System.Reflection.BindingFlags.IgnoreCase);
-
-        return property != null;
-    }
-
-
-
-
-    /// <summary>
     /// Gets the module name from configuration (appsettings.json)
     /// Falls back to "Unknown" if not configured
     /// </summary>
@@ -1319,11 +1286,11 @@ public class AuditEntitySaveChangesInterceptor(
         entity.GetType().GetProperty("Id")?.GetValue(entity)?.ToString() ?? "";
 
     protected virtual string GetEntityDisplayName(IWorkflowEnabled entity) =>
-        WorkflowEntitySnapshotBuilder.GetDisplayName(entity)
+        WorkflowEntityChangeSnapshot.GetDisplayName(entity)
         ?? entity.EntityType;
 
-    protected virtual Dictionary<string, object> GetEntityData(IWorkflowEnabled entity) =>
-        WorkflowEntitySnapshotBuilder.Build(entity);
+    protected virtual Dictionary<string, object> GetEntityData(EntityEntry<IWorkflowEnabled> entry) =>
+        WorkflowEntityChangeSnapshot.Capture(entry);
 
     /// <summary>
     /// Drops any pending domain events on tracked AuditableEntity instances without publishing.
