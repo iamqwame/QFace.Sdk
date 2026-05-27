@@ -75,6 +75,11 @@ public abstract class WorkflowEnabledEntity : AuditableEntity, IWorkflowEnabled
         WorkflowStatus = WorkflowStatus.NotStarted;
     }
 
+    public void EnableWorkflowProcessing()
+    {
+        _isWorkflowDisabledForSeeding = false;
+    }
+
     public void EnableWorkflowAfterSeeding()
     {
         _isWorkflowDisabledForSeeding = false;
