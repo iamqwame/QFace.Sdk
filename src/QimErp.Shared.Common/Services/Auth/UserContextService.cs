@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Microsoft.Extensions.Logging;
 using QimErp.Shared.Common.Middlewares;
 
 namespace QimErp.Shared.Common.Services.Auth;

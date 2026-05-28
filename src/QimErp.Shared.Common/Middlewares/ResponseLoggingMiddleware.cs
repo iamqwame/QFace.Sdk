@@ -1,7 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using QimErp.Shared.Common.Logging;
-using QimErp.Shared.Common.Services.Auth;
 
 namespace QimErp.Shared.Common.Middlewares;
 

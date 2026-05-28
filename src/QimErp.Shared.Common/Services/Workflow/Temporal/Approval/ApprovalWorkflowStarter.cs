@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using QFace.Sdk.Temporal.Abstractions;
 using QFace.Sdk.Temporal.Helpers;
 

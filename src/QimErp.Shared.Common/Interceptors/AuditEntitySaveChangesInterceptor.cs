@@ -1,11 +1,7 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Runtime.CompilerServices;
 using System.Transactions;
-using QimErp.Shared.Common.Events;
-using QimErp.Shared.Common.Services;
-using QimErp.Shared.Common.Services.Auth;
 using QimErp.Shared.Common.Services.Workflow;
-using QimErp.Shared.Common.Workflow;
 
 namespace QimErp.Shared.Common.Interceptors;
 
@@ -431,10 +427,10 @@ public class AuditEntitySaveChangesInterceptor(
 
             events.Add(statusChangeEvent);
 
-            if (oldStatus == WorkflowStatus.NotStarted && newStatus == WorkflowStatus.InProgress)
+            if (newStatus == WorkflowStatus.InProgress && oldStatus != WorkflowStatus.InProgress)
             {
-                logger.LogInformation("[CaptureWorkflowEvents] ✅ Status change detected: {EntityType} {EntityId} changed from NotStarted to InProgress. Will publish workflow event.",
-                    entity.EntityType, GetEntityId(entity));
+                logger.LogInformation("[CaptureWorkflowEvents] ✅ Status change detected: {EntityType} {EntityId} changed from {OldStatus} to InProgress. Will publish workflow event.",
+                    entity.EntityType, GetEntityId(entity), oldStatus);
 
                 // Resolve TenantId - try userContextService first, then entity as fallback
                 var resolvedTenantId = tenantId;
@@ -534,6 +530,8 @@ public class AuditEntitySaveChangesInterceptor(
                         workflowHistoryId, entity.EntityType, GetEntityId(entity));
                 }
 
+                var subjectContext = WorkflowSubjectContext.FromEntity(entity);
+
                 var workflowMessage = new WorkflowEventMessage
                 {
                     EntityType = entity.EntityType,
@@ -549,7 +547,9 @@ public class AuditEntitySaveChangesInterceptor(
                     TriggeredBy = currentUser,
                     UserName = userContextService?.GetUserName(),
                     CurrentState = currentState,
-                    NextStepCode = nextStepCode
+                    NextStepCode = nextStepCode,
+                    SubjectContextType = subjectContext.ContextType,
+                    SubjectContextId = subjectContext.ContextId
                 };
 
                 logger.LogDebug("[CaptureWorkflowEvents] Created WorkflowEventMessage for {EntityType} {EntityId}. WorkflowId={WorkflowId}, WorkflowCode={WorkflowCode}, TenantId={TenantId} (source: {TenantIdSource})",
@@ -581,7 +581,7 @@ public class AuditEntitySaveChangesInterceptor(
             }
             else
             {
-                logger.LogDebug("[CaptureWorkflowEvents] Status change condition not met for {EntityType} {EntityId}. OldStatus={OldStatus}, NewStatus={NewStatus}. Expected: NotStarted -> InProgress",
+                logger.LogDebug("[CaptureWorkflowEvents] Status change condition not met for {EntityType} {EntityId}. OldStatus={OldStatus}, NewStatus={NewStatus}. Expected transition into InProgress.",
                     entity.EntityType, GetEntityId(entity), oldStatus, newStatus);
             }
 

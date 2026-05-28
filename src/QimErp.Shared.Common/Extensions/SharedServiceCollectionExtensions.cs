@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using Carter;
-using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Json;
@@ -10,12 +9,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
-using OpenTelemetry.Instrumentation.EntityFrameworkCore;
 using QFace.Sdk.RedisCache.Extensions;
 using QFace.Sdk.RedisCache.Models;
 using QimErp.Shared.Common.Behaviours;
@@ -422,6 +418,8 @@ public static class SharedServiceCollectionExtensions
         services.AddScoped<IWorkflowValidationService, WorkflowValidationService>();
         services.AddScoped<IDynamicHtmlGenerator, DynamicHtmlGenerator>();
         services.AddScoped<IWorkflowApprovalProcessor, WorkflowApprovalProcessor>();
+        services.AddScoped<IWorkflowRejectionProcessor, WorkflowRejectionProcessor>();
+        services.AddScoped<IWorkflowEntityApprovalHandlerRegistry, WorkflowEntityApprovalHandlerRegistry>();
 
 
         return services;

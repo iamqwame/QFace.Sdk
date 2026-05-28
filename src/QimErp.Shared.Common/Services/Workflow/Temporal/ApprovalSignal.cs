@@ -10,6 +10,8 @@ public class ApprovalSignal
     public string ApprovedBy { get; set; } = "";
     public string? ApprovedByName { get; set; }
     public string? ApprovedById { get; set; }
+    /// <summary>Approver profile picture URL for timeline avatars.</summary>
+    public string? ApprovedByImage { get; set; }
     public string Comments { get; set; } = "";
     public DateTime ActedAt { get; set; } = DateTime.UtcNow;
 }

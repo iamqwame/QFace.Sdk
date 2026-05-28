@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using QimErp.Shared.Common.Services.Auth;
-
 namespace QimErp.Shared.Common.Logging;
 
 /// <summary>

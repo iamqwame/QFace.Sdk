@@ -12,6 +12,7 @@ public class WorkflowApprovalProcessor(
     IOptions<FrontendSettings> frontendSettings,
     IOptions<SystemOptions> systemOptions,
     IDynamicHtmlGenerator dynamicHtmlGenerator,
+    IWorkflowDefinitionProvider definitionProvider,
     ILogger<WorkflowApprovalProcessor> logger)
     : IWorkflowApprovalProcessor
 {
@@ -71,10 +72,25 @@ public class WorkflowApprovalProcessor(
             return;
         }
 
-        var entityWorkflowStep = await GetEntityWorkflowStepAsync(context, workflowCode, @event.EntityType, cancellationToken);
-        if (entityWorkflowStep == null)
+        var workflowDefinition = (await GetEntityWorkflowStepAsync(context, workflowCode, @event.EntityType, cancellationToken))?.WorkflowDefinition;
+
+        if (workflowDefinition == null && !string.IsNullOrWhiteSpace(@event.TenantId))
         {
-            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] No active EntityWorkflowStep found for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
+            var published = await definitionProvider.GetPublishedDefinitionAsync(
+                @event.TenantId, workflowCode, @event.EntityType, cancellationToken);
+            workflowDefinition = published?.Definition;
+
+            if (workflowDefinition != null)
+            {
+                logger.LogDebug(
+                    "📘 [WorkflowApprovalProcessor] Resolved workflow definition from central provider for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
+                    workflowCode, @event.EntityType);
+            }
+        }
+
+        if (workflowDefinition == null)
+        {
+            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] No workflow definition found for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
                 workflowCode, @event.EntityType);
             return;
         }
@@ -83,7 +99,7 @@ public class WorkflowApprovalProcessor(
             ? @event.PreviousStep 
             : @event.CurrentState;
         
-        var approvedStep = GetCurrentWorkflowStep(entityWorkflowStep.WorkflowDefinition, approvedStepCode);
+        var approvedStep = GetCurrentWorkflowStep(workflowDefinition, approvedStepCode);
         if (approvedStep == null)
         {
             logger.LogWarning("⚠️ [WorkflowApprovalProcessor] No workflow step found for approved step. WorkflowCode={WorkflowCode}, ApprovedStepCode={ApprovedStepCode}",
@@ -116,13 +132,13 @@ public class WorkflowApprovalProcessor(
                 @event.EntityType, entityId, approvedStepCode);
 
             await PublishNotificationsAsync(
-                entityWorkflowStep.WorkflowDefinition.Notifications,
+                workflowDefinition.Notifications,
                 approvedStep.OnApproval,
                 "Completion",
                 @event,
                 approvedStep.Name,
                 entity,
-                entityWorkflowStep.WorkflowDefinition);
+                workflowDefinition);
 
             await SendRequesterNotificationAsync(@event, entity, "WorkflowCompleted", approvedStep.Name);
         }
@@ -134,23 +150,23 @@ public class WorkflowApprovalProcessor(
                 @event.EntityType, entityId, nextStepCode, approvedStepCode);
 
             await PublishNotificationsAsync(
-                entityWorkflowStep.WorkflowDefinition.Notifications,
+                workflowDefinition.Notifications,
                 approvedStep.OnApproval,
                 "StepApproved",
                 @event,
                 approvedStep.Name,
                 entity,
-                entityWorkflowStep.WorkflowDefinition);
+                workflowDefinition);
 
             await SendRequesterNotificationAsync(@event, entity, "StepApproved", approvedStep.Name);
 
-            var nextStep = GetNextWorkflowStep(entityWorkflowStep.WorkflowDefinition, nextStepCode);
+            var nextStep = GetNextWorkflowStep(workflowDefinition, nextStepCode);
             if (nextStep != null && nextStep.RequiredApprovers.Count > 0)
             {
                 logger.LogDebug("📧 [WorkflowApprovalProcessor] Notifying required approvers for next step: {StepCode}",
                     nextStepCode);
                 await SendNextStepNotificationsAsync(
-                    entityWorkflowStep.WorkflowDefinition,
+                    workflowDefinition,
                     nextStep,
                     @event,
                     entity);
@@ -164,13 +180,13 @@ public class WorkflowApprovalProcessor(
                 @event.EntityType, entityId, approvedStepCode);
 
             await PublishNotificationsAsync(
-                entityWorkflowStep.WorkflowDefinition.Notifications,
+                workflowDefinition.Notifications,
                 approvedStep.OnApproval,
                 "StepApproved",
                 @event,
                 approvedStep.Name,
                 entity,
-                entityWorkflowStep.WorkflowDefinition);
+                workflowDefinition);
 
             await SendRequesterNotificationAsync(@event, entity, "StepApproved", approvedStep.Name);
         }
@@ -182,13 +198,13 @@ public class WorkflowApprovalProcessor(
                 @event.EntityType, entityId, approvedStepCode);
 
             await PublishNotificationsAsync(
-                entityWorkflowStep.WorkflowDefinition.Notifications,
+                workflowDefinition.Notifications,
                 approvedStep.OnApproval,
                 "Approval",
                 @event,
                 approvedStep.Name,
                 entity,
-                entityWorkflowStep.WorkflowDefinition);
+                workflowDefinition);
 
             await SendRequesterNotificationAsync(@event, entity, "StepApproved", approvedStep.Name);
         }
@@ -394,6 +410,12 @@ public class WorkflowApprovalProcessor(
         IWorkflowEnabled entity,
         WorkflowDefinition? workflowDefinition = null)
     {
+        if (_systemOptions.TemporalOwnsWorkflowNotifications)
+        {
+            logger.LogDebug("📧 [WorkflowNotification] Skipping legacy publish — Temporal owns workflow notifications.");
+            return;
+        }
+
         if (notifications == null || action == null)
         {
             logger.LogDebug("📧 [WorkflowNotification] Notifications or action is null. Skipping notification publishing.");
@@ -606,7 +628,7 @@ public class WorkflowApprovalProcessor(
     {
         return type switch
         {
-            "Approval" => settings.OnApproval,
+            "Approval" or "StepApproved" => settings.OnApproval,
             "Rejection" => settings.OnRejection,
             "Completion" => settings.OnCompletion,
             "Timeout" => settings.OnTimeout,
@@ -621,6 +643,12 @@ public class WorkflowApprovalProcessor(
         WorkflowApprovalRequestEvent @event,
         IWorkflowEnabled entity)
     {
+        if (_systemOptions.TemporalOwnsWorkflowNotifications)
+        {
+            logger.LogDebug("📧 [SendNextStepNotifications] Skipping — Temporal owns workflow notifications.");
+            return;
+        }
+
         var notifications = workflowDefinition.Notifications;
         if (!notifications.SendEmailNotifications)
         {
@@ -723,6 +751,12 @@ public class WorkflowApprovalProcessor(
         string notificationType,
         string stepName)
     {
+        if (_systemOptions.TemporalOwnsWorkflowNotifications)
+        {
+            logger.LogDebug("📧 [SendRequesterNotification] Skipping — Temporal owns workflow notifications.");
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(entity.WorkflowInitiatedByEmail))
         {
             logger.LogDebug("📧 [SendRequesterNotification] WorkflowInitiatedByEmail is empty. Skipping requester notification.");

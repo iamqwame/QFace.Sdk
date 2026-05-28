@@ -1,5 +1,3 @@
-using QimErp.Shared.Common.Events;
-
 namespace QimErp.Shared.Common.Activities;
 
 public enum EmployeeSyncOperation { Created, Updated, Deleted }

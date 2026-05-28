@@ -21,4 +21,14 @@ public class WorkflowEventMessage
     public string? UserName { get; set; }
     public string? CurrentState { get; set; }
     public string? NextStepCode { get; set; }
+
+    /// <summary>
+    /// Optional context type for approver/notification resolution (module-defined, e.g. Employee).
+    /// </summary>
+    public string? SubjectContextType { get; set; }
+
+    /// <summary>
+    /// Optional context id for approver/notification resolution (e.g. parent employee id).
+    /// </summary>
+    public string? SubjectContextId { get; set; }
 }

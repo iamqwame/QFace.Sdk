@@ -1,5 +1,4 @@
 using Temporalio.Activities;
-using QimErp.Shared.Common.Workflow.Entities;
 
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 
@@ -56,4 +55,25 @@ public interface INotificationActivity
         ApprovalWorkflowInput input,
         WorkflowStep timedOutStep,
         WorkflowDefinition definition);
+
+    /// <summary>
+    /// Sends workflow-start notifications from definition.Notifications.OnStart.
+    /// </summary>
+    [Activity]
+    Task SendWorkflowStartNotificationsAsync(
+        ApprovalWorkflowInput input,
+        WorkflowDefinition definition,
+        WorkflowStep firstStep,
+        List<ResolvedApprover> resolvedObservers);
+
+    /// <summary>
+    /// Sends step-level observer notifications from sendNotificationTo tokens.
+    /// </summary>
+    [Activity]
+    Task SendStepObserverNotificationsAsync(
+        ApprovalWorkflowInput input,
+        WorkflowStep step,
+        WorkflowDefinition definition,
+        List<ResolvedApprover> resolvedObservers,
+        bool isRejection);
 }

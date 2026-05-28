@@ -1,5 +1,4 @@
 using QFace.Sdk.Temporal.Abstractions;
-using QimErp.Shared.Common.Events;
 using QimErp.Shared.Common.Services.Workflow.Temporal;
 
 namespace QimErp.Shared.Common.Services.Notifications;

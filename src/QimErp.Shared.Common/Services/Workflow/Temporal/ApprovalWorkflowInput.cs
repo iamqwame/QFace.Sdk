@@ -29,6 +29,16 @@ public class ApprovalWorkflowInput
     /// <summary>StepCode of the first step — set by the interceptor.</summary>
     public string? CurrentState { get; set; }
 
+    /// <summary>
+    /// Optional context type for approver/notification resolution (module-defined, e.g. Employee).
+    /// </summary>
+    public string? SubjectContextType { get; set; }
+
+    /// <summary>
+    /// Optional context id for approver/notification resolution (e.g. parent employee id).
+    /// </summary>
+    public string? SubjectContextId { get; set; }
+
     /// <summary>Last approver on the final step — set by ApprovalWorkflow before FinalizeApprovalAsync.</summary>
     public string? LastApprovedBy { get; set; }
     public string? LastApprovedByName { get; set; }
@@ -53,6 +63,8 @@ public class ApprovalWorkflowInput
         InitiatedBy     = message.InitiatedBy,
         InitiatedByName = message.UserName,
         CurrentState    = message.CurrentState,
+        SubjectContextType = message.SubjectContextType,
+        SubjectContextId   = message.SubjectContextId,
         EntityData      = message.EntityData ?? new Dictionary<string, object>()
     };
 }

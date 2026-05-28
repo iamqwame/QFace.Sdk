@@ -1,4 +1,3 @@
-using QimErp.Shared.Common.Events;
 using Temporalio.Workflows;
 
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;

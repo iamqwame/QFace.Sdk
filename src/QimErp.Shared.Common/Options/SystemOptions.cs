@@ -15,4 +15,9 @@ public class SystemOptions
     public string DefaultRequesterName { get; set; } = "Requester";
     public string DefaultApproverName { get; set; } = "Approver";
     public string DefaultWorkflowCodeDisplayName { get; set; } = "Workflow Request";
+
+    /// <summary>
+    /// When true, Temporal NotificationActivity owns step emails; legacy processor skips duplicate sends.
+    /// </summary>
+    public bool TemporalOwnsWorkflowNotifications { get; set; } = true;
 }

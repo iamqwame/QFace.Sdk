@@ -1,5 +1,3 @@
-using QimErp.Shared.Common.Services.Auth;
-
 namespace QimErp.Shared.Common.Logging;
 
 internal static class UserContextScopeProperties

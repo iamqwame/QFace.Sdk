@@ -11,6 +11,7 @@ public class WorkflowRejectionProcessor(
     INotificationWorkflowStarter notificationStarter,
     IOptions<FrontendSettings> frontendSettings,
     IOptions<SystemOptions> systemOptions,
+    IWorkflowDefinitionProvider definitionProvider,
     ILogger<WorkflowRejectionProcessor> logger)
     : IWorkflowRejectionProcessor
 {
@@ -67,16 +68,24 @@ public class WorkflowRejectionProcessor(
             return;
         }
 
-        var entityWorkflowStep = await GetEntityWorkflowStepAsync(context, workflowCode, @event.EntityType, cancellationToken);
-        if (entityWorkflowStep == null)
+        var workflowDefinition = (await GetEntityWorkflowStepAsync(context, workflowCode, @event.EntityType, cancellationToken))?.WorkflowDefinition;
+
+        if (workflowDefinition == null && !string.IsNullOrWhiteSpace(@event.TenantId))
         {
-            logger.LogWarning("⚠️ [WorkflowRejectionProcessor] No active EntityWorkflowStep found for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
+            var published = await definitionProvider.GetPublishedDefinitionAsync(
+                @event.TenantId, workflowCode, @event.EntityType, cancellationToken);
+            workflowDefinition = published?.Definition;
+        }
+
+        if (workflowDefinition == null)
+        {
+            logger.LogWarning("⚠️ [WorkflowRejectionProcessor] No workflow definition found for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
                 workflowCode, @event.EntityType);
             return;
         }
 
         var currentState = @event.CurrentState;
-        var currentStep = GetCurrentWorkflowStep(entityWorkflowStep.WorkflowDefinition, currentState);
+        var currentStep = GetCurrentWorkflowStep(workflowDefinition, currentState);
 
         if (currentStep == null)
         {
@@ -95,7 +104,7 @@ public class WorkflowRejectionProcessor(
             @event.EntityType, entityId, currentStep.Name);
 
         await PublishRejectionNotificationsAsync(
-            entityWorkflowStep.WorkflowDefinition.Notifications,
+            workflowDefinition.Notifications,
             currentStep.OnRejection,
             @event,
             currentStep.Name,
@@ -290,6 +299,12 @@ public class WorkflowRejectionProcessor(
         string stepName,
         IWorkflowEnabled entity)
     {
+        if (_systemOptions.TemporalOwnsWorkflowNotifications)
+        {
+            logger.LogDebug("📧 [WorkflowRejectionProcessor] Skipping legacy publish — Temporal owns workflow notifications.");
+            return;
+        }
+
         if (notifications == null || !notifications.SendEmailNotifications)
         {
             logger.LogDebug("📧 [WorkflowRejectionProcessor] Email notifications are disabled. Skipping rejection notification sending.");

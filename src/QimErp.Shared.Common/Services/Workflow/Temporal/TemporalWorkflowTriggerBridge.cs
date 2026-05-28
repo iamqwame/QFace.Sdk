@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using QimErp.Shared.Common.Services.Workflow.Temporal.Approval;
 
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;

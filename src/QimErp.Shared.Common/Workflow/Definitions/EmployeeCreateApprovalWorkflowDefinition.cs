@@ -1,5 +1,3 @@
-using QimErp.Shared.Common.Workflow.Entities;
-
 namespace QimErp.Shared.Common.Workflow.Definitions;
 
 /// <summary>

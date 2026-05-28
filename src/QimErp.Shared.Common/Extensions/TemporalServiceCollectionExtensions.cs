@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using QFace.Sdk.Temporal.Extensions;
 using QimErp.Shared.Common.Services.Notifications;

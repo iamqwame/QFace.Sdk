@@ -1,5 +1,4 @@
 using Temporalio.Activities;
-using QimErp.Shared.Common.Workflow.Entities;
 
 namespace QimErp.Shared.Common.Services.Workflow.Temporal;
 
@@ -29,4 +28,13 @@ public interface IApproverResolverActivity
     /// </summary>
     [Activity]
     Task<ResolvedApprover?> ResolveInitiatorByEmailAsync(string email);
+
+    /// <summary>
+    /// Resolves step notification tokens (Initiator, department, role, etc.) to employee emails.
+    /// </summary>
+    [Activity]
+    Task<List<ResolvedApprover>> ResolveNotificationRecipientsAsync(
+        ApprovalWorkflowInput input,
+        WorkflowStep step,
+        IReadOnlyList<string> recipientTokens);
 }
