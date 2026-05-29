@@ -37,6 +37,12 @@ public sealed class SeedDemoPayrollResult
     public int ProvidentFundsCreated { get; set; }
     public int LoansCreated { get; set; }
     public int AdvancesCreated { get; set; }
+    public int AllowancesCreated { get; set; }
+    public int DeductionsCreated { get; set; }
+    public int PayrollRunsCreated { get; set; }
+    public int PayrollItemsCreated { get; set; }
+    public int PayslipsCreated { get; set; }
+    public int ReportsCreated { get; set; }
     public int Failed { get; set; }
     public List<string> Errors { get; } = new();
     public TimeSpan Elapsed { get; set; }

@@ -27,7 +27,8 @@ public interface INotificationActivity
         WorkflowStep approvedStep,
         ApprovalSignal signal,
         WorkflowDefinition definition,
-        bool isLastStep);
+        bool isLastStep,
+        List<ResolvedApprover>? nextStepApprovers);
 
     /// <summary>
     /// Notifies all relevant parties that the entire workflow completed successfully.
@@ -64,7 +65,8 @@ public interface INotificationActivity
         ApprovalWorkflowInput input,
         WorkflowDefinition definition,
         WorkflowStep firstStep,
-        List<ResolvedApprover> resolvedObservers);
+        List<ResolvedApprover> resolvedObservers,
+        List<ResolvedApprover> firstStepApprovers);
 
     /// <summary>
     /// Sends step-level observer notifications from sendNotificationTo tokens.
@@ -72,8 +74,11 @@ public interface INotificationActivity
     [Activity]
     Task SendStepObserverNotificationsAsync(
         ApprovalWorkflowInput input,
-        WorkflowStep step,
+        WorkflowStep approvedOrRejectedStep,
+        ApprovalSignal signal,
         WorkflowDefinition definition,
         List<ResolvedApprover> resolvedObservers,
-        bool isRejection);
+        bool isRejection,
+        WorkflowStep? nextStep = null,
+        List<ResolvedApprover>? nextStepApprovers = null);
 }

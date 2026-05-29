@@ -11,7 +11,7 @@ public static class WorkflowNotificationTemplates
     public const string StepAdvanced = "approval-stage-advanced";
     public const string CompletionDefault = "approval-approved";
     public const string RejectionDefault = "approval-rejected";
-    public const string TimeoutEscalation = "WorkflowTimeout";
+    public const string TimeoutEscalation = "approval-reminder";
     public const string Reminder = "approval-reminder";
 
     public const string LeaveApproved = "leave-approved";

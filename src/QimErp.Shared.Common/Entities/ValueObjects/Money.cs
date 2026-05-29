@@ -9,7 +9,7 @@ public class Money
     public decimal ExchangeRate { get; set; } = 1.0m;
     public decimal? BaseCurrencyAmount { get; set; }
 
-    private Money() { }
+    public Money() { }
 
     private Money(decimal amount, string currencyCode, decimal exchangeRate, decimal? baseCurrencyAmount)
     {

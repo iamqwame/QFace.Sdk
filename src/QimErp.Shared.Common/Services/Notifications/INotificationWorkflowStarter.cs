@@ -28,4 +28,11 @@ public interface INotificationWorkflowStarter
         string templateCode,
         Dictionary<string, string> replacements,
         Dictionary<string, string>? metadata = null);
+
+    /// <summary>
+    /// Sends a catalog-validated templated email with a strict token contract.
+    /// </summary>
+    Task SendTemplatedEmailAsync(
+        TemplatedEmailRequest request,
+        Dictionary<string, string>? metadata = null);
 }

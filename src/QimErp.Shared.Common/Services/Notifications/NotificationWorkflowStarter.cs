@@ -51,4 +51,17 @@ public class NotificationWorkflowStarter(IWorkflowStarter starter)
             Replacements = replacements,
             Metadata     = metadata ?? []
         });
+
+    public Task SendTemplatedEmailAsync(
+        TemplatedEmailRequest request,
+        Dictionary<string, string>? metadata = null) =>
+        SendAsync(new UnifiedMessageModel
+        {
+            MessageType  = "templated_email",
+            ToEmail      = request.ToEmail,
+            Subject      = request.Subject,
+            TemplateCode = request.TemplateCode,
+            Replacements = new Dictionary<string, string>(request.Tokens),
+            Metadata     = metadata ?? request.Metadata ?? []
+        });
 }
