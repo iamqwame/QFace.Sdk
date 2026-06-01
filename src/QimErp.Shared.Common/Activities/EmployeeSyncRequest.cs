@@ -1,6 +1,6 @@
 namespace QimErp.Shared.Common.Activities;
 
-public enum EmployeeSyncOperation { Created, Updated, Deleted }
+public enum EmployeeSyncOperation { Created, Updated, Deleted, Terminated }
 
 public class EmployeeSyncRequest
 {

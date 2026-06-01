@@ -14,15 +14,17 @@ public abstract class ApplicationDbContext<TContext>(
     public DbSet<AppSetting> AppSettings { get; set; }
     public DbSet<Import> Imports { get; set; }
     public DbSet<EntityWorkflowStep> EntityWorkflowSteps { get; set; }
+    public DbSet<EntityCodeConfig> EntityCodeConfigs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        
+
         modelBuilder.ApplyGlobalFilters(_tenantContext);
-        
+
         modelBuilder.ApplyConfiguration(new AppSettingConfiguration());
         modelBuilder.ApplyConfiguration(new ImportConfiguration());
         modelBuilder.ApplyConfiguration(new EntityWorkflowStepConfiguration());
+        modelBuilder.ApplyConfiguration(new EntityCodeConfigConfiguration());
     }
 }

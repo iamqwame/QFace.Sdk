@@ -85,7 +85,8 @@ public class JsonbListConverter<T> : ValueConverter<List<T>, string>
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        WriteIndented = false
+        WriteIndented = false,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     public JsonbListConverter() : base(
