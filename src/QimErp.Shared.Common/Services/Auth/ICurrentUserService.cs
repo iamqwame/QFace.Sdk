@@ -9,6 +9,16 @@ public interface ICurrentUserService
     /// </summary>
     string GetCorrelationId();
 
+    /// <summary>
+    /// Seeds ambient identity for non-HTTP execution contexts (Temporal activities, background jobs,
+    /// message consumers). Stored in <c>AsyncLocal</c> — scoped to the current async call chain.
+    /// Call once at the entry point of a background job; the EF interceptor picks it up automatically.
+    /// </summary>
+    void SetContext(string tenantId, string userEmail, string? userName = null, string? userId = null);
+
+    /// <summary>Clears the ambient context set by <see cref="SetContext"/>. Call in a finally block.</summary>
+    void ClearContext();
+
     bool IsAuthenticated { get; }
     string GetUserId();
     string? GetRole();
