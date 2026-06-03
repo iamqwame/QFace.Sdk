@@ -93,21 +93,24 @@ public static class TemporalWorkerServiceCollectionExtensions
         // AddHostedTemporalWorker(taskQueue, deploymentOptions) — uses injected ITemporalClient.
         var builder = services.AddHostedTemporalWorker(taskQueue, deploymentOptions);
 
-        // Apply concurrency caps from options when configured.
-        if (opts.MaxConcurrentActivityExecutions.HasValue ||
-            opts.MaxConcurrentWorkflowTaskExecutions.HasValue)
+        // Apply concurrency caps and auto-seed ambient tenant context for all activities.
+        builder.ConfigureOptions(workerOpts =>
         {
-            builder.ConfigureOptions(workerOpts =>
-            {
-                if (opts.MaxConcurrentActivityExecutions.HasValue)
-                    workerOpts.MaxConcurrentActivities =
-                        opts.MaxConcurrentActivityExecutions.Value;
+            if (opts.MaxConcurrentActivityExecutions.HasValue)
+                workerOpts.MaxConcurrentActivities =
+                    opts.MaxConcurrentActivityExecutions.Value;
 
-                if (opts.MaxConcurrentWorkflowTaskExecutions.HasValue)
-                    workerOpts.MaxConcurrentWorkflowTasks =
-                        opts.MaxConcurrentWorkflowTaskExecutions.Value;
-            });
-        }
+            if (opts.MaxConcurrentWorkflowTaskExecutions.HasValue)
+                workerOpts.MaxConcurrentWorkflowTasks =
+                    opts.MaxConcurrentWorkflowTaskExecutions.Value;
+
+            // Automatically seeds ICurrentUserService.SetContext(tenantId) before every
+            // activity executes, so AuditEntitySaveChangesInterceptor stamps TenantId on
+            // all saved entities without per-activity or per-entity WithTenantId() calls.
+            // IServiceScopeFactory is resolved from the worker host — it is always available.
+            var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+            workerOpts.Interceptors = [new Interceptors.TenantContextActivityInterceptor(scopeFactory)];
+        });
 
         return builder;
     }

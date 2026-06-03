@@ -285,8 +285,35 @@ public class AuditEntitySaveChangesInterceptor(
 
         if (string.IsNullOrWhiteSpace(tenantId))
         {
-            logger.LogDebug("TenantId is empty in userContextService. Skipping TenantId assignment on entities.");
-            return;
+            // TenantId is missing — this means neither HTTP context nor the Temporal activity
+            // interceptor (TenantContextActivityInterceptor) seeded the ambient identity.
+            // Check if any entity being saved already has TenantId stamped explicitly.
+            var explicitTenantId = context.ChangeTracker
+                .Entries<AuditableEntity>()
+                .Where(e => e.State is EntityState.Added or EntityState.Modified
+                            && !string.IsNullOrWhiteSpace(e.Entity.TenantId))
+                .Select(e => e.Entity.TenantId)
+                .FirstOrDefault();
+
+            if (!string.IsNullOrWhiteSpace(explicitTenantId))
+            {
+                tenantId = explicitTenantId;
+                logger.LogDebug(
+                    "TenantId resolved from explicitly-stamped entity in batch: {TenantId}",
+                    tenantId);
+            }
+            else
+            {
+                // No tenant context at all — hard exception, not a silent log.
+                // A NULL TenantId means the row would be invisible to every tenant query (global filter).
+                // This is a critical data integrity failure and must be caught here, not at the DB level.
+                throw new InvalidOperationException(
+                    "SaveChanges aborted: TenantId is missing from both the ambient ICurrentUserService context " +
+                    "and all entities in the batch. " +
+                    "In non-HTTP contexts (Temporal activities, background jobs), call " +
+                    "ICurrentUserService.SetContext(tenantId, ...) before any SaveChanges, " +
+                    "or ensure TenantContextActivityInterceptor is registered with the Temporal worker.");
+            }
         }
 
         var entries = context.ChangeTracker.Entries<AuditableEntity>()

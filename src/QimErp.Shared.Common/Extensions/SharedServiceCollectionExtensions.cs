@@ -511,7 +511,13 @@ public static class SharedServiceCollectionExtensions
         // });
 
         services.AddHttpContextAccessor();
-        services.AddScoped<ICurrentUserService, UserContextService>();
+        // Register UserContextService as the concrete type first so both interfaces resolve to the same instance.
+        services.AddScoped<UserContextService>();
+        services.AddScoped<ICurrentUserService>(sp => sp.GetRequiredService<UserContextService>());
+        // ITenantContextSetter allows Temporal activity interceptors to seed ambient TenantId
+        // without a direct reference to ICurrentUserService.
+        services.AddScoped<QFace.Sdk.Temporal.Interceptors.ITenantContextSetter>(
+            sp => sp.GetRequiredService<UserContextService>());
 
         return services;
     }

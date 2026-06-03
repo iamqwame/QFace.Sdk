@@ -21,7 +21,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Temporalio" Version="1.14.1" />
+        <PackageReference Include="Temporalio.Extensions.Hosting" Version="1.14.1" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\..\src\QimErp.Shared.Common\QimErp.Shared.Common.csproj" />
+        <ProjectReference Include="..\..\src\QFace.Sdk.Temporal\QFace.Sdk.Temporal.csproj" />
     </ItemGroup>
 
 </Project>

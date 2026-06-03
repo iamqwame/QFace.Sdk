@@ -1,11 +1,12 @@
 using System.Security.Claims;
+using QFace.Sdk.Temporal.Interceptors;
 using QimErp.Shared.Common.Middlewares;
 
 namespace QimErp.Shared.Common.Services.Auth;
 
 public class UserContextService(
     IHttpContextAccessor httpContextAccessor,
-    ILogger<UserContextService> logger) : ICurrentUserService
+    ILogger<UserContextService> logger) : ICurrentUserService, ITenantContextSetter
 {
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
     private readonly ILogger<UserContextService> _logger = logger;
@@ -27,6 +28,14 @@ public class UserContextService(
     {
         Context.Value = null;
     }
+
+    // ── ITenantContextSetter (used by TenantContextActivityInterceptor) ────────
+    // Delegates to SetContext/ClearContext so the single AsyncLocal storage is shared.
+    void ITenantContextSetter.SetTenantContext(string tenantId, string userEmail, string? userName, string? userId)
+        => SetContext(tenantId, userEmail, userName, userId);
+
+    void ITenantContextSetter.ClearTenantContext()
+        => ClearContext();
 
     public string GetCorrelationId()
     {

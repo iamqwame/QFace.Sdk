@@ -18,6 +18,10 @@ public class ConsumerUserContextService : ICurrentUserService
         _systemOptions = systemOptions.Value;
     }
 
+    // Explicit interface implementation to satisfy ICurrentUserService.SetContext(4-param).
+    void ICurrentUserService.SetContext(string tenantId, string userEmail, string? userName, string? userId)
+        => SetContext(tenantId, userEmail, userName, userId);
+
     public void SetContext(string tenantId, string userEmail, string? userName = null, string? triggeredBy = null, string? correlationId = null)
     {
         Context.Value = new ConsumerContext
