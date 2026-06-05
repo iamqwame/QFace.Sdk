@@ -269,7 +269,7 @@ public class AuditEntitySaveChangesInterceptor(
         return domainEvent is WorkflowStatusChangedEvent or WorkflowApprovalRequiredEvent or WorkflowChangedEvent;
     }
 
-    private async Task StoreFailedEventsAsync(
+    private Task StoreFailedEventsAsync(
         List<(IDomainEvent Event, Exception Exception)> failedEvents,
         CancellationToken cancellationToken)
     {
@@ -278,16 +278,36 @@ public class AuditEntitySaveChangesInterceptor(
             logger.LogWarning("Storing failed event {EventType} for later retry. Error: {Error}",
                 eventItem.GetType().Name, exception.Message);
         }
+
+        return Task.CompletedTask;
     }
     private void SetTenantIdOnEntities(DbContext context)
     {
+        // Collect only the AuditableEntity rows that actually need TenantId stamped.
+        // Non-AuditableEntity types (e.g. IdentityUser in the IAM login flow) are excluded —
+        // the global query filter is not applied to them and TenantId is irrelevant.
+        var entriesToStamp = context.ChangeTracker.Entries<AuditableEntity>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified
+                        && string.IsNullOrWhiteSpace(e.Entity.TenantId))
+            .ToList();
+
+        if (entriesToStamp.Count == 0)
+        {
+            // Nothing needs stamping — proceed without a TenantId.
+            // Common case: saving IdentityUser/IdentityRole/IdentityToken in unauthenticated
+            // flows (login, registration) where no JWT exists yet and the entities are not
+            // AuditableEntity subclasses.
+            return;
+        }
+
         var tenantId = userContextService?.GetTenantId() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(tenantId))
         {
-            // TenantId is missing — this means neither HTTP context nor the Temporal activity
-            // interceptor (TenantContextActivityInterceptor) seeded the ambient identity.
-            // Check if any entity being saved already has TenantId stamped explicitly.
+            // No ambient TenantId from HTTP/Temporal context.
+            // Fallback 1: an entity in this same batch was already explicitly stamped —
+            //             propagate that tenant to siblings (e.g. UserToken saved alongside
+            //             an already-stamped entity).
             var explicitTenantId = context.ChangeTracker
                 .Entries<AuditableEntity>()
                 .Where(e => e.State is EntityState.Added or EntityState.Modified
@@ -299,34 +319,51 @@ public class AuditEntitySaveChangesInterceptor(
             {
                 tenantId = explicitTenantId;
                 logger.LogDebug(
-                    "TenantId resolved from explicitly-stamped entity in batch: {TenantId}",
+                    "TenantId resolved from explicitly-stamped sibling entity in batch: {TenantId}",
                     tenantId);
             }
             else
             {
-                // No tenant context at all — hard exception, not a silent log.
-                // A NULL TenantId means the row would be invisible to every tenant query (global filter).
-                // This is a critical data integrity failure and must be caught here, not at the DB level.
-                throw new InvalidOperationException(
-                    "SaveChanges aborted: TenantId is missing from both the ambient ICurrentUserService context " +
-                    "and all entities in the batch. " +
-                    "In non-HTTP contexts (Temporal activities, background jobs), call " +
-                    "ICurrentUserService.SetContext(tenantId, ...) before any SaveChanges, " +
-                    "or ensure TenantContextActivityInterceptor is registered with the Temporal worker.");
+                // Fallback 2: look for a non-AuditableEntity in the batch that carries a TenantId
+                // property (e.g. IdentityUser / UserIdentity). Handles the case where a UserToken
+                // (AuditableEntity) is saved alongside a UserIdentity (IdentityUser, not AuditableEntity)
+                // in the IAM login flow.
+                var nonAuditableTenantId = context.ChangeTracker
+                    .Entries()
+                    .Where(e => e.State is EntityState.Added or EntityState.Modified
+                                && e.Entity is not AuditableEntity)
+                    .Select(e => e.Property("TenantId")?.CurrentValue?.ToString()
+                                 ?? e.Entity.GetType().GetProperty("TenantId")?.GetValue(e.Entity)?.ToString())
+                    .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+                if (!string.IsNullOrWhiteSpace(nonAuditableTenantId))
+                {
+                    tenantId = nonAuditableTenantId;
+                    logger.LogDebug(
+                        "TenantId resolved from non-AuditableEntity in batch (e.g. IdentityUser): {TenantId}",
+                        tenantId);
+                }
+                else
+                {
+                    // No TenantId anywhere — hard throw.
+                    // This is a genuine data integrity failure: AuditableEntity rows would
+                    // be saved with NULL TenantId and become invisible to every tenant query.
+                    throw new InvalidOperationException(
+                        "SaveChanges aborted: TenantId is missing from both the ambient ICurrentUserService context " +
+                        "and all entities in the batch. " +
+                        "In non-HTTP contexts (Temporal activities, background jobs), call " +
+                        "ICurrentUserService.SetContext(tenantId, ...) before any SaveChanges, " +
+                        "or ensure TenantContextActivityInterceptor is registered with the Temporal worker.");
+                }
             }
         }
 
-        var entries = context.ChangeTracker.Entries<AuditableEntity>()
-            .Where(e => e.State is EntityState.Added or EntityState.Modified);
-
-        foreach (var entry in entries)
+        foreach (var entry in entriesToStamp)
         {
-            if (string.IsNullOrWhiteSpace(entry.Entity.TenantId))
-            {
-                entry.Entity.TenantId = tenantId;
-                logger.LogDebug("Set TenantId={TenantId} on {EntityType} {EntityId} before workflow processing",
-                    tenantId, entry.Entity.GetType().Name, entry.Entity.GetType().GetProperty("Id")?.GetValue(entry.Entity));
-            }
+            entry.Entity.TenantId = tenantId;
+            logger.LogDebug("Set TenantId={TenantId} on {EntityType} {EntityId}",
+                tenantId, entry.Entity.GetType().Name,
+                entry.Entity.GetType().GetProperty("Id")?.GetValue(entry.Entity));
         }
     }
 
@@ -1020,28 +1057,28 @@ public class AuditEntitySaveChangesInterceptor(
         return userRoles.Any(role => config.ExcludeRoles.Contains(role));
     }
 
-    private async Task<Result> ValidateCanEditAsync(IWorkflowEnabled entity, EntityWorkflowConfig config)
+    private Task<Result> ValidateCanEditAsync(IWorkflowEnabled entity, EntityWorkflowConfig config)
     {
         if (!entity.CanBeEdited())
         {
-            return Result.WithFailure(new Error(
+            return Task.FromResult(Result.WithFailure(new Error(
                 "WorkflowValidation.CannotEdit",
-                $"Entity cannot be edited in current workflow status: {entity.WorkflowStatus}"));
+                $"Entity cannot be edited in current workflow status: {entity.WorkflowStatus}")));
         }
 
-        return Result.WithSuccess();
+        return Task.FromResult(Result.WithSuccess());
     }
 
-    private async Task<Result> ValidateCanDeleteAsync(IWorkflowEnabled entity, EntityWorkflowConfig config)
+    private Task<Result> ValidateCanDeleteAsync(IWorkflowEnabled entity, EntityWorkflowConfig config)
     {
         if (!entity.CanBeDeleted())
         {
-            return Result.WithFailure(new Error(
+            return Task.FromResult(Result.WithFailure(new Error(
                 "WorkflowValidation.CannotDelete",
-                $"Entity cannot be deleted in current workflow status: {entity.WorkflowStatus}"));
+                $"Entity cannot be deleted in current workflow status: {entity.WorkflowStatus}")));
         }
 
-        return Result.WithSuccess();
+        return Task.FromResult(Result.WithSuccess());
     }
 
     /// <summary>

@@ -67,7 +67,7 @@ internal class KafkaConsumerSupervisorActor : BaseActor
         }
     }
 
-    private async Task HandleStartConsuming(StartConsumingMessage message)
+    private Task HandleStartConsuming(StartConsumingMessage message)
     {
         try
         {
@@ -75,13 +75,15 @@ internal class KafkaConsumerSupervisorActor : BaseActor
             {
                 consumerActor.Tell(message);
             }
-            
+
             _logger.LogInformation("[Kafka] Started all consumer actors");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[Kafka] Failed to start consumer actors");
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task HandleStopConsuming(StopConsumingMessage message)

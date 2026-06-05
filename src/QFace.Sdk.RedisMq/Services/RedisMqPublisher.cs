@@ -15,7 +15,7 @@ public class RedisMqPublisher : IRedisMqPublisher
         _logger = logger;
     }
 
-    public async Task<bool> PublishAsync<T>(T message, string channelName)
+    public Task<bool> PublishAsync<T>(T message, string channelName)
     {
         try
         {
@@ -33,30 +33,30 @@ public class RedisMqPublisher : IRedisMqPublisher
                                 .ResolveOne(TimeSpan.FromSeconds(1))
                                 .GetAwaiter()
                                 .GetResult();
-                            
+
                             _logger.LogDebug("[Redis] Found existing publisher actor");
                         }
                         catch
                         {
                             // Actor doesn't exist - this should not happen as it should be created during initialization
                             _logger.LogError("[Redis] Publisher actor not found. Make sure UseRedisMqInApi/UseRedisMqInConsumer has been called.");
-                            return false;
+                            return Task.FromResult(false);
                         }
                     }
                 }
             }
 
             var publishMessage = new PublishMessage(message, channelName);
-            
+
             // Send message directly to the actor
             _publisherActorRef.Tell(publishMessage);
-            
-            return true;
+
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"[Redis] Failed to publish message to channel '{channelName}'");
-            return false;
+            return Task.FromResult(false);
         }
     }
 }

@@ -23,14 +23,14 @@ public class KafkaConsumerService : IHostedService
         _actorSystem = actorSystem;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         try
         {
             if (!_consumerMetadata.Any())
             {
                 _logger.LogInformation("[Kafka] No consumers found, service will not start");
-                return;
+                return Task.CompletedTask;
             }
 
             _logger.LogInformation($"[Kafka] Starting consumer service with {_consumerMetadata.Count} consumers");
@@ -51,6 +51,8 @@ public class KafkaConsumerService : IHostedService
             _logger.LogError(ex, "[Kafka] Failed to start consumer service");
             throw;
         }
+
+        return Task.CompletedTask;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)

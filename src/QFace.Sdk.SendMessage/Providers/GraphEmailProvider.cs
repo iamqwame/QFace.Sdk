@@ -33,7 +33,7 @@ public class GraphEmailProvider : IEmailProvider
     /// (TenantId, ClientId, ClientSecret, SendAsUser/FromEmail), and creates a GraphServiceClient
     /// using client credentials authentication.
     /// </remarks>
-    public async Task<bool> Initialize()
+    public Task<bool> Initialize()
     {
         try
         {
@@ -42,7 +42,7 @@ public class GraphEmailProvider : IEmailProvider
             {
                 _logger.LogInformation("📧 Graph provider not selected (Provider: {Provider})", _config.Provider);
                 _isConfigured = false;
-                return false;
+                return Task.FromResult(false);
             }
 
             // Validate required Graph settings
@@ -52,19 +52,19 @@ public class GraphEmailProvider : IEmailProvider
             {
                 _logger.LogWarning("⚠️ Graph provider not fully configured. Missing TenantId, ClientId, or ClientSecret");
                 _isConfigured = false;
-                return false;
+                return Task.FromResult(false);
             }
 
             // Validate FromEmail or SendAsUser
-            var sendAsUser = !string.IsNullOrEmpty(_config.SendAsUser) 
-                ? _config.SendAsUser 
+            var sendAsUser = !string.IsNullOrEmpty(_config.SendAsUser)
+                ? _config.SendAsUser
                 : _config.FromEmail;
 
             if (string.IsNullOrEmpty(sendAsUser))
             {
                 _logger.LogWarning("⚠️ Graph provider requires FromEmail or SendAsUser");
                 _isConfigured = false;
-                return false;
+                return Task.FromResult(false);
             }
 
             // Create Graph client with client credentials
@@ -78,13 +78,13 @@ public class GraphEmailProvider : IEmailProvider
             _isConfigured = true;
 
             _logger.LogInformation("📧 Microsoft Graph provider configured. Sending as: {SendAsUser}", sendAsUser);
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ Error initializing Microsoft Graph provider: {Message}", ex.Message);
             _isConfigured = false;
-            return false;
+            return Task.FromResult(false);
         }
     }
 

@@ -44,7 +44,7 @@ public class WorkflowService(
         }
     }
 
-    public async Task InitiateWorkflowAsync(IWorkflowEnabled entity, string operation, WorkflowDefinition? workflowDefinition = null)
+    public Task InitiateWorkflowAsync(IWorkflowEnabled entity, string operation, WorkflowDefinition? workflowDefinition = null)
     {
         try
         {
@@ -86,7 +86,7 @@ public class WorkflowService(
             if (workflowCode.IsEmpty())
             {
                 logger.LogWarning("No workflow code found for {EntityType} {Operation}. Cannot initiate workflow.", entity.EntityType, operation);
-                return;
+                return Task.CompletedTask;
             }
 
             string currentUser = currentUserService?.GetUserId() ?? _systemOptions.DefaultUserId;
@@ -114,14 +114,16 @@ public class WorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error initiating workflow for {EntityType} {Operation}. WorkflowCode={WorkflowCode}", 
+            logger.LogError(ex, "Error initiating workflow for {EntityType} {Operation}. WorkflowCode={WorkflowCode}",
                 entity.EntityType, operation, entity.WorkflowCode);
             throw;
         }
-    }
-    
 
-    public async Task UpdateWorkflowStateAsync(Guid workflowHistoryId, string newState, string? comments = null)
+        return Task.CompletedTask;
+    }
+
+
+    public Task UpdateWorkflowStateAsync(Guid workflowHistoryId, string newState, string? comments = null)
     {
         try
         {
@@ -138,16 +140,18 @@ public class WorkflowService(
             logger.LogError(ex, "Error updating workflow state for {WorkflowHistoryId}", workflowHistoryId);
             throw;
         }
+
+        return Task.CompletedTask;
     }
 
-    public async Task CompleteWorkflowAsync(Guid workflowHistoryId, WorkflowStatus finalStatus, string completedByEmail, string? completedByEmployeeId = null, string? completedByName = null, string? comments = null)
+    public Task CompleteWorkflowAsync(Guid workflowHistoryId, WorkflowStatus finalStatus, string completedByEmail, string? completedByEmployeeId = null, string? completedByName = null, string? comments = null)
     {
         try
         {
             // TODO: Update workflow history in database
             // TODO: Log completion activity
-            
-            logger.LogInformation("Completed workflow {WorkflowHistoryId} with status {FinalStatus} by {CompletedByEmail}", 
+
+            logger.LogInformation("Completed workflow {WorkflowHistoryId} with status {FinalStatus} by {CompletedByEmail}",
                 workflowHistoryId, finalStatus, completedByEmail);
         }
         catch (Exception ex)
@@ -155,6 +159,8 @@ public class WorkflowService(
             logger.LogError(ex, "Error completing workflow {WorkflowHistoryId}", workflowHistoryId);
             throw;
         }
+
+        return Task.CompletedTask;
     }
 
     private string ResolveTenantId(IWorkflowEnabled entity)

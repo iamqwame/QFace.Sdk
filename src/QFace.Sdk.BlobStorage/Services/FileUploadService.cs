@@ -192,16 +192,16 @@ public class FileUploadService : IFileUploadService
         return false;
     }
 
-    public async Task<string> GetPreSignedUrlAsync(string fileKey, int expirationMinutes = 15)
+    public Task<string> GetPreSignedUrlAsync(string fileKey, int expirationMinutes = 15)
     {
         try
         {
             // Extract the S3 key from the CDN URL if needed
             string s3Key = ExtractS3KeyFromUrl(fileKey);
-                
+
             // Log the original file key
             _logger.LogInformation("Original file key: {FileKey}", s3Key);
-        
+
             var request = new GetPreSignedUrlRequest
             {
                 BucketName = _bucketName,
@@ -210,10 +210,10 @@ public class FileUploadService : IFileUploadService
                 Protocol = Protocol.HTTPS,
                 Verb = HttpVerb.GET
             };
-        
+
             var url = _s3Client.GetPreSignedURL(request);
             _logger.LogInformation("Generated pre-signed URL before fix: {Url}", url);
-        
+
             // Fix the doubled bucket name in the URL
             var fixedUrl = url;
             if (url.Contains($"{_bucketName}.{_bucketName}."))
@@ -221,8 +221,8 @@ public class FileUploadService : IFileUploadService
                 fixedUrl = url.Replace($"{_bucketName}.{_bucketName}.", $"{_bucketName}.");
                 _logger.LogInformation("Fixed URL with doubled bucket name: {Url}", fixedUrl);
             }
-        
-            return fixedUrl;
+
+            return Task.FromResult(fixedUrl);
         }
         catch (AmazonS3Exception ex)
         {

@@ -14,14 +14,14 @@ public class WorkflowValidationService(
     ICurrentUserService currentUserService,
     ILogger<WorkflowValidationService> logger) : IWorkflowValidationService
 {
-    public async Task<Result> ValidateCanEditAsync(IWorkflowEnabled entity)
+    public Task<Result> ValidateCanEditAsync(IWorkflowEnabled entity)
     {
         // Check workflow status
         if (!entity.CanBeEdited())
         {
-            return Result.WithFailure(new Error(
+            return Task.FromResult(Result.WithFailure(new Error(
                 "WorkflowValidation.CannotEdit",
-                $"Entity cannot be edited in current workflow status: {entity.WorkflowStatus}"));
+                $"Entity cannot be edited in current workflow status: {entity.WorkflowStatus}")));
         }
 
         // Check if user has permission to edit
@@ -52,22 +52,22 @@ public class WorkflowValidationService(
         //     }
         // }
 
-        return Result.WithSuccess();
+        return Task.FromResult(Result.WithSuccess());
     }
 
-    public async Task<Result> ValidateCanDeleteAsync(IWorkflowEnabled entity)
+    public Task<Result> ValidateCanDeleteAsync(IWorkflowEnabled entity)
     {
         if (!entity.CanBeDeleted())
         {
-            return Result.WithFailure(new Error(
+            return Task.FromResult(Result.WithFailure(new Error(
                 "WorkflowValidation.CannotDelete",
-                $"Entity cannot be deleted in current workflow status: {entity.WorkflowStatus}"));
+                $"Entity cannot be deleted in current workflow status: {entity.WorkflowStatus}")));
         }
 
-        return Result.WithSuccess();
+        return Task.FromResult(Result.WithSuccess());
     }
 
-    public async Task<Result> ValidateCanCreateAsync(string entityType)
+    public Task<Result> ValidateCanCreateAsync(string entityType)
     {
         // Note: Module should be passed from caller, but for backward compatibility we'll skip if not available
         // This method may need to be updated to accept module parameter in the future
@@ -80,7 +80,7 @@ public class WorkflowValidationService(
         //         "Direct creation is prevented for this entity type. Use workflow submission."));
         // }
 
-        return Result.WithSuccess();
+        return Task.FromResult(Result.WithSuccess());
     }
 
     public async Task<bool> RequiresApprovalAsync(IWorkflowEnabled entity, string operation)

@@ -130,5 +130,5 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Models;
         /// <summary>
         /// Checks if the token is active
         /// </summary>
-        public bool IsActive => !IsRevoked && ExpiresAt > DateTime.UtcNow;
+        public new bool IsActive => !IsRevoked && ExpiresAt > DateTime.UtcNow;
     }

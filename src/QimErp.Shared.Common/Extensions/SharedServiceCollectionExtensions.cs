@@ -14,6 +14,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using QFace.Sdk.RedisCache.Extensions;
 using QFace.Sdk.RedisCache.Models;
+using QFace.Sdk.Temporal.Interceptors;
 using QimErp.Shared.Common.Behaviours;
 using QimErp.Shared.Common.Database;
 using QimErp.Shared.Common.Middlewares;
@@ -134,9 +135,15 @@ public static class SharedServiceCollectionExtensions
         else
             services.AddQimErpConfigurationWithDefaults();
 
-        services.AddSingleton<ITenantContext, TenantContext>();
+        services.AddSingleton<TenantContext>();
+        services.AddSingleton<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
+        // ITenantScopeSetter allows Temporal activity interceptors to seed ITenantContext so that
+        // EF global query filters receive the correct TenantId during background activity execution.
+        services.AddSingleton<ITenantScopeSetter>(
+            sp => sp.GetRequiredService<TenantContext>());
         services.AddSingleton<ConsumerUserContextService>();
         services.AddSingleton<ICurrentUserService>(sp => sp.GetRequiredService<ConsumerUserContextService>());
+        services.AddSingleton<ITenantContextSetter>(sp => sp.GetRequiredService<ConsumerUserContextService>());
 
         services
             .AddScoped<AuditEntitySaveChangesInterceptor>()
@@ -518,6 +525,11 @@ public static class SharedServiceCollectionExtensions
         // without a direct reference to ICurrentUserService.
         services.AddScoped<QFace.Sdk.Temporal.Interceptors.ITenantContextSetter>(
             sp => sp.GetRequiredService<UserContextService>());
+        // ITenantScopeSetter allows Temporal activity interceptors to seed ITenantContext so that
+        // EF global query filters receive the correct TenantId during background activity execution.
+        services.TryAddScoped<ITenantContext, TenantContext>();
+        services.AddScoped<QFace.Sdk.Temporal.Interceptors.ITenantScopeSetter>(
+            sp => (QFace.Sdk.Temporal.Interceptors.ITenantScopeSetter)sp.GetRequiredService<ITenantContext>());
 
         return services;
     }

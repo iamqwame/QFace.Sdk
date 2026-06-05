@@ -18,6 +18,17 @@ public interface ITenantContextSetter
 }
 
 /// <summary>
+/// Minimal interface that sets the ambient <c>ITenantContext</c> used by EF Core global query filters.
+/// Defined here so QFace.Sdk.Temporal has no dependency on QimErp.Shared.Common.
+/// Implemented by <c>TenantContext</c> in QimErp.Shared.Common.
+/// </summary>
+public interface ITenantScopeSetter
+{
+    void SetTenantScope(string? tenantId);
+    void ClearTenantScope();
+}
+
+/// <summary>
 /// Temporal worker interceptor that automatically seeds <see cref="ICurrentUserService"/>
 /// with the TenantId (and optional UserId) from every activity's input payload before
 /// the activity body executes.
@@ -64,11 +75,12 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
             // Access it safely — we only need it for the activity type name in log messages.
             var activityType = TryGetActivityType();
 
-            var userSvc   = TryResolveService();
-            var tenantId  = ExtractProperty(input.Args, "TenantId");
-            var userId    = ExtractProperty(input.Args, "UserId") ?? "temporal-system";
-            var userEmail = ExtractProperty(input.Args, "UserEmail") ?? "temporal@system";
-            var userName  = ExtractProperty(input.Args, "UserName") ?? "Temporal Worker";
+            var userSvc     = TryResolveService();
+            var tenantScope = TryResolveTenantScope();
+            var tenantId    = ExtractProperty(input.Args, "TenantId");
+            var userId      = ExtractProperty(input.Args, "UserId") ?? "temporal-system";
+            var userEmail   = ExtractProperty(input.Args, "UserEmail") ?? "temporal@system";
+            var userName    = ExtractProperty(input.Args, "UserName") ?? "Temporal Worker";
 
             var logger = TryGetLogger();
 
@@ -78,7 +90,8 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
                     "[TenantContextActivityInterceptor] ITenantContextSetter not resolved for activity {ActivityType}. " +
                     "TenantId will not be auto-stamped on DB entities.",
                     activityType);
-                return await base.ExecuteActivityAsync(input);
+                // Do NOT return early — ITenantScopeSetter must still be seeded so EF global
+                // query filters (HasQueryFilter) return the correct tenant's rows.
             }
 
             if (string.IsNullOrWhiteSpace(tenantId))
@@ -90,7 +103,10 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
                 return await base.ExecuteActivityAsync(input);
             }
 
-            userSvc.SetTenantContext(tenantId, userEmail, userName, userId);
+            userSvc?.SetTenantContext(tenantId, userEmail, userName, userId);
+            // Seed ITenantContext so EF global query filters (HasQueryFilter) see the correct
+            // tenant and do not return cross-tenant rows or fail the filter check.
+            tenantScope?.SetTenantScope(tenantId);
             logger?.LogDebug(
                 "[TenantContextActivityInterceptor] Set ambient TenantId={TenantId} for activity {ActivityType}",
                 tenantId, activityType);
@@ -100,7 +116,8 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
             }
             finally
             {
-                userSvc.ClearTenantContext();
+                userSvc?.ClearTenantContext();
+                tenantScope?.ClearTenantScope();
             }
         }
 
@@ -121,6 +138,20 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
                 // flows to the Temporalio activity scope on the same async chain.
                 using var scope = scopeFactory.CreateScope();
                 return scope.ServiceProvider.GetService<ITenantContextSetter>();
+            }
+            catch { return null; }
+        }
+
+        private ITenantScopeSetter? TryResolveTenantScope()
+        {
+            try
+            {
+                // Resolves ITenantScopeSetter (implemented by TenantContext) to seed the
+                // ambient ITenantContext used by EF global query filters.
+                // Uses the same AsyncLocal pattern as ITenantContextSetter — value set here
+                // flows to the Temporalio activity scope on the same async chain.
+                using var scope = scopeFactory.CreateScope();
+                return scope.ServiceProvider.GetService<ITenantScopeSetter>();
             }
             catch { return null; }
         }

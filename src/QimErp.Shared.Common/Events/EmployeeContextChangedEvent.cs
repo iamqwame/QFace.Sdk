@@ -2,7 +2,7 @@ namespace QimErp.Shared.Common.Events;
 
 public class EmployeeContextChangedEvent : DomainEvent
 {
-    public string UserEmail { get; set; } = string.Empty;
+    public new string UserEmail { get; set; } = string.Empty;
     public string? EmployeeId { get; set; }
     public string? RankId { get; set; }
     public string? RankName { get; set; }

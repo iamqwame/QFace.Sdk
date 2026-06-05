@@ -93,7 +93,7 @@ namespace QFace.Sdk.RedisMq.Actors
                 var subscriptionTask = new TaskCompletionSource<bool>();
                 _subscriptionTasks[channelName] = subscriptionTask;
 
-                await _subscriber.SubscribeAsync(channelName, async (channel, message) =>
+                await _subscriber.SubscribeAsync(channelName, (channel, message) =>
                 {
                     try
                     {

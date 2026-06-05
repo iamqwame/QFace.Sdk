@@ -23,7 +23,7 @@ public class SmtpEmailProvider : IEmailProvider
         Initialize().GetAwaiter().GetResult();
     }
 
-    public async Task<bool> Initialize()
+    public Task<bool> Initialize()
     {
         try
         {
@@ -51,12 +51,12 @@ public class SmtpEmailProvider : IEmailProvider
                 _logger.LogWarning("⚠️ SMTP provider not fully configured");
             }
 
-            return _isConfigured;
+            return Task.FromResult(_isConfigured);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ Error initializing SMTP provider: {Message}", ex.Message);
-            return false;
+            return Task.FromResult(false);
         }
     }
 

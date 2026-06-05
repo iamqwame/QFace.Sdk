@@ -51,16 +51,18 @@ namespace QFace.Sdk.MongoDb.MultiTenant;
                 
                 options.Events = new JwtBearerEvents
                 {
-                    OnTokenValidated = async context =>
+                    OnTokenValidated = context =>
                     {
                         var tenantAccessor = context.HttpContext.RequestServices.GetRequiredService<ITenantAccessor>();
                         var tenantId = context.Principal.FindFirstValue("tenant_id");
-                        
+
                         if (!string.IsNullOrEmpty(tenantId))
                         {
                             // Set current tenant context from the token
                             tenantAccessor.SetCurrentTenantId(tenantId);
                         }
+
+                        return Task.CompletedTask;
                     }
                 };
             });

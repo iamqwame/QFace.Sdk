@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.Extensions.Options;
+using QFace.Sdk.Temporal.Interceptors;
 using QimErp.Shared.Common.Options;
 
 namespace QimErp.Shared.Common.Services.Auth;
@@ -8,7 +9,7 @@ namespace QimErp.Shared.Common.Services.Auth;
 /// Consumer-specific implementation of ICurrentUserService that uses AsyncLocal for context storage
 /// Used in conjunction with ConsumerAuditExtensions.WithAuditContextAsync
 /// </summary>
-public class ConsumerUserContextService : ICurrentUserService
+public class ConsumerUserContextService : ICurrentUserService, ITenantContextSetter
 {
     private static readonly AsyncLocal<ConsumerContext> Context = new();
     private readonly SystemOptions _systemOptions;
@@ -130,6 +131,12 @@ public class ConsumerUserContextService : ICurrentUserService
     public string? GetOrganizationalUnitId() => null;
     public string? GetOrganizationalUnitName() => null;
     public List<string> GetRoleIds() => [];
+
+    // ── ITenantContextSetter ──────────────────────────────────────────────────
+    void ITenantContextSetter.SetTenantContext(string tenantId, string userEmail, string? userName, string? userId)
+        => SetContext(tenantId, userEmail, userName, userId);
+
+    void ITenantContextSetter.ClearTenantContext() => ClearContext();
 
     private class ConsumerContext
     {
