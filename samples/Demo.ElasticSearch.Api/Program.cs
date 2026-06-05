@@ -81,31 +81,31 @@ app.Run();
 public class Product : EsBaseDocument
 {
     [Text(Analyzer = "standard")]
-    public string Name { get; set; }
-    
+    public string Name { get; set; } = string.Empty;
+
     [Text(Analyzer = "standard")]
-    public string Description { get; set; }
-    
+    public string Description { get; set; } = string.Empty;
+
     [Number(NumberType.Double)]
     public decimal Price { get; set; }
-    
+
     [Keyword]
-    public string CategoryId { get; set; }
-    
+    public string CategoryId { get; set; } = string.Empty;
+
     [Keyword]
-    public string Brand { get; set; }
-    
+    public string Brand { get; set; } = string.Empty;
+
     [Keyword]
     public List<string> Tags { get; set; } = new();
-    
+
     [Number(NumberType.Integer)]
     public int StockQuantity { get; set; }
-    
+
     [Keyword]
-    public string SKU { get; set; }
-    
+    public string SKU { get; set; } = string.Empty;
+
     [Keyword]
-    public string ImageUrl { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
     
     [Object]
     public ProductDetails Details { get; set; } = new();
@@ -129,14 +129,14 @@ public class Product : EsBaseDocument
 public class ProductDetails
 {
     [Keyword]
-    public string Manufacturer { get; set; }
-    
+    public string Manufacturer { get; set; } = string.Empty;
+
     [Keyword]
-    public string Model { get; set; }
-    
+    public string Model { get; set; } = string.Empty;
+
     [Keyword]
-    public string SKU { get; set; }
-    
+    public string SKU { get; set; } = string.Empty;
+
     [Object]
     public Dictionary<string, string> Specifications { get; set; } = new();
 }
@@ -144,14 +144,14 @@ public class ProductDetails
 public class Category : EsBaseDocument
 {
     [Text(Analyzer = "standard")]
-    public string Name { get; set; }
-    
+    public string Name { get; set; } = string.Empty;
+
     [Text(Analyzer = "standard")]
-    public string Description { get; set; }
-    
+    public string Description { get; set; } = string.Empty;
+
     [Keyword]
-    public string ParentCategoryId { get; set; }
-    
+    public string ParentCategoryId { get; set; } = string.Empty;
+
     [Number(NumberType.Integer)]
     public int ProductCount { get; set; }
 }
@@ -159,17 +159,17 @@ public class Category : EsBaseDocument
 public class Order : EsBaseDocument
 {
     [Keyword]
-    public string CustomerId { get; set; }
-    
+    public string CustomerId { get; set; } = string.Empty;
+
     [Number(NumberType.Double)]
     public decimal TotalAmount { get; set; }
-    
+
     [Date]
     public DateTime OrderDate { get; set; }
-    
+
     [Keyword]
-    public string Status { get; set; }
-    
+    public string Status { get; set; } = string.Empty;
+
     [Nested]
     public List<OrderItem> Items { get; set; } = new();
 }
@@ -177,10 +177,10 @@ public class Order : EsBaseDocument
 public class OrderItem
 {
     [Keyword]
-    public string ProductId { get; set; }
-    
+    public string ProductId { get; set; } = string.Empty;
+
     [Text]
-    public string ProductName { get; set; }
+    public string ProductName { get; set; } = string.Empty;
     
     [Number(NumberType.Double)]
     public decimal UnitPrice { get; set; }
@@ -192,12 +192,12 @@ public class OrderItem
 // Search-related models
 public class ProductSearchRequest
 {
-    public string SearchText { get; set; }
-    public string CategoryId { get; set; }
-    public string Brand { get; set; }
+    public string? SearchText { get; set; }
+    public string? CategoryId { get; set; }
+    public string? Brand { get; set; }
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
-    public List<string> Tags { get; set; }
+    public List<string> Tags { get; set; } = new();
     public bool OnlyFeatured { get; set; }
     public bool OnlyOnSale { get; set; }
     public bool InStockOnly { get; set; }
@@ -217,12 +217,12 @@ public enum ProductSortOptions
 
 public class ProductSearchResult
 {
-    public List<Product> Products { get; set; }
+    public List<Product> Products { get; set; } = new();
     public long TotalCount { get; set; }
     public int TotalPages { get; set; }
     public int Page { get; set; }
     public int PageSize { get; set; }
-    public ProductFacets Facets { get; set; }
+    public ProductFacets Facets { get; set; } = new();
 }
 
 public class ProductFacets
@@ -237,7 +237,7 @@ public class ProductFacets
 
 public class FacetValue
 {
-    public string Value { get; set; }
+    public string Value { get; set; } = string.Empty;
     public long Count { get; set; }
 }
 

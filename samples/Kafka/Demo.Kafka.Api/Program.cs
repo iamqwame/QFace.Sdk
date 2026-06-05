@@ -146,33 +146,33 @@ app.Run();
 public class EventSourceModel
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
-    public string EventType { get; set; }
+    public string EventType { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string Source { get; set; } = "Demo.Kafka.Api";
-    public object Data { get; set; }
+    public object? Data { get; set; }
     public Dictionary<string, string> Metadata { get; set; } = new();
 }
 
 public class PublishRequest
 {
-    public string Topic { get; set; }
-    public string Key { get; set; }
-    public object Data { get; set; }
+    public string Topic { get; set; } = string.Empty;
+    public string Key { get; set; } = string.Empty;
+    public object? Data { get; set; }
 }
 
 // Sample event types for testing
 public class UserCreatedEvent
 {
-    public string UserId { get; set; }
-    public string Username { get; set; }
-    public string Email { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class OrderCreatedEvent
 {
-    public string OrderId { get; set; }
-    public string CustomerId { get; set; }
+    public string OrderId { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
     public List<OrderItem> Items { get; set; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -180,17 +180,17 @@ public class OrderCreatedEvent
 
 public class OrderItem
 {
-    public string ProductId { get; set; }
-    public string ProductName { get; set; }
+    public string ProductId { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
     public int Quantity { get; set; }
 }
 
 public class SystemMetricEvent
 {
-    public string MetricName { get; set; }
+    public string MetricName { get; set; } = string.Empty;
     public double Value { get; set; }
-    public string Unit { get; set; }
+    public string Unit { get; set; } = string.Empty;
     public Dictionary<string, string> Tags { get; set; } = new();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }

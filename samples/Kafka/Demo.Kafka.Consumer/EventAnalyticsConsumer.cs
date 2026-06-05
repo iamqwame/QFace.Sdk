@@ -209,9 +209,9 @@ public class EventAnalyticsConsumer : KafkaConsumerBase
 public class EventSourceModel
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
-    public string EventType { get; set; }
+    public string EventType { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    public string Source { get; set; }
-    public object Data { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public object? Data { get; set; }
     public Dictionary<string, string> Metadata { get; set; } = new();
 }

@@ -287,77 +287,77 @@ app.Run();
 
 public class SimpleEmailRequest
 {
-    public string ToEmail { get; set; }
-    public string Subject { get; set; }
-    public string Body { get; set; }
+    public string ToEmail { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
 }
 
 public class TemplatedEmailRequest
 {
-    public string ToEmail { get; set; }
-    public string Subject { get; set; }
-    public string Template { get; set; }
-    public Dictionary<string, string> Replacements { get; set; }
+    public string ToEmail { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public string Template { get; set; } = string.Empty;
+    public Dictionary<string, string> Replacements { get; set; } = new();
 }
 
 public class BulkEmailRequest
 {
-    public List<string> ToEmails { get; set; }
-    public string Subject { get; set; }
-    public string Body { get; set; }
+    public List<string> ToEmails { get; set; } = new();
+    public string Subject { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
 }
 
 public class SmsRequest
 {
-    public string PhoneNumber { get; set; }
-    public string Message { get; set; }
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
 }
 
 public class BulkSmsRequest
 {
-    public List<string> PhoneNumbers { get; set; }
-    public string Message { get; set; }
+    public List<string> PhoneNumbers { get; set; } = new();
+    public string Message { get; set; } = string.Empty;
 }
 
 public class CombinedMessageRequest
 {
-    public string Email { get; set; }
-    public string PhoneNumber { get; set; }
-    public string Subject { get; set; }
-    public string Message { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
 }
 
 public class UMatApplicationAcknowledgmentRequest
 {
     // Required fields
-    public string ApplicantEmail { get; set; }
-    public string ApplicantName { get; set; }
-    public string ApplicationReference { get; set; }
-    public string ProgrammeApplied { get; set; }
-    
+    public string ApplicantEmail { get; set; } = string.Empty;
+    public string ApplicantName { get; set; } = string.Empty;
+    public string ApplicationReference { get; set; } = string.Empty;
+    public string ProgrammeApplied { get; set; } = string.Empty;
+
     // Optional fields with defaults
-    public string ApplicantPhone { get; set; }
-    public string ApplicationType { get; set; }
-    public string SubmissionDate { get; set; }
-    public string ApplicationPortalLink { get; set; }
-    public string RequirementsLink { get; set; }
+    public string? ApplicantPhone { get; set; }
+    public string? ApplicationType { get; set; }
+    public string? SubmissionDate { get; set; }
+    public string? ApplicationPortalLink { get; set; }
+    public string? RequirementsLink { get; set; }
 }
 
 public class UMatAdmissionRequest
 {
     // Required fields
-    public string StudentEmail { get; set; }
-    public string StudentName { get; set; }
-    public string StudentId { get; set; }
-    public string Programme { get; set; }
-    
+    public string StudentEmail { get; set; } = string.Empty;
+    public string StudentName { get; set; } = string.Empty;
+    public string StudentId { get; set; } = string.Empty;
+    public string Programme { get; set; } = string.Empty;
+
     // Optional fields with defaults
-    public string Department { get; set; }
-    public string AcademicYear { get; set; }
-    public string AdmissionDate { get; set; }
-    public string RegistrationDeadline { get; set; }
-    public string OrientationDate { get; set; }
-    public string StudentPortalLink { get; set; }
+    public string? Department { get; set; }
+    public string? AcademicYear { get; set; }
+    public string? AdmissionDate { get; set; }
+    public string? RegistrationDeadline { get; set; }
+    public string? OrientationDate { get; set; }
+    public string? StudentPortalLink { get; set; }
 }
 
 

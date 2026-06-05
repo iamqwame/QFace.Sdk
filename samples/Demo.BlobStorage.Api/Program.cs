@@ -407,8 +407,8 @@ public partial class Program { }
 
 public class Base64UploadRequest
 {
-    public string Base64Image { get; set; }
-    public string Folder { get; set; }
-    public string FileName { get; set; }
-    public string ContentType { get; set; }
+    public string Base64Image { get; set; } = string.Empty;
+    public string Folder { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
 }
