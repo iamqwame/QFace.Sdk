@@ -32,6 +32,13 @@ public class EmployeeValueObject
     public string? Rank { get; set; }
     public string? RankCode { get; set; }
 
+    /// <summary>Grade name (e.g. "Senior Engineer"). Populated only when the source
+    /// entity carries grade data (Payroll Employee). Null on plain EmployeeBase snapshots.</summary>
+    public string? Grade { get; set; }
+    public string? GradeCode { get; set; }
+    public int?    GradeLevel { get; set; }
+    public int?    Notch { get; set; }
+
 
     public static EmployeeValueObject Create(Guid id, string code, string name, string email, string picture)
     {

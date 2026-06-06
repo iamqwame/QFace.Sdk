@@ -18,15 +18,10 @@ public abstract class CostCenterBaseConfiguration<TCostCenter> : AuditableEntity
 
         // Basic Properties
         builder.Property(e => e.Code)
-            .IsRequired()
-            .HasMaxLength(50);
+            .IsRequired();
 
         builder.Property(e => e.Name)
-            .IsRequired()
-            .HasMaxLength(200);
-
-        builder.Property(e => e.Description)
-            .HasMaxLength(500);
+            .IsRequired();
 
         // Indexes
         builder.HasIndex(e => new { e.Code, e.TenantId })

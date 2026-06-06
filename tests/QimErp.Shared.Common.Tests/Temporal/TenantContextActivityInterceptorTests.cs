@@ -66,6 +66,17 @@ public sealed class TenantContextActivityInterceptorTests
         public List<string> GetRoleIds() => [];
     }
 
+    private sealed class FakeTenantScopeSetter : ITenantScopeSetter
+    {
+        /// <summary>The value passed to SetTenantScope — NOT nulled by ClearTenantScope so tests
+        /// can verify what was set even after the activity's finally block runs.</summary>
+        public string? SetTenantId { get; private set; }
+        public bool WasCleared { get; private set; }
+
+        void ITenantScopeSetter.SetTenantScope(string? tenantId) => SetTenantId = tenantId;
+        void ITenantScopeSetter.ClearTenantScope() => WasCleared = true;
+    }
+
     private record InputWithTenant(string TenantId, string RunId = "run-001");
     private record InputWithoutTenant(string Data = "no-tenant-here");
 
@@ -242,6 +253,50 @@ public sealed class TenantContextActivityInterceptorTests
 
         seenByA.Should().Be(TenantA, "activity A must see TenantA, not TenantB");
         seenByB.Should().Be(TenantB, "activity B must see TenantB, not TenantA");
+    }
+
+    [Fact(DisplayName = "Seeds ITenantScopeSetter so EF global query filter sees the correct tenant")]
+    public async Task Seeds_tenantScope_for_EF_global_filter()
+    {
+        var setter = new FakeTenantSetter();
+        var scopeSetter = new FakeTenantScopeSetter();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<ITenantContextSetter>(setter);
+        services.AddSingleton<ITenantScopeSetter>(scopeSetter);
+        services.AddSingleton<Microsoft.Extensions.Logging.ILoggerFactory>(NullLoggerFactory.Instance);
+        var sp = services.BuildServiceProvider();
+        var interceptor = new TenantContextActivityInterceptor(sp.GetRequiredService<IServiceScopeFactory>());
+
+        var wrapped = interceptor.InterceptActivity(new TerminalInterceptor(() => { }));
+        await wrapped.ExecuteActivityAsync(MakeInput(new InputWithTenant(TenantA)));
+
+        scopeSetter.SetTenantId.Should().Be(TenantA,
+            "interceptor must call SetTenantScope so EF global query filters see the correct tenant");
+        scopeSetter.WasCleared.Should().BeTrue(
+            "ClearTenantScope must be called in the finally block");
+    }
+
+    [Fact(DisplayName = "Seeds ITenantScopeSetter even when ITenantContextSetter is not registered (consumer path)")]
+    public async Task Seeds_tenantScope_when_userSvc_unavailable()
+    {
+        // Regression test for the early-return bug: when ITenantContextSetter is absent (consumer
+        // worker path), the interceptor must NOT short-circuit before seeding ITenantScopeSetter.
+        var scopeSetter = new FakeTenantScopeSetter();
+
+        var services = new ServiceCollection();
+        // ITenantContextSetter intentionally NOT registered — mirrors AddDbContextWithOutboxConsumer
+        services.AddSingleton<ITenantScopeSetter>(scopeSetter);
+        services.AddSingleton<Microsoft.Extensions.Logging.ILoggerFactory>(NullLoggerFactory.Instance);
+        var sp = services.BuildServiceProvider();
+        var interceptor = new TenantContextActivityInterceptor(sp.GetRequiredService<IServiceScopeFactory>());
+
+        var wrapped = interceptor.InterceptActivity(new TerminalInterceptor(() => { }));
+        await wrapped.ExecuteActivityAsync(MakeInput(new InputWithTenant(TenantA)));
+
+        scopeSetter.SetTenantId.Should().Be(TenantA,
+            "EF query filter must be seeded even when the write-path user-context setter is absent");
+        scopeSetter.WasCleared.Should().BeTrue();
     }
 
     private sealed class AsyncDelayInterceptor : ActivityInboundInterceptor

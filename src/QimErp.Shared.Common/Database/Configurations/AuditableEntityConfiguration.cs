@@ -6,7 +6,7 @@ public abstract class AuditableEntityConfiguration<TEntity> : IEntityTypeConfigu
     public virtual void Configure(EntityTypeBuilder<TEntity> builder)
     {
         builder.Property(e => e.DataStatus).HasConversion(new EnumToStringConverter<DataState>());
-        builder.Property(e => e.CustomFields).HasColumnType("jsonb").IsRequired(false);
+        builder.Property(e => e.CustomFields).HasColumnType("jsonb");
         builder.Property(e => e.PreviousDataStatus).HasConversion(new EnumToStringConverter<DataState>());
         
         // Common indexes for auditable entities

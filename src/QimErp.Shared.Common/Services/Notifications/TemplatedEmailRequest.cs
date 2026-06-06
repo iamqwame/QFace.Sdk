@@ -11,4 +11,6 @@ public sealed record TemplatedEmailRequest
     public required string TemplateCode { get; init; }
     public required IReadOnlyDictionary<string, string> Tokens { get; init; }
     public Dictionary<string, string>? Metadata { get; init; }
+    /// <summary>Optional file attachments (e.g. payslip PDF). Forwarded to <see cref="UnifiedMessageModel.Attachments"/>.</summary>
+    public List<EmailAttachment>? Attachments { get; init; }
 }

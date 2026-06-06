@@ -18,69 +18,13 @@ public abstract class EmployeeBaseConfiguration<TEmployee> : AuditableEntityConf
 
         // Basic Information Properties
         builder.Property(e => e.Code)
-            .IsRequired()
-            .HasMaxLength(50);
+            .IsRequired();
 
         builder.Property(e => e.FirstName)
-            .IsRequired()
-            .HasMaxLength(100);
+            .IsRequired();
 
         builder.Property(e => e.LastName)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(e => e.MiddleName)
-            .HasMaxLength(100);
-
-        builder.Property(e => e.Email)
-            .HasMaxLength(255);
-
-        builder.Property(e => e.ProfilePicture)
-            .HasMaxLength(500);
-
-        // Current Supervisor/Manager Properties
-        builder.Property(e => e.CurrentSupervisorName)
-            .HasMaxLength(200);
-
-        builder.Property(e => e.CurrentSupervisorCode)
-            .HasMaxLength(50);
-
-        builder.Property(e => e.CurrentSupervisorTitle)
-            .HasMaxLength(200);
-
-        builder.Property(e => e.CurrentSupervisorEmail)
-            .HasMaxLength(255);
-
-        builder.Property(e => e.CurrentSupervisorPhone)
-            .HasMaxLength(50);
-
-        // Current Organizational Unit Properties
-        builder.Property(e => e.CurrentOrganizationalUnitName)
-            .HasMaxLength(200);
-
-        builder.Property(e => e.CurrentOrganizationalUnitCode)
-            .HasMaxLength(50);
-
-        // Current Job Title Properties
-        builder.Property(e => e.CurrentJobTitleName)
-            .HasMaxLength(200);
-
-        builder.Property(e => e.CurrentJobTitleCode)
-            .HasMaxLength(50);
-
-        // Current Station Properties
-        builder.Property(e => e.CurrentStationName)
-            .HasMaxLength(200);
-
-        builder.Property(e => e.CurrentStationCode)
-            .HasMaxLength(50);
-
-        // Current Job Status Properties
-        builder.Property(e => e.CurrentJobStatusName)
-            .HasMaxLength(200);
-
-        builder.Property(e => e.CurrentJobStatusCode)
-            .HasMaxLength(50);
+            .IsRequired();
 
         // Indexes — per-tenant composite uniqueness (Code and Email are unique within a tenant, not globally)
         builder.HasIndex(e => new { e.TenantId, e.Code })

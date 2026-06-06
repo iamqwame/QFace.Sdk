@@ -9,18 +9,11 @@ public class ImportConfiguration : AuditableEntityConfiguration<Import>
         builder.ToTable("Imports");
 
         builder.Property(i => i.ImportType)
-            .IsRequired()
-            .HasMaxLength(50);
+            .IsRequired();
 
         builder.Property(i => i.Status)
             .IsRequired()
             .HasConversion<int>();
-
-        builder.Property(i => i.FileName)
-            .HasMaxLength(255);
-
-        builder.Property(i => i.ContentType)
-            .HasMaxLength(100);
 
         builder.Property(i => i.TotalRows)
             .IsRequired()
@@ -48,9 +41,6 @@ public class ImportConfiguration : AuditableEntityConfiguration<Import>
 
         builder.Property(i => i.LastUpdatedAt)
             .IsRequired();
-
-        builder.Property(i => i.ErrorMessage)
-            .HasMaxLength(1000);
 
         builder.Property(i => i.BatchesQueued)
             .IsRequired()

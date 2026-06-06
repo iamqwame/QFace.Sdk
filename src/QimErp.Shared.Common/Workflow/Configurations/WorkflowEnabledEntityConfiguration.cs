@@ -8,7 +8,7 @@ public abstract class WorkflowEnabledEntityConfiguration<TEntity> : IEntityTypeC
         builder.Property(e => e.DataStatus).HasConversion(new EnumToStringConverter<DataState>());
         builder.Property(e => e.PreviousDataStatus).HasConversion(new EnumToStringConverter<DataState>());
         builder.Property(e => e.WorkflowStatus).HasConversion(new EnumToStringConverter<WorkflowStatus>());
-        builder.Property(e => e.CustomFields).HasColumnType("jsonb").IsRequired(false);
+        builder.Property(e => e.CustomFields).HasColumnType("jsonb");
 
 
         builder.HasIndex(e => e.DataStatus); // For filtering by status

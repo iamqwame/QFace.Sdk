@@ -13,15 +13,10 @@ public abstract class LookupBaseConfiguration<TLookup> : AuditableEntityConfigur
 
         // Configure properties
         builder.Property(l => l.Code)
-            .IsRequired()
-            .HasMaxLength(100);
+            .IsRequired();
 
         builder.Property(l => l.Name)
-            .IsRequired()
-            .HasMaxLength(200);
-
-        builder.Property(l => l.Description)
-            .HasMaxLength(500);
+            .IsRequired();
 
         builder.Property(l => l.DisplayOrder)
             .IsRequired()
@@ -32,8 +27,7 @@ public abstract class LookupBaseConfiguration<TLookup> : AuditableEntityConfigur
             .HasDefaultValue(false);
 
         builder.Property(l => l.LookupType)
-            .IsRequired()
-            .HasMaxLength(100);
+            .IsRequired();
 
         // Unique constraint: Code + LookupType + TenantId must be unique
         builder.HasIndex(l => new { l.TenantId, l.LookupType, l.Code })

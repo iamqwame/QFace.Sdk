@@ -61,9 +61,14 @@ public sealed class HttpContextTenantStampingTests
         private readonly ServiceProvider _root;
         private readonly IServiceScope   _scope;
 
-        public MinimalTestDbContext    Db       { get; }
-        public UserContextService      UserSvc  { get; }
-        public FakeHttpContextAccessor Accessor { get; }
+        public MinimalTestDbContext    Db            { get; }
+        public UserContextService      UserSvc       { get; }
+        public FakeHttpContextAccessor Accessor      { get; }
+        /// <summary>
+        /// Exposes the scoped ITenantContext so tests can manually seed the EF global
+        /// query filter (e.g. when writing data for a second tenant without an HTTP context).
+        /// </summary>
+        public ITenantContext           TenantContext { get; }
 
         public TestScope(HttpContext? httpCtx = null, string? dbName = null)
         {
@@ -82,7 +87,8 @@ public sealed class HttpContextTenantStampingTests
             _scope = _root.CreateScope();
             var sp = _scope.ServiceProvider;
 
-            UserSvc = sp.GetRequiredService<UserContextService>();
+            UserSvc       = sp.GetRequiredService<UserContextService>();
+            TenantContext = sp.GetRequiredService<ITenantContext>();
 
             var interceptor = sp.GetRequiredService<AuditEntitySaveChangesInterceptor>();
             var opts = new DbContextOptionsBuilder<MinimalTestDbContext>()
@@ -90,7 +96,7 @@ public sealed class HttpContextTenantStampingTests
                 .AddInterceptors(interceptor)
                 .Options;
 
-            Db = new MinimalTestDbContext(opts, sp.GetRequiredService<ITenantContext>());
+            Db = new MinimalTestDbContext(opts, TenantContext);
         }
 
         public void Dispose() { _scope.Dispose(); _root.Dispose(); }
@@ -190,5 +196,48 @@ public sealed class HttpContextTenantStampingTests
         await act.Should().ThrowAsync<InvalidOperationException>(
             "with no HTTP context and no SetContext call there is absolutely no tenant — " +
             "the interceptor must throw, not silently write a NULL-tenanted row");
+    }
+
+    // ── IgnoreQueryFilters tests (HTTP path) ──────────────────────────────────
+
+    [Fact(DisplayName = "HTTP path: IgnoreQueryFilters bypasses JWT claim tenant filter — sees all tenants")]
+    public async Task Http_IgnoreQueryFilters_bypasses_tenant_filter()
+    {
+        const string httpTenant  = "019e31ec-http-ig1-0000-000000000001";
+        const string otherTenant = "019e31ec-http-ig2-0000-000000000002";
+        var sharedDb = $"http-ignore-{Guid.NewGuid()}";
+
+        // Write from HTTP tenant (JWT claim drives TenantId stamping)
+        using (var s = new TestScope(MakeHttpContext(httpTenant), sharedDb))
+        {
+            var entity = EntityCodeConfig.Create(string.Empty, "HttpEntity");
+            s.Db.EntityCodeConfigs.Add(entity);
+            await s.Db.SaveChangesAsync();
+        }
+
+        // Write from other tenant — no HTTP context; use SetContext + SetTenant directly
+        // (mirrors what a background/admin worker does to target a specific tenant)
+        using (var s = new TestScope(httpCtx: null, sharedDb))
+        {
+            s.UserSvc.SetContext(otherTenant, "other@system");
+            s.TenantContext.SetTenant(otherTenant);
+            var entity = EntityCodeConfig.Create(string.Empty, "OtherEntity");
+            s.Db.EntityCodeConfigs.Add(entity);
+            await s.Db.SaveChangesAsync();
+        }
+
+        // Read as HTTP tenant — normal query sees only own data
+        using var readScope = new TestScope(MakeHttpContext(httpTenant), sharedDb);
+        // Seed the read-filter for the HTTP tenant so the global filter activates
+        readScope.TenantContext.SetTenant(httpTenant);
+        var normal = await readScope.Db.EntityCodeConfigs.ToListAsync();
+        normal.Should().HaveCount(1).And.OnlyContain(e => e.TenantId == httpTenant,
+            "normal query must respect global filter and return only the HTTP tenant's data");
+
+        // IgnoreQueryFilters — sees all tenants
+        var all = await readScope.Db.EntityCodeConfigs.IgnoreQueryFilters().ToListAsync();
+        all.Should().HaveCount(2, "IgnoreQueryFilters must return data from all tenants regardless of HTTP JWT claim");
+        all.Should().Contain(e => e.TenantId == httpTenant,  "HTTP tenant data must be visible");
+        all.Should().Contain(e => e.TenantId == otherTenant, "other tenant data must be visible when filter is bypassed");
     }
 }

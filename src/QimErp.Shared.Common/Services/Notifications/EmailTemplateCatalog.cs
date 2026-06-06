@@ -79,7 +79,7 @@ public static class EmailTemplateCatalog
 
     public static readonly EmailTemplateDefinition PayrollPayslip = new(
         "payroll-payslip",
-        ["FullName", "FirstName", "AvatarUrl", "Department", "Period", "NetPay", "GrossPay", "Link"],
+        ["FullName", "FirstName", "AvatarUrl", "Department", "Period", "NetPay", "GrossPay", "Deductions", "Link"],
         []);
 
     public static readonly EmailTemplateDefinition LeaveApproved = new(

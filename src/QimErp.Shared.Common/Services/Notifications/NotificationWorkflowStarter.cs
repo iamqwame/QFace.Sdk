@@ -62,6 +62,7 @@ public class NotificationWorkflowStarter(IWorkflowStarter starter)
             Subject      = request.Subject,
             TemplateCode = request.TemplateCode,
             Replacements = new Dictionary<string, string>(request.Tokens),
-            Metadata     = metadata ?? request.Metadata ?? []
+            Metadata     = metadata ?? request.Metadata ?? [],
+            Attachments  = request.Attachments,
         });
 }

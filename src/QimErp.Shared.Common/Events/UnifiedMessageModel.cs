@@ -33,6 +33,12 @@ public class UnifiedMessageModel
     public string MessageId { get; set; }
     public string CorrelationId { get; set; }
     public Dictionary<string, string> Metadata { get; set; }
+
+    /// <summary>
+    /// Optional file attachments (e.g. payslip PDF).  Serialised through Temporal
+    /// history — keep each attachment &lt;5 MB to stay within Graph API and history limits.
+    /// </summary>
+    public List<QimErp.Shared.Common.Services.Notifications.EmailAttachment>? Attachments { get; set; }
     
     // Timestamp for tracking
     public long Timestamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

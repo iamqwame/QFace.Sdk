@@ -18,12 +18,10 @@ public abstract class ChartOfAccountBaseConfiguration<TChartOfAccount> : Auditab
 
         // Basic Properties
         builder.Property(e => e.Code)
-            .IsRequired()
-            .HasMaxLength(50);
+            .IsRequired();
 
         builder.Property(e => e.Name)
-            .IsRequired()
-            .HasMaxLength(200);
+            .IsRequired();
 
         builder.Property(e => e.AccountType)
             .IsRequired();
