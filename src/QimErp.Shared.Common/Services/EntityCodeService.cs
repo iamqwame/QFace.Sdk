@@ -19,9 +19,11 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
     protected readonly TContext _context;
     protected readonly ILogger _logger;
 
-    // Default configs applied when no config row exists for a given entity type
+    // SDK-wide defaults shared across all modules.
+    // For entity types that belong to a single module, register them via the
+    // moduleDefaults constructor parameter in the concrete subclass instead.
     private static readonly Dictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)>
-        _defaults = new(StringComparer.OrdinalIgnoreCase)
+        _sdkDefaults = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Employee"]        = ("EMP", "",  false, 7),
             ["OvertimeRecord"]  = ("OT",  "-", true,  4),
@@ -34,10 +36,38 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
             ["Invoice"]         = ("INV", "-", true,  5),
         };
 
+    // Merged lookup: SDK defaults + module-specific defaults supplied at construction.
+    // Module entries win over SDK entries on key collision.
+    private readonly IReadOnlyDictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)> _defaults;
+
+    /// <summary>Base constructor — no module-specific defaults.</summary>
     protected EntityCodeService(TContext context, ILogger logger)
+        : this(context, logger, null) { }
+
+    /// <summary>
+    /// Constructor that accepts module-specific defaults.
+    /// Entries in <paramref name="moduleDefaults"/> take precedence over SDK defaults on collision.
+    /// Use this overload in concrete subclasses to register entity types that belong only to that module.
+    /// </summary>
+    protected EntityCodeService(
+        TContext context,
+        ILogger logger,
+        IReadOnlyDictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)>? moduleDefaults)
     {
         _context = context;
         _logger  = logger;
+
+        if (moduleDefaults is null || moduleDefaults.Count == 0)
+        {
+            _defaults = _sdkDefaults;
+        }
+        else
+        {
+            var merged = new Dictionary<string, (string, string, bool, int)>(_sdkDefaults, StringComparer.OrdinalIgnoreCase);
+            foreach (var (key, value) in moduleDefaults)
+                merged[key] = value;
+            _defaults = merged;
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -135,7 +165,7 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         var config = await GetConfigAsync(tenantId, entityType, ct);
         if (config is not null) return config;
 
-        // Auto-create from defaults (or bare minimum if entity type is unknown)
+        // Auto-create from merged defaults (SDK + module); bare minimum if entity type is unknown
         _defaults.TryGetValue(entityType, out var def);
         config = EntityCodeConfig.Create(
             tenantId, entityType,
