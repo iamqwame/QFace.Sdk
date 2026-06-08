@@ -48,8 +48,21 @@ public class EntityWorkflowStepConfiguration : IEntityTypeConfiguration<EntityWo
                 });
             });
 
+            // Notifications — must be OwnsOne so EF Core treats it as a JSON-owned type,
+            // not a separate entity requiring a primary key.
+            wd.OwnsOne(w => w.Notifications, notif =>
+            {
+                notif.Property(n => n.SendEmailNotifications);
+                notif.Property(n => n.SendSmsNotifications);
+            });
+
             // Configure Escalation
             wd.OwnsOne(w => w.Escalation, esc =>
+            {
+            });
+
+            // Timeout — must be OwnsOne for the same reason as Notifications.
+            wd.OwnsOne(w => w.Timeout, timeout =>
             {
             });
 

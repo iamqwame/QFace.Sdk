@@ -112,7 +112,8 @@ public static class SharedServiceCollectionExtensions
             options.EnableDetailedErrors(false);
             options.ConfigureWarnings(warnings => warnings.Ignore(
                 RelationalEventId.CommandExecuting,
-                RelationalEventId.CommandExecuted));
+                RelationalEventId.CommandExecuted,
+                RelationalEventId.PendingModelChangesWarning));
             var interceptor = provider.GetRequiredService<AuditEntitySaveChangesInterceptor>();
             options.AddInterceptors(interceptor);
         });
