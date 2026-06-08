@@ -184,6 +184,7 @@ public class GhanaCountryProfile : ICountrySetupProfile
             ApprovalProcess:     "Line manager + HR Director approval required."),
     ];
 
+    // Codes must match PayrollCodes.AllowanceCodes.X / DeductionCodes.X in QimErp.Payroll.
     public virtual IReadOnlyList<AllowanceDefinition> GetAllowances() =>
     [
         new("ALW-TRANS",  "Transport",         "Fixed",      600m,   true,  "Standard transport allowance for office-based staff.",
