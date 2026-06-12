@@ -288,7 +288,8 @@ public class AuditEntitySaveChangesInterceptor(
         // the global query filter is not applied to them and TenantId is irrelevant.
         var entriesToStamp = context.ChangeTracker.Entries<AuditableEntity>()
             .Where(e => e.State is EntityState.Added or EntityState.Modified
-                        && string.IsNullOrWhiteSpace(e.Entity.TenantId))
+                        && string.IsNullOrWhiteSpace(e.Entity.TenantId)
+                        && !e.Entity.IsGlobal)   // global entities are cross-tenant; never stamp a TenantId on them
             .ToList();
 
         if (entriesToStamp.Count == 0)
@@ -390,7 +391,7 @@ public class AuditEntitySaveChangesInterceptor(
                             .OnCreate(userId, email, name)
                             .AddAuditMetadata(userId, email, name, timestamp);
 
-                        if (string.IsNullOrWhiteSpace(entry.Entity.TenantId))
+                        if (string.IsNullOrWhiteSpace(entry.Entity.TenantId) && !entry.Entity.IsGlobal)
                         {
                             entry.Entity.TenantId = tenantId;
                         }
@@ -690,6 +691,12 @@ public class AuditEntitySaveChangesInterceptor(
     {
         if (context == null) return;
 
+        if (WorkflowEngineScope.IsActive)
+        {
+            logger.LogDebug("WorkflowEngineScope active — skipping workflow initiation/validation for engine status write.");
+            return;
+        }
+
         var configCacheService = serviceProvider.GetService<IWorkflowConfigCacheService>();
         var workflowService = serviceProvider.GetService<IWorkflowService>();
         var definitionProvider = serviceProvider.GetService<IWorkflowDefinitionProvider>();
@@ -719,7 +726,12 @@ public class AuditEntitySaveChangesInterceptor(
             var workflowInitiatedForCreate = false;
             EntityWorkflowConfig? entityWorkflowConfig = null;
 
-            string? workflowCode = GetWorkflowCodeFromEntity(entity);
+            // Only CREATE may trust a WorkflowCode already present on the entity. For
+            // UPDATE/DELETE the stored code is residue from the workflow that created the
+            // row — trusting it bypasses the tenant config gate (EnableWorkflowForUpdate /
+            // routes) and re-initiates the create workflow on every later save of an
+            // approved entity, flipping it back to InProgress.
+            string? workflowCode = operation == "CREATE" ? GetWorkflowCodeFromEntity(entity) : null;
             var skipWorkflowInitiation = false;
 
             if (string.IsNullOrWhiteSpace(workflowCode))
@@ -769,7 +781,13 @@ public class AuditEntitySaveChangesInterceptor(
                             _ => null
                         };
 
-                        if (operation is "UPDATE" or "DELETE" && string.IsNullOrWhiteSpace(workflowCode))
+                        // A tenant config is authoritative for every operation. When it yields no
+                        // workflow code (gate disabled, no route, trigger conditions unmet) the save
+                        // proceeds directly — the published-definition fallback below is only for
+                        // entities that have no configuration row at all. Without this, CREATE fell
+                        // through to GetPublishedDefinitionByEntityTypeAsync and started workflows
+                        // for tenants that had explicitly disabled them.
+                        if (string.IsNullOrWhiteSpace(workflowCode))
                         {
                             logger.LogDebug(
                                 "No matching {Operation} workflow route for {EntityType}. Changed fields: {ChangedFields}",
@@ -778,6 +796,16 @@ public class AuditEntitySaveChangesInterceptor(
                         }
                     }
                 }
+            }
+
+            // UPDATE/DELETE workflows start only from an explicit tenant config route.
+            // When none resolved (gate disabled, no matching route, config missing from
+            // cache), never fall through to the published-definition lookups below — the
+            // by-entity-type fallback resolves the CREATE definition and would wrongly
+            // initiate it for this save.
+            if (operation is "UPDATE" or "DELETE" && string.IsNullOrWhiteSpace(workflowCode))
+            {
+                skipWorkflowInitiation = true;
             }
 
             if (skipWorkflowInitiation)

@@ -106,7 +106,12 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
 
     public async Task<EntityCodeConfig?> GetConfigAsync(string tenantId, string entityType, CancellationToken ct = default)
     {
+        // IgnoreQueryFilters: the query is already explicitly tenant-scoped via TenantId == tenantId.
+        // Without this, the global EF query filter (which reads from ITenantContext) returns no rows
+        // when called from Temporal activities that run without an active audit context — causing
+        // UpsertConfigAsync to attempt a duplicate INSERT and hit IX_EntityCodeConfigs_TenantId_EntityType.
         return await _context.Set<EntityCodeConfig>()
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(e => e.TenantId == tenantId && e.EntityType == entityType, ct);
     }
 

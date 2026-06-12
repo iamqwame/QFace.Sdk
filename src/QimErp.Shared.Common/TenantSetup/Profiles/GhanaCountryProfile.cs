@@ -420,6 +420,16 @@ public class GhanaCountryProfile : ICountrySetupProfile
         _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Pension tier must be 1, 2, or 3.")
     };
 
+    public virtual IReadOnlyList<DocumentTypeDefinition> GetDocumentTypes() =>
+    [
+        new("PASSPORT",      "Passport",       1),
+        new("SSNIT",         "SSNIT Card",     2),
+        new("NHIL",          "NHIL Card",      3),
+        new("TIN",           "TIN",            4),
+        new("VOTERID",       "Voter ID",       5),
+        new("DRIVERLICENSE", "Driver License", 6),
+    ];
+
     public virtual IReadOnlyList<PublicHolidayDefinition> GetPublicHolidays(int year) =>
     [
         new("New Year's Day",            1,  1, true,  "Public holiday — start of the calendar year."),

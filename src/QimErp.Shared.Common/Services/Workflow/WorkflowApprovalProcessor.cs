@@ -219,7 +219,12 @@ public class WorkflowApprovalProcessor(
             entry.State = EntityState.Modified;
         }
 
-        await context.SaveChangesAsync(cancellationToken);
+        // Engine status write: the save-changes interceptor must not treat this as a
+        // user UPDATE (it would re-initiate a workflow and clobber the status we just set).
+        using (WorkflowEngineScope.Enter())
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
         
         logger.LogInformation("✅ [WorkflowApprovalProcessor] Successfully processed approval request for WorkflowId={WorkflowId}, Status={Status}",
             @event.WorkflowId, newStatus);

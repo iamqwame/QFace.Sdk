@@ -26,6 +26,12 @@ public interface ICountrySetupProfile
     // Returns country-specific banks to seed on tenant setup.
     IReadOnlyList<BankSeedDefinition> GetBanks();
 
+    /// <summary>
+    /// Returns country-specific employee identity document types.
+    /// Passport is expected in every country's list.
+    /// </summary>
+    IReadOnlyList<DocumentTypeDefinition> GetDocumentTypes();
+
     // Returns the GL ledger code for the statutory pension contribution payable account.
     // tier: 1 = basic/mandatory, 2 = occupational/supplementary, 3 = voluntary
     string GetPensionLedgerCode(int tier);

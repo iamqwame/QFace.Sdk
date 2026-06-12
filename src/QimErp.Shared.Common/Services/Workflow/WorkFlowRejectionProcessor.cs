@@ -120,7 +120,12 @@ public class WorkflowRejectionProcessor(
             entry.State = EntityState.Modified;
         }
 
-        await context.SaveChangesAsync(cancellationToken);
+        // Engine status write: the save-changes interceptor must not treat this as a
+        // user UPDATE (it would re-initiate a workflow and clobber the status we just set).
+        using (WorkflowEngineScope.Enter())
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
 
         logger.LogInformation("✅ [WorkflowRejectionProcessor] Successfully processed rejection request for WorkflowId={WorkflowId}, Status=Rejected",
             @event.WorkflowId);

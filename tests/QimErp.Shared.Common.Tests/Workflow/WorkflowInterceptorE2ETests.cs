@@ -230,6 +230,101 @@ public class WorkflowInterceptorE2ETests
         correctModuleHarness.Bridge.Messages.Should().ContainSingle();
     }
 
+    [Fact]
+    public async Task E2E9_ResidualCreateCode_DoesNotReinitiateOnUpdate()
+    {
+        // After a CREATE workflow completes, the entity keeps its WorkflowCode. A later
+        // plain update (update workflows disabled) must not use that residual code to
+        // re-initiate the create workflow and clobber Approved back to InProgress.
+        await using var harness = CreateHarness();
+        var entity = await SeedApprovedEntityAsync(harness);
+
+        // Config arrives after the seed so the seed itself is not intercepted as a CREATE.
+        harness.ConfigCache.SetConfig(ModuleName, CreateConfig(enableCreate: true, createCode: "CREATE-WF"));
+        harness.DefinitionProvider.SetDefinition("CREATE-WF", ActiveDefinition("CREATE-STEP"));
+
+        entity.WorkflowCode = "CREATE-WF";
+        entity.Title = "Post-approval edit";
+        await harness.Context.SaveChangesAsync();
+
+        entity.WorkflowStatus.Should().Be(WorkflowStatus.Approved);
+        harness.Bridge.Messages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task E2E10_ResidualCreateCode_NoConfigInCache_DoesNotReinitiateOnUpdate()
+    {
+        // Config cache miss (no tenant config readable): the published-definition
+        // lookup must still not initiate an UPDATE workflow from the residual code.
+        await using var harness = CreateHarness();
+        harness.DefinitionProvider.SetDefinition("CREATE-WF", ActiveDefinition("CREATE-STEP"));
+
+        var entity = await SeedApprovedEntityAsync(harness);
+        entity.WorkflowCode = "CREATE-WF";
+        entity.Title = "Post-approval edit";
+        await harness.Context.SaveChangesAsync();
+
+        entity.WorkflowStatus.Should().Be(WorkflowStatus.Approved);
+        harness.Bridge.Messages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task E2E11_WorkflowEngineScope_FinalizeSave_KeepsApprovedStatus()
+    {
+        // The approval processor's finalize save (InProgress -> Approved) runs inside
+        // WorkflowEngineScope: no re-initiation even though update routes exist and the
+        // entity carries the create code.
+        await using var harness = CreateHarness();
+        harness.ConfigCache.SetConfig(ModuleName, CreateConfig(
+            enableCreate: true,
+            createCode: "CREATE-WF",
+            updateRoutes: [new WorkflowOperationRoute { Priority = 1, WorkflowCode = "UPDATE-WF" }]));
+        harness.DefinitionProvider.SetDefinition("CREATE-WF", ActiveDefinition("CREATE-STEP"));
+        harness.DefinitionProvider.SetDefinition("UPDATE-WF", ActiveDefinition("UPDATE-STEP"));
+
+        var entity = NewEntity();
+        harness.Context.Add(entity);
+        await harness.Context.SaveChangesAsync();
+        entity.WorkflowStatus.Should().Be(WorkflowStatus.InProgress);
+        harness.Bridge.Messages.Clear();
+
+        using (WorkflowEngineScope.Enter())
+        {
+            entity.WorkflowStatus = WorkflowStatus.Approved;
+            entity.WorkflowCompletedAt = DateTime.UtcNow;
+            await harness.Context.SaveChangesAsync();
+        }
+
+        entity.WorkflowStatus.Should().Be(WorkflowStatus.Approved);
+        harness.Bridge.Messages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task E2E12_WorkflowEngineScope_StepAdvanceSave_NotBlockedByInProgress()
+    {
+        // Mid-approval step advancement saves an entity that is legitimately InProgress.
+        // Inside WorkflowEngineScope this must not hit the edit-blocked validation
+        // (outside the scope the same save throws — see E2E6).
+        await using var harness = CreateHarness();
+        harness.ConfigCache.SetConfig(ModuleName, CreateConfig(
+            updateRoutes: [new WorkflowOperationRoute { Priority = 1, WorkflowCode = "UPDATE-WF" }]));
+
+        var entity = NewEntity();
+        entity.WorkflowStatus = WorkflowStatus.InProgress;
+        harness.Context.Add(entity);
+        await harness.Context.SaveChangesAsync();
+        harness.Bridge.Messages.Clear();
+
+        using (WorkflowEngineScope.Enter())
+        {
+            entity.WorkflowComments = "Step 2 approved";
+            await harness.Context.SaveChangesAsync();
+        }
+
+        entity.WorkflowStatus.Should().Be(WorkflowStatus.InProgress);
+        harness.Bridge.Messages.Should().BeEmpty();
+    }
+
     private static InterceptorE2EHarness CreateHarness(string moduleName = ModuleName) =>
         new(TenantId, moduleName);
 

@@ -8,11 +8,16 @@ public static class EmployeeCreateApprovalWorkflowDefinition
 {
     public const string WorkflowCode = "employee-create-approval";
 
-    /// <summary>HR / people team (e.g. techlabs: People Operations).</summary>
-    public const string HrDepartmentName = "People Operations";
+    /// <summary>HR / people team. Matches the "Human Resources" unit seeded by tenant onboarding.
+    /// Tenants with bespoke names (e.g. techlabs "People Operations") pass theirs via <see cref="Create(string, string?)"/>.</summary>
+    public const string HrDepartmentName = "Human Resources";
 
-    /// <summary>IT / platform team (e.g. techlabs: Infrastructure &amp; Platform).</summary>
-    public const string ItDepartmentName = "Infrastructure & Platform";
+    /// <summary>IT / platform team. Matches the "Information Technology" unit seeded by tenant onboarding.</summary>
+    public const string ItDepartmentName = "Information Technology";
+
+    /// <summary>Tenant admins can always action a step — without this, a brand-new tenant with no
+    /// HR-department employees can never approve its first hire (chicken-and-egg).</summary>
+    private static readonly List<string> DefaultBypassRoles = ["SUPER_ADMIN"];
 
     /// <summary>Salon / beauty chain HR back-office (matches <see cref="SalonBeautyDepartmentNames.Hr"/>).</summary>
     public const string SalonHrDepartmentName = SalonBeautyDepartmentNames.Hr;
@@ -50,7 +55,7 @@ public static class EmployeeCreateApprovalWorkflowDefinition
                     RequiredApprovers = [Dept(hr)],
                     RequiredApprovals = 1,
                     TimeoutDays = 3,
-                    BypassRoles = [],
+                    BypassRoles = [.. DefaultBypassRoles],
                     OnApproval = new WorkflowStepAction { NextStepCode = "DEPT_HEAD_APPROVAL" },
                     OnRejection = new WorkflowStepAction { NextStepCode = "complete", CompleteWorkflow = true }
                 },
@@ -63,7 +68,7 @@ public static class EmployeeCreateApprovalWorkflowDefinition
                     RequiredApprovers = [DirectManager()],
                     RequiredApprovals = 1,
                     TimeoutDays = 5,
-                    BypassRoles = [],
+                    BypassRoles = [.. DefaultBypassRoles],
                     OnApproval = new WorkflowStepAction { NextStepCode = "IT_SETUP" },
                     OnRejection = new WorkflowStepAction { NextStepCode = "complete", CompleteWorkflow = true }
                 },
@@ -76,7 +81,7 @@ public static class EmployeeCreateApprovalWorkflowDefinition
                     RequiredApprovers = [Dept(it)],
                     RequiredApprovals = 1,
                     TimeoutDays = 2,
-                    BypassRoles = [],
+                    BypassRoles = [.. DefaultBypassRoles],
                     OnApproval = new WorkflowStepAction { NextStepCode = "FINAL_VERIFICATION" }
                 },
                 new WorkflowStep
@@ -88,7 +93,7 @@ public static class EmployeeCreateApprovalWorkflowDefinition
                     RequiredApprovers = [Dept(hr)],
                     RequiredApprovals = 1,
                     TimeoutDays = 2,
-                    BypassRoles = [],
+                    BypassRoles = [.. DefaultBypassRoles],
                     OnApproval = new WorkflowStepAction { NextStepCode = "complete", CompleteWorkflow = true }
                 }
             ],

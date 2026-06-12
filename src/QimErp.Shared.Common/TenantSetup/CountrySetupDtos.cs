@@ -96,3 +96,12 @@ public sealed record BankSeedDefinition(
     string? Email,
     string HeadOfficeAddress,
     int DisplayOrder);
+
+/// <summary>
+/// Defines a country-specific employee identity document type to seed on tenant setup.
+/// Passport is expected to appear in every country list.
+/// </summary>
+public sealed record DocumentTypeDefinition(
+    string Code,
+    string Name,
+    int DisplayOrder);
