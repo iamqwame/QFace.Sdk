@@ -60,6 +60,16 @@ public static class EmailTemplateCatalog
         ["FullName", "AvatarUrl", "Department", "TaskTitle", "DueDate", "N", "Link"],
         []);
 
+    public static readonly EmailTemplateDefinition OnboardingTaskNudge = new(
+        "onboarding-task-nudge",
+        ["FullName", "TaskTitle"],
+        ["ActorName", "Department", "DueDate", "Message"]);
+
+    public static readonly EmailTemplateDefinition OnboardingTaskEscalation = new(
+        "onboarding-task-escalation",
+        ["FullName", "TaskTitle"],
+        ["ActorName", "Department", "DueDate", "Message"]);
+
     public static readonly EmailTemplateDefinition OffboardingInitiated = new(
         "offboarding-initiated",
         ["FullName", "AvatarUrl", "Department", "LastDay", "Link"],
@@ -96,7 +106,7 @@ public static class EmailTemplateCatalog
 
     public static readonly EmailTemplateDefinition AccountWelcome = new(
         "account-welcome",
-        ["FirstName", "FullName", "AvatarUrl", "Department", "Manager", "TempPassword"],
+        ["FirstName", "FullName", "Email", "AvatarUrl", "Department", "Manager", "TempPassword"],
         ["Link"]);
 
     public static readonly EmailTemplateDefinition PasswordReset = new(
@@ -129,6 +139,8 @@ public static class EmailTemplateCatalog
             ["onboarding-welcome"]          = OnboardingWelcome,
             ["onboarding-task-assigned"]    = OnboardingTaskAssigned,
             ["onboarding-task-reminder"]    = OnboardingTaskReminder,
+            ["onboarding-task-nudge"]       = OnboardingTaskNudge,
+            ["onboarding-task-escalation"]  = OnboardingTaskEscalation,
             ["offboarding-initiated"]       = OffboardingInitiated,
             ["offboarding-task-assigned"]   = OffboardingTaskAssigned,
             ["offboarding-exit-interview"]  = OffboardingExitInterview,

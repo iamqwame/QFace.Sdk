@@ -196,17 +196,19 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         string tenantId, string entityType, int count, CancellationToken ct)
     {
         // PostgreSQL UPDATE … RETURNING gives us the final value atomically.
-        var sql = $"""
+        // Values are bound as parameters ({0}..{2} → DbParameters) — never interpolated
+        // into the SQL text — so tenantId/entityType can never alter the statement.
+        const string sql = """
             UPDATE "EntityCodeConfigs"
-            SET    "LastSequence" = "LastSequence" + {count}
-            WHERE  "TenantId"    = '{tenantId}'
-              AND  "EntityType"  = '{entityType}'
+            SET    "LastSequence" = "LastSequence" + {0}
+            WHERE  "TenantId"    = {1}
+              AND  "EntityType"  = {2}
               AND  "DataStatus"  = 'Active'
             RETURNING "LastSequence"
             """;
 
         var results = await _context.Database
-            .SqlQueryRaw<long>(sql)
+            .SqlQueryRaw<long>(sql, count, tenantId, entityType)
             .ToListAsync(ct);
 
         if (results.Count == 0)

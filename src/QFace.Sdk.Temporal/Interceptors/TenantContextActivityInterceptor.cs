@@ -169,6 +169,9 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
 
         /// <summary>
         /// Extracts a named string/Guid property from the first activity argument using reflection.
+        /// Bulk activities receive bare collections (e.g. List&lt;EmployeeChangedEvent&gt;) with no
+        /// top-level TenantId, so collection args fall back to probing their first element —
+        /// every item in a bulk batch belongs to the same tenant by construction.
         /// Returns null if not found.
         /// </summary>
         private static string? ExtractProperty(object[] args, string propertyName)
@@ -176,12 +179,30 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
             foreach (var arg in args)
             {
                 if (arg is null) continue;
-                var prop = arg.GetType().GetProperty(propertyName);
-                if (prop is null) continue;
-                var value = prop.GetValue(arg);
-                return value?.ToString();
+
+                var direct = ExtractFromInstance(arg, propertyName);
+                if (direct is not null) return direct;
+
+                if (arg is System.Collections.IEnumerable enumerable and not string)
+                {
+                    foreach (var item in enumerable)
+                    {
+                        if (item is null) continue;
+                        var fromItem = ExtractFromInstance(item, propertyName);
+                        if (fromItem is not null) return fromItem;
+                        break;
+                    }
+                }
             }
             return null;
+        }
+
+        private static string? ExtractFromInstance(object instance, string propertyName)
+        {
+            var prop = instance.GetType().GetProperty(propertyName);
+            if (prop is null) return null;
+            var value = prop.GetValue(instance)?.ToString();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
         }
     }
 }

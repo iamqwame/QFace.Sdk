@@ -1,3 +1,4 @@
+using QimErp.Shared.Common.Extensions;
 using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Workflow.Configurations;
 
@@ -13,7 +14,10 @@ public abstract class ApplicationDbContext<TContext>(
 
     /// <summary>
     /// Current tenant id for the EF global query filter, read fresh from <see cref="ITenantContext"/>
-    /// (an AsyncLocal) on every access.
+    /// (an AsyncLocal) on every access. NEVER null: when no tenant is in scope it returns
+    /// <see cref="ModelBuilderExtensions.NoTenantSentinel"/> so the filter fails CLOSED (matches no
+    /// tenant rows) instead of fail-open. A missing tenant is a bug to surface as empty results, never
+    /// a cross-tenant disclosure.
     ///
     /// The query filter references THIS property — an instance member of the DbContext — rather than
     /// the <see cref="ITenantContext"/> service directly. That distinction is load-bearing: EF Core
@@ -24,7 +28,14 @@ public abstract class ApplicationDbContext<TContext>(
     /// compiled a given query shape had its id reused for every other tenant hitting that shape until the
     /// process restarted — the cause of the post-onboarding empty-read anomaly.
     /// </summary>
-    public string? CurrentTenantId => _tenantContext.TenantId;
+    public string CurrentTenantId
+    {
+        get
+        {
+            var tenantId = _tenantContext.TenantId;
+            return string.IsNullOrEmpty(tenantId) ? ModelBuilderExtensions.NoTenantSentinel : tenantId;
+        }
+    }
 
     public DbSet<AppSetting> AppSettings { get; set; }
     public DbSet<Import> Imports { get; set; }
