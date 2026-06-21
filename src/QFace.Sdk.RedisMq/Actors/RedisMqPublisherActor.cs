@@ -39,30 +39,41 @@ namespace QFace.Sdk.RedisMq.Actors
 
                 if (subscriberCount > 0)
                 {
-                    _logger.LogInformation($"[Redis] ✅ Published message to channel '{channelName}' with {subscriberCount} subscribers");
+                    _logger.LogInformation(
+                        "Published message to channel {ChannelName} with {SubscriberCount} subscribers",
+                        channelName, subscriberCount);
                     return true;
                 }
                 else
                 {
-                    _logger.LogWarning($"[Redis] ⚠ Published message to channel '{channelName}' but no subscribers");
-                    
+                    _logger.LogWarning(
+                        "Published message to channel {ChannelName} but no subscribers",
+                        channelName);
+
                     if (currentRetry < _options.RetryCount)
                     {
-                        _logger.LogInformation($"[Redis] Retrying publish ({currentRetry + 1}/{_options.RetryCount})...");
+                        _logger.LogInformation(
+                            "Retrying publish ({CurrentAttempt}/{RetryCount})",
+                            currentRetry + 1, _options.RetryCount);
                         await Task.Delay(_options.RetryIntervalMs);
                         return await PublishWithRetryAsync(message, channelName, currentRetry + 1);
                     }
-                    
+
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"[Redis] ❌ Failed to publish message to channel '{channelName}'. Error: {ex.Message}");
-                
+                _logger.LogError(
+                    ex,
+                    "Failed to publish message to channel {ChannelName}",
+                    channelName);
+
                 if (currentRetry < _options.RetryCount)
                 {
-                    _logger.LogInformation($"[Redis] Retrying publish after error ({currentRetry + 1}/{_options.RetryCount})...");
+                    _logger.LogInformation(
+                        "Retrying publish after error ({CurrentAttempt}/{RetryCount})",
+                        currentRetry + 1, _options.RetryCount);
                     
                     await Task.Delay(_options.RetryIntervalMs);
                     return await PublishWithRetryAsync(message, channelName, currentRetry + 1);

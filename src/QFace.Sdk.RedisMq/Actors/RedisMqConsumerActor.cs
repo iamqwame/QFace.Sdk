@@ -27,7 +27,7 @@ namespace QFace.Sdk.RedisMq.Actors
         {
             try
             {
-                _logger.LogDebug($"[Redis] Processing message from channel '{message.ChannelName}'");
+                _logger.LogDebug("Processing message from channel {ChannelName}", message.ChannelName);
 
                 // Create a scoped service provider for this message
                 using var scope = _serviceProvider.CreateScope();
@@ -62,23 +62,23 @@ namespace QFace.Sdk.RedisMq.Actors
                     await task;
                 }
 
-                _logger.LogDebug($"[Redis] ✅ Successfully processed message from channel '{message.ChannelName}'");
+                _logger.LogDebug("Successfully processed message from channel {ChannelName}", message.ChannelName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"[Redis] ❌ Failed to process message from channel '{message.ChannelName}': {ex.Message}");
+                _logger.LogError(ex, "Failed to process message from channel {ChannelName}", message.ChannelName);
             }
         }
 
         protected override void PreStart()
         {
-            _logger.LogInformation($"[Redis] Consumer actor started for channel '{_consumerMetadata.ChannelAttribute.ChannelName}'");
+            _logger.LogInformation("Consumer actor started for channel {ChannelName}", _consumerMetadata.ChannelAttribute.ChannelName);
             base.PreStart();
         }
 
         protected override void PostStop()
         {
-            _logger.LogInformation($"[Redis] Consumer actor stopped for channel '{_consumerMetadata.ChannelAttribute.ChannelName}'");
+            _logger.LogInformation("Consumer actor stopped for channel {ChannelName}", _consumerMetadata.ChannelAttribute.ChannelName);
             base.PostStop();
         }
     }

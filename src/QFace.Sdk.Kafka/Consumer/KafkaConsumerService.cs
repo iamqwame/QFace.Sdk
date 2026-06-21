@@ -33,7 +33,9 @@ public class KafkaConsumerService : IHostedService
                 return Task.CompletedTask;
             }
 
-            _logger.LogInformation($"[Kafka] Starting consumer service with {_consumerMetadata.Count} consumers");
+            _logger.LogInformation(
+                "Starting consumer service with {ConsumerCount} consumers",
+                _consumerMetadata.Count);
 
             // Create supervisor actor
             var supervisorProps = Props.Create(() => new Actors.KafkaConsumerSupervisorActor(

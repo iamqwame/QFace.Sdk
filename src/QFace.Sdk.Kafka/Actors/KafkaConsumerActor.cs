@@ -71,11 +71,11 @@ internal class KafkaConsumerActor : BaseActor
             config.Set("allow.auto.create.topics", "true");
 
             _consumer = new ConsumerBuilder<string, string>(config)
-                .SetErrorHandler((_, e) => 
-                    _logger.LogError($"[Kafka] Consumer error: {e.Reason} - {e.Code}"))
+                .SetErrorHandler((_, e) =>
+                    _logger.LogError("Consumer error: {Reason} - {Code}", e.Reason, e.Code))
                 .SetPartitionsAssignedHandler((_, partitions) =>
                 {
-                    _logger.LogInformation($"[Kafka] Partitions assigned: {string.Join(", ", partitions)}");
+                    _logger.LogInformation("Partitions assigned: {Partitions}", string.Join(", ", partitions));
                     Task.Run(async () =>
                     {
                         if (_consumerInstance != null)
@@ -86,7 +86,7 @@ internal class KafkaConsumerActor : BaseActor
                 })
                 .SetPartitionsRevokedHandler((_, partitions) =>
                 {
-                    _logger.LogInformation($"[Kafka] Partitions revoked: {string.Join(", ", partitions)}");
+                    _logger.LogInformation("Partitions revoked: {Partitions}", string.Join(", ", partitions));
                     Task.Run(async () =>
                     {
                         if (_consumerInstance != null)
@@ -112,7 +112,7 @@ internal class KafkaConsumerActor : BaseActor
             var topLevelActors = _serviceProvider.GetRequiredService<ITopLevelActors>();
             _consumerInstance.Initialize(_logger, topLevelActors, _context);
             
-            _logger.LogInformation($"[Kafka] Consumer actor initialized for {_metadata.ConsumerType.Name}");
+            _logger.LogInformation("Consumer actor initialized for {ConsumerType}", _metadata.ConsumerType.Name);
         }
         catch (Exception ex)
         {
@@ -219,7 +219,7 @@ internal class KafkaConsumerActor : BaseActor
                 }
                 catch (ConsumeException ex)
                 {
-                    _logger.LogError(ex, $"[Kafka] Consume error: {ex.Error.Reason}");
+                    _logger.LogError(ex, "Consume error: {Reason}", ex.Error.Reason);
                     await _consumerInstance.ConsumingError(ex);
                 }
                 catch (Exception ex)
@@ -290,8 +290,9 @@ internal class KafkaConsumerActor : BaseActor
                 kafkaBatch.BatchEndTime = DateTime.UtcNow;
                 
                 _logger.LogInformation(
-                    $"[Kafka] ✅ Processed batch of {messages.Count} messages " +
-                    $"(took {(kafkaBatch.BatchEndTime - kafkaBatch.BatchStartTime).TotalMilliseconds:F0}ms)");
+                    "Processed batch of {MessageCount} messages (took {ElapsedMilliseconds:F0}ms)",
+                    messages.Count,
+                    (kafkaBatch.BatchEndTime - kafkaBatch.BatchStartTime).TotalMilliseconds);
 
                 // Commit offsets after successful processing
                 if (_processingConfig.CommitStrategy == OffsetCommitStrategy.AfterSuccessfulProcessing)
@@ -311,7 +312,7 @@ internal class KafkaConsumerActor : BaseActor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"[Kafka] ❌ Failed to process batch of {consumeResults.Count} messages");
+            _logger.LogError(ex, "Failed to process batch of {MessageCount} messages", consumeResults.Count);
             
             // Don't commit offsets on failure - messages will be reprocessed
             await _consumerInstance.ConsumingError(ex);

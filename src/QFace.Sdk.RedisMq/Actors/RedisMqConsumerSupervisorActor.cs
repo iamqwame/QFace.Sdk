@@ -25,7 +25,7 @@ namespace QFace.Sdk.RedisMq.Actors
 
         protected override void PreStart()
         {
-            _logger.LogInformation($"[Redis] Consumer supervisor actor started with {_consumers.Count} consumers");
+            _logger.LogInformation("Consumer supervisor actor started with {ConsumerCount} consumers", _consumers.Count);
             
             // Start all consumers
             Self.Tell(new StartConsumers());
@@ -42,11 +42,11 @@ namespace QFace.Sdk.RedisMq.Actors
                     await StartConsumer(consumer);
                 }
                 
-                _logger.LogInformation($"[Redis] ✅ All {_consumers.Count} consumers started successfully");
+                _logger.LogInformation("All {ConsumerCount} consumers started successfully", _consumers.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Redis] ❌ Failed to start consumers");
+                _logger.LogError(ex, "Failed to start consumers");
             }
         }
 
@@ -60,11 +60,11 @@ namespace QFace.Sdk.RedisMq.Actors
                 }
                 
                 _consumerActors.Clear();
-                _logger.LogInformation("[Redis] ✅ All consumers stopped successfully");
+                _logger.LogInformation("All consumers stopped successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Redis] ❌ Failed to stop consumers");
+                _logger.LogError(ex, "Failed to stop consumers");
             }
         }
 
@@ -74,7 +74,7 @@ namespace QFace.Sdk.RedisMq.Actors
             {
                 var channelName = consumerMetadata.ChannelAttribute.ChannelName;
                 
-                _logger.LogInformation($"[Redis] Starting consumer for channel '{channelName}'");
+                _logger.LogInformation("Starting consumer for channel {ChannelName}", channelName);
 
                 // Create consumer actor
                 var consumerActor = Context.ActorOf(
@@ -102,16 +102,16 @@ namespace QFace.Sdk.RedisMq.Actors
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"[Redis] Error processing message from channel '{channel}': {ex.Message}");
+                        _logger.LogError(ex, "Error processing message from channel {ChannelName}", channel);
                     }
                 });
 
                 subscriptionTask.SetResult(true);
-                _logger.LogInformation($"[Redis] ✅ Successfully subscribed to channel '{channelName}'");
+                _logger.LogInformation("Successfully subscribed to channel {ChannelName}", channelName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"[Redis] ❌ Failed to start consumer for channel '{consumerMetadata.ChannelAttribute.ChannelName}': {ex.Message}");
+                _logger.LogError(ex, "Failed to start consumer for channel {ChannelName}", consumerMetadata.ChannelAttribute.ChannelName);
             }
         }
 

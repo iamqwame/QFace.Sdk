@@ -109,7 +109,7 @@ public static class RedisMqExtensions
         {
             try
             {
-                logger.LogInformation($"Scanning assembly: {assembly.FullName}");
+                logger.LogDebug("Scanning assembly {AssemblyName}", assembly.FullName);
 
                 var assemblyConsumers = assembly.GetTypes()
                     .Where(t =>
@@ -120,16 +120,18 @@ public static class RedisMqExtensions
 
                         if (isPublicType && hasConsumerAttribute)
                         {
-                            logger.LogInformation($"Found consumer type: {t.FullName}");
-                            logger.LogInformation($"  Namespace: {t.Namespace}");
-                            logger.LogInformation($"  Assembly: {t.Assembly.FullName}");
+                            logger.LogDebug(
+                                "Found consumer type {ConsumerType} in namespace {Namespace} from assembly {AssemblyName}",
+                                t.FullName, t.Namespace, t.Assembly.FullName);
                         }
 
                         return isPublicType && hasConsumerAttribute;
                     })
                     .ToList();
 
-                logger.LogInformation($"Consumers found in {assembly.FullName}: {assemblyConsumers.Count}");
+                logger.LogDebug(
+                    "Consumers found in assembly {AssemblyName}: {ConsumerCount}",
+                    assembly.FullName, assemblyConsumers.Count);
 
                 // Add unique consumers to the HashSet
                 foreach (var consumerType in assemblyConsumers)
@@ -149,7 +151,7 @@ public static class RedisMqExtensions
         foreach (var consumerType in consumerTypes)
         {
             services.AddScoped(consumerType);
-            logger.LogInformation($"Registered consumer: {consumerType.FullName}");
+            logger.LogDebug("Registered consumer {ConsumerType}", consumerType.FullName);
         }
 
         // Find and register consumer methods
@@ -162,8 +164,9 @@ public static class RedisMqExtensions
                     var channelAttribute = m.GetCustomAttribute<ChannelAttribute>();
                     if (channelAttribute != null)
                     {
-                        logger.LogInformation(
-                            $"Found channel method: {consumerType.FullName}.{m.Name} with channel {channelAttribute.ChannelName}");
+                        logger.LogDebug(
+                            "Found channel method {ConsumerType}.{MethodName} bound to channel {ChannelName}",
+                            consumerType.FullName, m.Name, channelAttribute.ChannelName);
                     }
 
                     return channelAttribute != null;

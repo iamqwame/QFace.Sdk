@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -545,6 +546,7 @@ public static class SharedServiceCollectionExtensions
     private static void ApplyDatabaseMigrations<TContext>(IServiceScope scope) where TContext : DbContext
     {
         TContext dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(TContext));
         try
         {
             // Ensure database exists and apply all migrations
@@ -562,7 +564,7 @@ public static class SharedServiceCollectionExtensions
 
             if (isDbAlreadyExists)
             {
-                Console.WriteLine($"[Migration] Database already exists — skipping database creation.");
+                logger.LogInformation("Database already exists, skipping database creation");
                 try
                 {
                     var pending = dbContext.Database.GetPendingMigrations().ToList();

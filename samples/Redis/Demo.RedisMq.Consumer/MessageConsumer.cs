@@ -16,9 +16,9 @@ public class MessageConsumer
     public async Task HandleImportantMessage(MessageDto message)
     {
         _logger.LogInformation("=== IMPORTANT MESSAGE RECEIVED ===");
-        _logger.LogInformation($"ID: {message.Id}");
-        _logger.LogInformation($"Content: {message.Content}");
-        _logger.LogInformation($"Timestamp: {message.Timestamp}");
+        _logger.LogInformation("ID: {MessageId}", message.Id);
+        _logger.LogInformation("Content: {MessageContent}", message.Content);
+        _logger.LogInformation("Timestamp: {MessageTimestamp}", message.Timestamp);
         _logger.LogInformation("=================================");
         
         // Simulate processing time

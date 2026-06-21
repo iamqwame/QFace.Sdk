@@ -24,18 +24,18 @@ namespace QFace.Sdk.RedisMq.Consumer
         {
             if (_consumers != null && _consumers.Any())
             {
-                _logger.LogInformation($"[Redis] Starting consumer service with {_consumers.Count} consumers");
-        
-                // Log details about each discovered consumer
-                foreach (var consumer in _consumers)
-                {
-                    _logger.LogInformation(
-                        $"[Redis] Found consumer: {consumer.ConsumerType.Name}, " +
-                        $"Method: {consumer.HandlerMethod.Name}, " +
-                        $"Channel: {consumer.ChannelAttribute.ChannelName}"
-                    );
-                }
-                
+                _logger.LogInformation(
+                    "Starting consumer service with {ConsumerCount} consumers",
+                    _consumers.Count);
+
+                // Log details about each discovered consumer (aggregated to avoid log-in-loop)
+                var consumerDetails = _consumers
+                    .Select(c => $"{c.ConsumerType.Name}/{c.HandlerMethod.Name}@{c.ChannelAttribute.ChannelName}")
+                    .ToArray();
+                _logger.LogInformation(
+                    "Found {ConsumerCount} consumers: {ConsumerDetails}",
+                    consumerDetails.Length, consumerDetails);
+
                 // Create props for the supervisor actor
                 var props = Props.Create(
                     () => new RedisMqConsumerSupervisorActor(
@@ -44,22 +44,22 @@ namespace QFace.Sdk.RedisMq.Consumer
                         new List<ConsumerMetadata>(_consumers)
                     )
                 );
-        
+
                 // Actually create the actor with more logging
-                try 
+                try
                 {
                     _supervisorActor = _actorSystem.ActorOf(props, "redis-consumer-supervisor");
-                    _logger.LogInformation("[Redis] Successfully created consumer supervisor actor");
+                    _logger.LogInformation("Successfully created consumer supervisor actor");
                 }
-                catch (Exception ex) 
+                catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[Redis] Failed to create consumer supervisor actor");
+                    _logger.LogError(ex, "Failed to create consumer supervisor actor");
                     throw;
                 }
             }
             else
             {
-                _logger.LogWarning("[Redis] No consumers registered, consumer service will not start");
+                _logger.LogWarning("No consumers registered, consumer service will not start");
             }
             
             return Task.CompletedTask;
@@ -67,7 +67,7 @@ namespace QFace.Sdk.RedisMq.Consumer
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[Redis] Stopping consumer service");
+            _logger.LogInformation("Stopping consumer service");
             
             // Gracefully stop the supervisor actor if it exists
             _supervisorActor?.GracefulStop(TimeSpan.FromSeconds(5));

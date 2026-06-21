@@ -16,8 +16,7 @@ public class TestActor : BaseActor
         // Set up message handling
         Receive<string>(message =>
         {
-            _logger.LogInformation("🎭 [TestActor] Received message: {Message}", message);
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] TestActor received: {message}");
+            _logger.LogInformation("Received message: {Message}", message);
         });
     }
 }
