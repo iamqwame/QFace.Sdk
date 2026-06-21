@@ -1,4 +1,5 @@
 using QimErp.Shared.Common.Entities;
+using QimErp.Shared.Common.Services.Cache;
 
 namespace QimErp.Shared.Common.Services;
 
@@ -12,12 +13,27 @@ namespace QimErp.Shared.Common.Services;
 ///   Single allocation  → UPDATE … SET LastSequence = LastSequence + 1 RETURNING LastSequence
 ///   Batch allocation   → UPDATE … SET LastSequence = LastSequence + N RETURNING LastSequence
 ///   Both are atomic at the DB level — no application-level lock needed.
+///
+/// Caching:
+///   The EntityCodeConfig row (format + mode + reset metadata) is hit on every
+///   entity-create across every module. Reads go through a tenant-scoped Redis
+///   key (1h TTL) and writes (UpsertConfigAsync, ReconcileManualToAutoAsync,
+///   CheckAndApplyResetAsync, GetOrCreateConfigAsync auto-create) invalidate
+///   it inline. The hot path GenerateBatchAsync still uses an atomic raw-SQL
+///   UPDATE … RETURNING for LastSequence — the cache only short-circuits the
+///   format-and-mode lookup, never the sequence allocation itself.
 /// </summary>
 public abstract class EntityCodeService<TContext> : IEntityCodeService
     where TContext : DbContext
 {
     protected readonly TContext _context;
+    protected readonly IDistributedCacheService _cache;
     protected readonly ILogger _logger;
+
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(1);
+
+    private static string CacheKey(string tenantId, string entityType)
+        => $"shared:{tenantId}:lookup:entity-code-config:{entityType}";
 
     // SDK-wide defaults shared across all modules.
     // For entity types that belong to a single module, register them via the
@@ -41,8 +57,8 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
     private readonly IReadOnlyDictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)> _defaults;
 
     /// <summary>Base constructor — no module-specific defaults.</summary>
-    protected EntityCodeService(TContext context, ILogger logger)
-        : this(context, logger, null) { }
+    protected EntityCodeService(TContext context, IDistributedCacheService cache, ILogger logger)
+        : this(context, cache, logger, null) { }
 
     /// <summary>
     /// Constructor that accepts module-specific defaults.
@@ -51,10 +67,12 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
     /// </summary>
     protected EntityCodeService(
         TContext context,
+        IDistributedCacheService cache,
         ILogger logger,
         IReadOnlyDictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)>? moduleDefaults)
     {
         _context = context;
+        _cache   = cache;
         _logger  = logger;
 
         if (moduleDefaults is null || moduleDefaults.Count == 0)
@@ -106,13 +124,22 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
 
     public async Task<EntityCodeConfig?> GetConfigAsync(string tenantId, string entityType, CancellationToken ct = default)
     {
+        var key = CacheKey(tenantId, entityType);
+        var cached = await _cache.GetAsync<EntityCodeConfig>(key);
+        if (cached is not null) return cached;
+
         // IgnoreQueryFilters: the query is already explicitly tenant-scoped via TenantId == tenantId.
         // Without this, the global EF query filter (which reads from ITenantContext) returns no rows
         // when called from Temporal activities that run without an active audit context — causing
         // UpsertConfigAsync to attempt a duplicate INSERT and hit IX_EntityCodeConfigs_TenantId_EntityType.
-        return await _context.Set<EntityCodeConfig>()
+        var fresh = await _context.Set<EntityCodeConfig>()
             .IgnoreQueryFilters()
+            .AsNoTracking()
             .FirstOrDefaultAsync(e => e.TenantId == tenantId && e.EntityType == entityType, ct);
+
+        if (fresh is not null)
+            await _cache.SetAsync(key, fresh, CacheTtl);
+        return fresh;
     }
 
     public async Task UpsertConfigAsync(
@@ -121,7 +148,12 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         CodeGenerationMode mode, CodeResetPeriod resetPeriod,
         CancellationToken ct = default)
     {
-        var existing = await GetConfigAsync(tenantId, entityType, ct);
+        // Bypass the cache here so the upsert path always sees the latest DB row;
+        // otherwise we could redo an INSERT against a stale "not found" cache hit.
+        var existing = await _context.Set<EntityCodeConfig>()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(e => e.TenantId == tenantId && e.EntityType == entityType, ct);
+
         if (existing is null)
         {
             var config = EntityCodeConfig.Create(tenantId, entityType,
@@ -136,6 +168,7 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         }
 
         await _context.SaveChangesAsync(ct);
+        await _cache.RemoveAsync(CacheKey(tenantId, entityType));
     }
 
     public async Task<long> ReconcileManualToAutoAsync(
@@ -154,6 +187,7 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         config.SetManualHighWaterMark(maxFound);
         config.SetMode(CodeGenerationMode.Auto);
         await _context.SaveChangesAsync(ct);
+        await _cache.RemoveAsync(CacheKey(tenantId, entityType));
 
         _logger.LogInformation(
             "Reconciled manual→auto for {EntityType} on tenant {TenantId}: high-water={HWM}",
@@ -181,6 +215,7 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
 
         _context.Set<EntityCodeConfig>().Add(config);
         await _context.SaveChangesAsync(ct);
+        await _cache.RemoveAsync(CacheKey(tenantId, entityType));
 
         _logger.LogInformation(
             "Auto-created EntityCodeConfig for {EntityType} on tenant {TenantId}", entityType, tenantId);
@@ -232,6 +267,7 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
 
         config.MarkSequenceReset(currentKey);
         await _context.SaveChangesAsync(ct);
+        await _cache.RemoveAsync(CacheKey(config.TenantId, config.EntityType));
 
         _logger.LogInformation(
             "Sequence reset for {EntityType} on tenant {TenantId} — new period {Key}",
