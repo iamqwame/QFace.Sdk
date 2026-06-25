@@ -760,13 +760,65 @@ public static class SharedServiceCollectionExtensions
     private static IHostApplicationBuilder AddDefaultHealthChecks<TDbContext>(this IHostApplicationBuilder builder)
         where TDbContext : DbContext
     {
-        builder.Services.AddHealthChecks()
+        var hcBuilder = builder.Services.AddHealthChecks()
             .AddDbContextCheck<TDbContext>(
                 "Database Health Check",
                 failureStatus: HealthStatus.Degraded, // ✅ Instead of failing completely, mark it as 'Degraded'
                 tags: ["ready"])
             .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"]);
 
+        // Redis readiness check
+        var redisConn = builder.Configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrWhiteSpace(redisConn))
+        {
+            var capturedRedisConn = redisConn;
+            hcBuilder.AddCheck("redis", () =>
+            {
+                try
+                {
+                    using var mux = StackExchange.Redis.ConnectionMultiplexer.Connect(capturedRedisConn);
+                    mux.GetDatabase().Ping();
+                    return HealthCheckResult.Healthy();
+                }
+                catch (Exception ex)
+                {
+                    return HealthCheckResult.Degraded(ex.Message);
+                }
+            }, tags: ["ready"]);
+        }
+        else
+        {
+            hcBuilder.AddCheck("redis", () => HealthCheckResult.Healthy("Redis not configured"), tags: ["ready"]);
+        }
+
+        // Temporal readiness check
+        var temporalAddress = builder.Configuration["Temporal:Address"];
+        if (!string.IsNullOrWhiteSpace(temporalAddress))
+        {
+            var capturedAddress = temporalAddress;
+            hcBuilder.AddCheck("temporal", () =>
+            {
+                try
+                {
+                    var parts = capturedAddress.Split(':');
+                    var host = parts[0];
+                    var port = parts.Length > 1 && int.TryParse(parts[1], out var p) ? p : 7233;
+                    using var tcp = new System.Net.Sockets.TcpClient();
+                    var connected = tcp.ConnectAsync(host, port).Wait(TimeSpan.FromSeconds(3));
+                    return connected
+                        ? HealthCheckResult.Healthy()
+                        : HealthCheckResult.Degraded("Temporal TCP connect timed out after 3 s");
+                }
+                catch (Exception ex)
+                {
+                    return HealthCheckResult.Degraded(ex.Message);
+                }
+            }, tags: ["ready"]);
+        }
+        else
+        {
+            hcBuilder.AddCheck("temporal", () => HealthCheckResult.Healthy("Temporal not configured"), tags: ["ready"]);
+        }
 
         return builder;
     }

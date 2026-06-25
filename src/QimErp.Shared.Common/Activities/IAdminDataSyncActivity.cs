@@ -15,9 +15,9 @@ namespace QimErp.Shared.Common.Activities;
 public interface IAdminDataSyncActivity
 {
 
-    [Activity] Task SyncJobTitleAsync(AdminDataSyncRequest request);
-    [Activity] Task SyncJobStatusAsync(AdminDataSyncRequest request);
-    [Activity] Task SyncOrganizationalUnitAsync(AdminDataSyncRequest request);
-    [Activity] Task SyncStationAsync(AdminDataSyncRequest request);
-    [Activity] Task SyncRankAsync(AdminDataSyncRequest request);
+    [Activity] Task SyncJobTitleAsync(AdminDataSyncRequest request, CancellationToken cancellationToken = default);
+    [Activity] Task SyncJobStatusAsync(AdminDataSyncRequest request, CancellationToken cancellationToken = default);
+    [Activity] Task SyncOrganizationalUnitAsync(AdminDataSyncRequest request, CancellationToken cancellationToken = default);
+    [Activity] Task SyncStationAsync(AdminDataSyncRequest request, CancellationToken cancellationToken = default);
+    [Activity] Task SyncRankAsync(AdminDataSyncRequest request, CancellationToken cancellationToken = default);
 }
