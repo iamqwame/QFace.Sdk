@@ -767,29 +767,15 @@ public static class SharedServiceCollectionExtensions
                 tags: ["ready"])
             .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"]);
 
-        // Redis readiness check
+        // Redis readiness check — register the mux as singleton so AddQimErpRedisHealthCheck can resolve it
         var redisConn = builder.Configuration.GetConnectionString("Redis");
         if (!string.IsNullOrWhiteSpace(redisConn))
         {
-            var capturedRedisConn = redisConn;
-            hcBuilder.AddCheck("redis", () =>
-            {
-                try
-                {
-                    using var mux = StackExchange.Redis.ConnectionMultiplexer.Connect(capturedRedisConn);
-                    mux.GetDatabase().Ping();
-                    return HealthCheckResult.Healthy();
-                }
-                catch (Exception ex)
-                {
-                    return HealthCheckResult.Degraded(ex.Message);
-                }
-            }, tags: ["ready"]);
+            var connStr = ToStackExchangeConnectionString(redisConn);
+            builder.Services.TryAddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+                _ => StackExchange.Redis.ConnectionMultiplexer.Connect(connStr));
         }
-        else
-        {
-            hcBuilder.AddCheck("redis", () => HealthCheckResult.Healthy("Redis not configured"), tags: ["ready"]);
-        }
+        hcBuilder.AddQimErpRedisHealthCheck();
 
         // Temporal readiness check
         var temporalAddress = builder.Configuration["Temporal:Address"];
@@ -848,9 +834,41 @@ public static class SharedServiceCollectionExtensions
         return app;
     }
 
+    /// <summary>
+    /// Adds a Redis readiness health check that reuses the <see cref="StackExchange.Redis.IConnectionMultiplexer"/>
+    /// singleton already registered in DI (e.g. via <c>AddRedis</c>).
+    /// If no multiplexer is registered the check reports Healthy with "Redis not configured" so modules
+    /// without Redis start cleanly.
+    /// </summary>
+    public static IHealthChecksBuilder AddQimErpRedisHealthCheck(this IHealthChecksBuilder builder)
+    {
+        var muxRegistered = builder.Services.Any(sd => sd.ServiceType == typeof(StackExchange.Redis.IConnectionMultiplexer));
+        if (!muxRegistered)
+            return builder.AddCheck("redis", () => HealthCheckResult.Healthy("Redis not configured"), tags: ["ready"]);
+
+        builder.Services.TryAddSingleton<QimErpRedisHealthCheck>();
+        return builder.AddCheck<QimErpRedisHealthCheck>("redis", failureStatus: HealthStatus.Degraded, tags: ["ready"]);
+    }
 }
 
+internal sealed class QimErpRedisHealthCheck : IHealthCheck
+{
+    private readonly StackExchange.Redis.IConnectionMultiplexer _mux;
+    public QimErpRedisHealthCheck(StackExchange.Redis.IConnectionMultiplexer mux) => _mux = mux;
 
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _mux.GetDatabase().PingAsync();
+            return HealthCheckResult.Healthy();
+        }
+        catch (Exception ex)
+        {
+            return HealthCheckResult.Degraded(ex.Message);
+        }
+    }
+}
 
 
 
