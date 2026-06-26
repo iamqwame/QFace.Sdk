@@ -20,6 +20,7 @@
     <PackageTags>temporal;workflow;qface;qimerp;orchestration</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>1591;1573;1574</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

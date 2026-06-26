@@ -10,7 +10,7 @@ public abstract class CoordinatorBackgroundService<TCoordinator> : BackgroundSer
 {
     protected readonly ILogger _logger;
     protected readonly ActorSystem _actorSystem;
-    protected IActorRef _coordinatorActor;
+    protected IActorRef? _coordinatorActor;
 
     /// <summary>
     /// Constructor with dependencies
@@ -104,7 +104,7 @@ public abstract class CoordinatorBackgroundService<TCoordinator> : BackgroundSer
     /// <summary>
     /// Helper to send work to the coordinator
     /// </summary>
-    protected void SendWork(object workItem, IActorRef respondTo = null)
+    protected void SendWork(object workItem, IActorRef? respondTo = null)
     {
         if (_coordinatorActor == null)
         {

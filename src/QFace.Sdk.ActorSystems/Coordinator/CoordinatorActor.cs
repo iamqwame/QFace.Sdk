@@ -143,7 +143,7 @@ public abstract class CoordinatorActor : BaseActor
     protected class WorkContext
     {
         public Guid WorkId { get; set; }
-        public IActorRef RespondTo { get; set; }
+        public IActorRef RespondTo { get; set; } = null!;
         public DateTime Created { get; set; } = DateTime.UtcNow;
     }
 }

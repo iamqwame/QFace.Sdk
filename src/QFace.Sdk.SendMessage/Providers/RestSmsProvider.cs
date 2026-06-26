@@ -92,8 +92,8 @@ public class RestSmsProvider: ISmsProvider
                 // Success status codes: DS_SUBMIT_ENROUTE (2105) indicates message is successfully queued
                 if (statusId == 2105 || statusLabel == "DS_SUBMIT_ENROUTE")
                 {
-                    _logger.LogInformation("✅ SMS successfully queued for delivery! Batch: {BatchId}, Status: {Status}", 
-                        parsed.Data.Batch, statusLabel);
+                    _logger.LogInformation("✅ SMS successfully queued for delivery! Batch: {BatchId}, Status: {Status}",
+                        parsed?.Data?.Batch, statusLabel);
                     return (true, responseContent);
                 }
                 else
@@ -123,35 +123,35 @@ public class RestSmsProvider: ISmsProvider
 }
     public class SmsApiResponse
     {
-        public SmsHandshake Handshake { get; set; }
-        public SmsData Data { get; set; }
+        public SmsHandshake? Handshake { get; set; }
+        public SmsData? Data { get; set; }
     }
 
     public class SmsHandshake
     {
         public int Id { get; set; }
-        public string Label { get; set; }
+        public string Label { get; set; } = string.Empty;
     }
 
     public class SmsData
     {
-        public string Batch { get; set; }
-        public string Category { get; set; }
+        public string Batch { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
         public bool Delivery { get; set; }
-        public List<SmsDestination> Destinations { get; set; }
+        public List<SmsDestination> Destinations { get; set; } = new();
     }
 
     public class SmsDestination
     {
-        public string To { get; set; }
-        public string Id { get; set; }
-        public SmsStatus Status { get; set; }
+        public string To { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public SmsStatus? Status { get; set; }
     }
 
     public class SmsStatus
     {
         public int Id { get; set; }
-        public string Label { get; set; }
+        public string Label { get; set; } = string.Empty;
     }
 
 

@@ -66,12 +66,12 @@ public sealed class WorkflowExecutionContext
     /// <summary>
     /// The workflow ID that scheduled this activity.
     /// </summary>
-    public string WorkflowId => _context.Info.WorkflowId;
+    public string? WorkflowId => _context.Info.WorkflowId;
 
     /// <summary>
     /// The workflow run ID that scheduled this activity.
     /// </summary>
-    public string WorkflowRunId => _context.Info.WorkflowRunId;
+    public string? WorkflowRunId => _context.Info.WorkflowRunId;
 
     /// <summary>
     /// The activity type name (method name decorated with [Activity]).

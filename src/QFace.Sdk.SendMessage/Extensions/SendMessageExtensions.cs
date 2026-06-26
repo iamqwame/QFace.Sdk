@@ -15,7 +15,7 @@ public static class SendMessageExtensions
     public static IServiceCollection AddMessagingServices(
         this IServiceCollection services,
         IConfiguration configuration,
-        Action<ActorConfig> configureActorSystem = null)
+        Action<ActorConfig>? configureActorSystem = null)
     {
         // Register configuration
         services.Configure<MessageConfig>(configuration.GetSection("MessageSettings"));
@@ -46,8 +46,8 @@ public static class SendMessageExtensions
     }
         
     private static void RegisterActorSystem(
-        IServiceCollection services, 
-        Action<ActorConfig> configureActorSystem)
+        IServiceCollection services,
+        Action<ActorConfig>? configureActorSystem)
     {
         // Ensure actor system is not already registered
         if (!services.Any(s => s.ServiceType == typeof(ActorSystem)))

@@ -16,7 +16,7 @@ public static class ActorSystemExtensions
     public static IServiceCollection AddActorSystem(
         this IServiceCollection services,
         Assembly[] assemblies,
-        Action<ActorConfig> configure = null,
+        Action<ActorConfig>? configure = null,
         bool addLifecycle = false)
     {
         if (assemblies == null || assemblies.Length == 0)
@@ -109,7 +109,7 @@ public static class ActorSystemExtensions
     public static IServiceCollection AddActorSystemWithLifecycle(
         this IServiceCollection services,
         Assembly[] assemblies,
-        Action<ActorConfig> configure = null)
+        Action<ActorConfig>? configure = null)
     {
         return services.AddActorSystem(assemblies, configure, true);
     }

@@ -11,20 +11,20 @@ public class EmailConfig
     public string Provider { get; set; } = "SMTP";
     
     // SMTP Settings
-    public string SmtpServer { get; set; }
+    public string SmtpServer { get; set; } = string.Empty;
     public int SmtpPort { get; set; } = 587;
-    public string SmtpUser { get; set; }
-    public string SmtpPassword { get; set; }
-    
+    public string SmtpUser { get; set; } = string.Empty;
+    public string SmtpPassword { get; set; } = string.Empty;
+
     // Microsoft Graph Settings
-    public string TenantId { get; set; }
-    public string ClientId { get; set; }
-    public string ClientSecret { get; set; }
-    public string SendAsUser { get; set; }
-    
+    public string TenantId { get; set; } = string.Empty;
+    public string ClientId { get; set; } = string.Empty;
+    public string ClientSecret { get; set; } = string.Empty;
+    public string SendAsUser { get; set; } = string.Empty;
+
     // Common Settings
-    public string FromEmail { get; set; }
-    public string FromName { get; set; }
+    public string FromEmail { get; set; } = string.Empty;
+    public string FromName { get; set; } = string.Empty;
     public bool IsLocalHost { get; set; } = false;
 }
 
@@ -41,7 +41,7 @@ public class SmsConfig
     /// <summary>
     /// API key for authentication
     /// </summary>
-    public string ApiKey { get; set; }
+    public string ApiKey { get; set; } = string.Empty;
 
     /// <summary>
     /// Sender ID for SMS messages

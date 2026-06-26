@@ -53,7 +53,7 @@ namespace QFace.Sdk.ActorSystems
         public static IServiceCollection AddCoordinatorService<TService, TCoordinator, TWorker>(
             this IServiceCollection services,
             Assembly[] assemblies,
-            Action<ActorConfig> configure = null)
+            Action<ActorConfig>? configure = null)
             where TService : CoordinatorBackgroundService<TCoordinator>
             where TCoordinator : CoordinatorActor
             where TWorker : WorkerActor
@@ -89,9 +89,9 @@ namespace QFace.Sdk.ActorSystems
             where TWorker : WorkerActor
         {
             // Use the entry assembly plus the one containing the service
-            var assemblies = new[]
+            var assemblies = new Assembly[]
             {
-                Assembly.GetEntryAssembly(),
+                Assembly.GetEntryAssembly()!,
                 typeof(TService).Assembly
             };
             

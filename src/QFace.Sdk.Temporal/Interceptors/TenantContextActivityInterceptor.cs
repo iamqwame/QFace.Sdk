@@ -174,7 +174,7 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
         /// every item in a bulk batch belongs to the same tenant by construction.
         /// Returns null if not found.
         /// </summary>
-        private static string? ExtractProperty(object[] args, string propertyName)
+        private static string? ExtractProperty(object?[] args, string propertyName)
         {
             foreach (var arg in args)
             {
