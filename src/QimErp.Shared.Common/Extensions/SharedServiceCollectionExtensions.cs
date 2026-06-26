@@ -398,15 +398,16 @@ public static class SharedServiceCollectionExtensions
         // Register cache services (adapter that uses SDK)
         services.AddScoped<IDistributedCacheService, RedisCacheService>();
         services.AddScoped<ICacheService, RedisCacheService>();
-        services.AddAuth(configuration); // ✅ Ensure Authentication is Added Early
+        services.AddAuth(configuration);
         services.AddCorsConfig(configuration);
         services.RegisterMediatR(isAddWorkflow ? [assembly, workFlowAssembly] : [assembly]);
-        services.AddCarter(carterCatalog); // ✅ Carter will automatically scan for modules
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehavior<,>));
+        services.AddCarter(carterCatalog);
         services.AddValidatorsFromAssembly(assembly);
-        // Add health checks
         services.AddHealthChecks()
             .AddCheck("liveness", () => HealthCheckResult.Healthy(), tags: ["live"])
-            .AddCheck("readiness", () => HealthCheckResult.Healthy(), tags: ["ready"]);
+            .AddCheck("readiness", () => HealthCheckResult.Healthy(), tags: ["ready"])
+            .AddQimErpRedisHealthCheck();
 
         services.Configure<JsonOptions>(options =>
         {
@@ -466,7 +467,12 @@ public static class SharedServiceCollectionExtensions
 
         // ✅ Configure Authentication (JWT Bearer)
         services
-            .AddAuthorization()
+            .AddAuthorization(options =>
+            {
+                options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+            })
             .AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -848,6 +854,44 @@ public static class SharedServiceCollectionExtensions
 
         builder.Services.TryAddSingleton<QimErpRedisHealthCheck>();
         return builder.AddCheck<QimErpRedisHealthCheck>("redis", failureStatus: HealthStatus.Degraded, tags: ["ready"]);
+    }
+
+    /// <summary>
+    /// Bootstraps a standard QimErp module WebApi host: logging, OTel, DbContext with outbox,
+    /// core services (auth, CORS, MediatR, Carter, validation pipeline, health checks, Redis),
+    /// Swagger, service discovery, and resilience — all from one call.
+    /// Only add module-specific registrations (Temporal workers, repos, domain services) after this.
+    /// </summary>
+    public static WebApplicationBuilder AddQimErpModule<TContext>(
+        this WebApplicationBuilder builder,
+        string title,
+        string version,
+        string description)
+        where TContext : ApplicationDbContext<TContext>
+    {
+        builder.Host.AddQFaceLogging();
+        builder.AddQimErpOpenTelemetryDefaults();
+
+        var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection is required.");
+        builder.Services.AddDbContextWithOutbox<TContext>(connStr, builder.Configuration);
+
+        builder.Services.AddCoreServices(builder.Configuration, typeof(TContext).Assembly);
+
+        builder.Services.AddSwaggerDocumentation(
+            System.Reflection.Assembly.GetCallingAssembly()!,
+            title, version, description);
+
+        builder.Services.AddServiceDiscovery();
+        builder.Services.ConfigureHttpClientDefaults(http =>
+        {
+            http.AddStandardResilienceHandler();
+            http.AddServiceDiscovery();
+        });
+
+        builder.Services.AddOpenApi();
+
+        return builder;
     }
 }
 
