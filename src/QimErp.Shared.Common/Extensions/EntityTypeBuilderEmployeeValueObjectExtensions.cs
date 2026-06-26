@@ -61,11 +61,13 @@ public static class EntityTypeBuilderEmployeeValueObjectExtensions
         bool includeIndex = false)
         where TEntity : class
     {
+#pragma warning disable CS8620
         builder.OwnsOne(navigationExpression, employee =>
         {
             MapColumns(employee, columnNamePrefix);
             if (includeIndex) employee.HasIndex(p => p.Id);
         });
+#pragma warning restore CS8620
 
         return builder;
     }

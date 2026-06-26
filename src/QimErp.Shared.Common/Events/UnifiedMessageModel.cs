@@ -6,33 +6,33 @@ public class UnifiedMessageModel
 {
     // Required for all message types
     [JsonRequired]
-    public string MessageType { get; set; }
-    
+    public string MessageType { get; set; } = string.Empty;
+
     // Email properties
-    public string ToEmail { get; set; }
-    public List<string> ToEmails { get; set; }
-    public string Subject { get; set; }
-    public string Body { get; set; }
-    
+    public string ToEmail { get; set; } = string.Empty;
+    public List<string> ToEmails { get; set; } = [];
+    public string Subject { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+
     // Template properties
-    public string Template { get; set; }
+    public string Template { get; set; } = string.Empty;
     /// <summary>Template name (no extension). Notifications module resolves + renders it.
     /// Ignored when <see cref="Template"/> already contains pre-rendered HTML.</summary>
     public string? TemplateCode { get; set; }
-    public Dictionary<string, string> Replacements { get; set; }
-    
+    public Dictionary<string, string> Replacements { get; set; } = new();
+
     // SMS properties
-    public string PhoneNumber { get; set; }
-    public List<string> PhoneNumbers { get; set; }
-    public string Message { get; set; }
-    
+    public string PhoneNumber { get; set; } = string.Empty;
+    public List<string> PhoneNumbers { get; set; } = [];
+    public string Message { get; set; } = string.Empty;
+
     // Combined properties
-    public string Email { get; set; }
-    
+    public string Email { get; set; } = string.Empty;
+
     // Metadata properties that might be useful
-    public string MessageId { get; set; }
-    public string CorrelationId { get; set; }
-    public Dictionary<string, string> Metadata { get; set; }
+    public string MessageId { get; set; } = string.Empty;
+    public string CorrelationId { get; set; } = string.Empty;
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Owning tenant. Read by <c>TenantContextActivityInterceptor</c> (it reflects a

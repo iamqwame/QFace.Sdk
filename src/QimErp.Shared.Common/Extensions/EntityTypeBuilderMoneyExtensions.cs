@@ -25,6 +25,7 @@ public static class EntityTypeBuilderMoneyExtensions
         string columnNamePrefix)
         where TEntity : class
     {
+#pragma warning disable CS8620
         builder.OwnsOne(navigationExpression, money =>
         {
             money.Property(m => m.Amount)
@@ -48,6 +49,7 @@ public static class EntityTypeBuilderMoneyExtensions
                 .HasPrecision(18, 2)
                 .HasColumnName($"{columnNamePrefix}BaseCurrencyAmount");
         });
+#pragma warning restore CS8620
 
         return builder;
     }

@@ -13,7 +13,7 @@ public class WorkflowStatusChangedEvent : IDomainEvent
     public string Module { get; set; } = ""; // HR, Finance, etc.
     public Dictionary<string, object> EntityData { get; set; } = new();
     public DateTime OccurredOn { get; }
-    public string TenantId { get; }
+    public string TenantId { get; } = string.Empty;
     public string? TriggeredBy { get; }
 }
 
@@ -60,7 +60,7 @@ public class WorkflowCompletedEvent : IDomainEvent
     public string Module { get; set; } = "";
     public Dictionary<string, object> EntityData { get; set; } = new();
     public DateTime OccurredOn { get; }
-    public string TenantId { get; }
+    public string TenantId { get; } = string.Empty;
     public string? TriggeredBy { get; }
 }
 
@@ -76,7 +76,7 @@ public class WorkflowTimeoutEvent : IDomainEvent
     public string? LastAssignedTo { get; set; }
     public string Module { get; set; } = "";
     public DateTime OccurredOn { get; }
-    public string TenantId { get; }
+    public string TenantId { get; } = string.Empty;
     public string? TriggeredBy { get; }
 }
 

@@ -2,9 +2,9 @@ namespace QimErp.Shared.Common.Entities.Helpers;
 
 public class TaxationGroupIndex
 {
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
-    public string Description { get; set; }
+    public required string Description { get; set; }
 
     public int Index { get; set; }
 

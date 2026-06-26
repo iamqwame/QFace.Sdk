@@ -10,7 +10,7 @@ public class UserContextService(
 {
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
     private readonly ILogger<UserContextService> _logger = logger;
-    private static readonly AsyncLocal<UserContext> Context = new();
+    private static readonly AsyncLocal<UserContext?> Context = new();
 
     public void SetContext(string tenantId, string userEmail, string? userName = null, string? userId = null)
     {

@@ -3,10 +3,10 @@ namespace QimErp.Shared.Common.Entities.Helpers;
 public class ContactPerson
 {
     public Guid Id { get; set; }
-    public string Name { get; set; }
-    public string Phone { get; set; }
-    public string Email { get; set; }
-    public string Relationship { get; set; }
+    public required string Name { get; set; }
+    public string Phone { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Relationship { get; set; } = string.Empty;
     public bool IsPrimaryContact { get; set; }
     public bool IsEmergencyContact { get; set; }
 
@@ -31,7 +31,7 @@ public class ContactPerson
     {
         if (email.IsEmpty()) return this;
 
-        Email = email;
+        Email = email!;
         return this;
     }
 

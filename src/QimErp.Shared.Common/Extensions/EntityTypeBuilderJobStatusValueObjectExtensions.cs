@@ -24,6 +24,7 @@ public static class EntityTypeBuilderJobStatusValueObjectExtensions
         string columnNamePrefix)
         where TEntity : class
     {
+#pragma warning disable CS8620
         builder.OwnsOne(navigationExpression, jobStatus =>
         {
             jobStatus.Property(p => p.Id)
@@ -43,6 +44,7 @@ public static class EntityTypeBuilderJobStatusValueObjectExtensions
                 .HasColumnName($"{columnNamePrefix}Description")
                 .HasMaxLength(500);
         });
+#pragma warning restore CS8620
 
         return builder;
     }

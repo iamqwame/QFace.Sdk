@@ -25,6 +25,7 @@ public static class EntityTypeBuilderChartOfAccountValueObjectExtensions
         string columnNamePrefix)
         where TEntity : class
     {
+#pragma warning disable CS8620
         builder.OwnsOne(navigationExpression, account =>
         {
             account.Property(p => p.Id)
@@ -61,6 +62,7 @@ public static class EntityTypeBuilderChartOfAccountValueObjectExtensions
                 .HasColumnName($"{columnNamePrefix}CategoryName")
                 .HasMaxLength(200);
         });
+#pragma warning restore CS8620
 
         return builder;
     }

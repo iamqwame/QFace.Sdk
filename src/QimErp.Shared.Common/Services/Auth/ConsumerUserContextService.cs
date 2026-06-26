@@ -11,7 +11,7 @@ namespace QimErp.Shared.Common.Services.Auth;
 /// </summary>
 public class ConsumerUserContextService : ICurrentUserService, ITenantContextSetter
 {
-    private static readonly AsyncLocal<ConsumerContext> Context = new();
+    private static readonly AsyncLocal<ConsumerContext?> Context = new();
     private readonly SystemOptions _systemOptions;
 
     public ConsumerUserContextService(IOptions<SystemOptions> systemOptions)

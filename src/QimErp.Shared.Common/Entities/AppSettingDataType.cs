@@ -125,7 +125,7 @@ public class AppSettingValidationRules
 
         try
         {
-            return json.Deserialize<AppSettingValidationRules>();
+            return json!.Deserialize<AppSettingValidationRules>();
         }
         catch
         {
@@ -156,8 +156,8 @@ public class AppSettingValidationRules
         {
             try
             {
-                var regex = new Regex(Pattern);
-                if (!regex.IsMatch(stringValue))
+                var regex = new Regex(Pattern!);
+                if (!regex.IsMatch(stringValue!))
                     return false;
             }
             catch

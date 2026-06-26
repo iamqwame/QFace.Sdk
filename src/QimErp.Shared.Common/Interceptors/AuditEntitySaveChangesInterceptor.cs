@@ -757,7 +757,7 @@ public class AuditEntitySaveChangesInterceptor(
                             var canEdit = await ValidateCanEditAsync(entity, config);
                             if (!canEdit.IsSuccess)
                             {
-                                throw new InvalidOperationException(canEdit.Error.Message);
+                                throw new InvalidOperationException(canEdit.Error!.Message);
                             }
                         }
 
@@ -766,7 +766,7 @@ public class AuditEntitySaveChangesInterceptor(
                             var canDelete = await ValidateCanDeleteAsync(entity, config);
                             if (!canDelete.IsSuccess)
                             {
-                                throw new InvalidOperationException(canDelete.Error.Message);
+                                throw new InvalidOperationException(canDelete.Error!.Message);
                             }
                         }
 

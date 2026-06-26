@@ -6,9 +6,11 @@ namespace QimErp.Shared.Common.Services;
 /// <summary>
 /// Service to generate custom formatted IDs for entities across all modules
 /// </summary>
+#pragma warning disable CS9113
 public class CustomIdGeneratorService<TContext>(
     TContext context,
     ILogger<CustomIdGeneratorService<TContext>> logger)
+#pragma warning restore CS9113
     where TContext : ApplicationDbContext<TContext>
 {
     /// <summary>

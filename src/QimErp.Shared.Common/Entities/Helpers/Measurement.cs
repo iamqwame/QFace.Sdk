@@ -2,8 +2,8 @@ namespace QimErp.Shared.Common.Entities.Helpers;
 
 public class Measurement
 {
-    public string Code { get; private set; }
-    public string Description { get; private set; }
+    public required string Code { get; init; }
+    public required string Description { get; init; }
     public static Measurement GetDefault()
     {
         return Get("ea");

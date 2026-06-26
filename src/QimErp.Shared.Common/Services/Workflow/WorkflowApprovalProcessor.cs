@@ -541,7 +541,7 @@ public class WorkflowApprovalProcessor(
             : "Action Required";
 
         var nextStepName = _systemOptions.DefaultNextStepName;
-        if (!string.IsNullOrWhiteSpace(@event.NextStepCode) && workflowDefinition.Steps != null)
+        if (!string.IsNullOrWhiteSpace(@event.NextStepCode) && workflowDefinition!.Steps != null)
         {
             var nextStep = workflowDefinition.Steps.FirstOrDefault(s => s.StepCode == @event.NextStepCode);
             if (nextStep != null)

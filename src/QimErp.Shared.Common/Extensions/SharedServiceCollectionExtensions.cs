@@ -107,7 +107,9 @@ public static class SharedServiceCollectionExtensions
             .AddScoped<AuditEntitySaveChangesInterceptor>()
             .AddDbContext<TContext>((provider, options) =>
         {
+#pragma warning disable CS0618
             NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
+#pragma warning restore CS0618
             options.UseNpgsql(connectionString);
             options.EnableSensitiveDataLogging(false);
             options.EnableDetailedErrors(false);
@@ -151,7 +153,9 @@ public static class SharedServiceCollectionExtensions
             .AddScoped<AuditEntitySaveChangesInterceptor>()
             .AddDbContext<TContext>((provider, options) =>
             {
-                NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
+    #pragma warning disable CS0618
+            NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
+#pragma warning restore CS0618
                 options.UseNpgsql(connectionString);
                 options.EnableSensitiveDataLogging(false);
                 options.EnableDetailedErrors(false);
@@ -400,7 +404,7 @@ public static class SharedServiceCollectionExtensions
         services.AddScoped<ICacheService, RedisCacheService>();
         services.AddAuth(configuration);
         services.AddCorsConfig(configuration);
-        services.RegisterMediatR(isAddWorkflow ? [assembly, workFlowAssembly] : [assembly]);
+        services.RegisterMediatR(isAddWorkflow ? [assembly, workFlowAssembly!] : [assembly]);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehavior<,>));
         services.AddCarter(carterCatalog);
         services.AddValidatorsFromAssembly(assembly);
@@ -869,7 +873,6 @@ public static class SharedServiceCollectionExtensions
         string description)
         where TContext : ApplicationDbContext<TContext>
     {
-        builder.Host.AddQFaceLogging();
         builder.AddQimErpOpenTelemetryDefaults();
 
         var connStr = builder.Configuration.GetConnectionString("DefaultConnection")

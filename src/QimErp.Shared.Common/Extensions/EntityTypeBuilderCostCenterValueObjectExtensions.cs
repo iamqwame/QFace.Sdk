@@ -25,6 +25,7 @@ public static class EntityTypeBuilderCostCenterValueObjectExtensions
         string columnNamePrefix)
         where TEntity : class
     {
+#pragma warning disable CS8620
         builder.OwnsOne(navigationExpression, costCenter =>
         {
             costCenter.Property(p => p.Id)
@@ -45,6 +46,7 @@ public static class EntityTypeBuilderCostCenterValueObjectExtensions
                 .HasColumnName($"{columnNamePrefix}Description")
                 .HasMaxLength(500);
         });
+#pragma warning restore CS8620
 
         return builder;
     }

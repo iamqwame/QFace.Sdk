@@ -25,6 +25,7 @@ public static class EntityTypeBuilderOrganizationalUnitValueObjectExtensions
         string columnNamePrefix)
         where TEntity : class
     {
+#pragma warning disable CS8620
         builder.OwnsOne(navigationExpression, orgUnit =>
         {
             orgUnit.Property(p => p.Id)
@@ -44,6 +45,7 @@ public static class EntityTypeBuilderOrganizationalUnitValueObjectExtensions
                 .HasColumnName($"{columnNamePrefix}Description")
                 .HasMaxLength(500);
         });
+#pragma warning restore CS8620
 
         return builder;
     }

@@ -25,6 +25,7 @@ public static class EntityTypeBuilderQuantityExtensions
         string columnNamePrefix)
         where TEntity : class
     {
+#pragma warning disable CS8620
         builder.OwnsOne(navigationExpression, quantity =>
         {
             quantity.Property(q => q.Amount)
@@ -36,6 +37,7 @@ public static class EntityTypeBuilderQuantityExtensions
                 .HasMaxLength(20)
                 .HasColumnName($"{columnNamePrefix}UnitOfMeasure");
         });
+#pragma warning restore CS8620
 
         return builder;
     }

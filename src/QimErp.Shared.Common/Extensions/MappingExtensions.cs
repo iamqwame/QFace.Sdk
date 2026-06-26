@@ -54,7 +54,7 @@ public abstract class ResponseBuilder<TEntity, TResponse>
 
     public virtual TResponse Create()
     {
-        _response.Status = _entity.DataStatus.ToString();
+        _response.Status = _entity.DataStatus.ToString()!;
         _response.CreatedByUserId = _entity.CreatedByUserId;
         _response.CreatedByEmail = _entity.CreatedByEmail;
         _response.CreatedByName = _entity.CreatedByName;

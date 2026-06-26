@@ -7,15 +7,15 @@ namespace QimErp.Shared.Common.Events;
 /// </summary>
 public class TenantRegisteredEvent : DomainEvent
 {
-    public string Company { get; set; }
-    public string Domain { get; set; } 
-    public string WorkEmail { get; set; } 
+    public string Company { get; set; } = string.Empty;
+    public string Domain { get; set; } = string.Empty;
+    public string WorkEmail { get; set; } = string.Empty;
     public string? PersonalEmail { get; set; }
-    public string FirstName { get; set; } 
-    public string LastName { get; set; } 
-    public string Country { get; set; } 
-    public string EmployeeCount { get; set; } 
-    public string PreferredDatabase { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Country { get; set; } = string.Empty;
+    public string EmployeeCount { get; set; } = string.Empty;
+    public string PreferredDatabase { get; set; } = string.Empty;
     public string? CompanyType { get; set; }
     public string? IndustryType { get; set; }
 

@@ -32,7 +32,7 @@ public class ActivationTokenRequest
     public List<string> EmailRecipients { get; set; } = [];
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
-    public string Token { get; set; }
+    public required string Token { get; set; }
 }
 
 

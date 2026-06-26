@@ -273,9 +273,9 @@ public record TaxComputationContext(
 public class TaxDistributionRequest
 {
     public decimal? Percentage { get; set; }
-    public string BasedOn { get; set; }
-    public AccountProperty Account { get; set; }
-    public string TaxGrid { get; set; }
+    public required string BasedOn { get; set; }
+    public required AccountProperty Account { get; set; }
+    public required string TaxGrid { get; set; }
 }
 public class SingleTaxResult
 {

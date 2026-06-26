@@ -25,6 +25,7 @@ public static class EntityTypeBuilderStationValueObjectExtensions
         string columnNamePrefix)
         where TEntity : class
     {
+#pragma warning disable CS8620
         builder.OwnsOne(navigationExpression, station =>
         {
             station.Property(p => p.Id)
@@ -40,6 +41,7 @@ public static class EntityTypeBuilderStationValueObjectExtensions
                 .HasMaxLength(200)
                 .IsRequired();
         });
+#pragma warning restore CS8620
 
         return builder;
     }

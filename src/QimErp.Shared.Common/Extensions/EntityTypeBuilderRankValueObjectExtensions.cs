@@ -14,6 +14,7 @@ public static class EntityTypeBuilderRankValueObjectExtensions
         string columnNamePrefix)
         where TEntity : class
     {
+#pragma warning disable CS8620
         builder.OwnsOne(navigationExpression, rank =>
         {
             rank.Property(p => p.Id)
@@ -29,6 +30,7 @@ public static class EntityTypeBuilderRankValueObjectExtensions
                 .HasMaxLength(200)
                 .IsRequired();
         });
+#pragma warning restore CS8620
 
         return builder;
     }

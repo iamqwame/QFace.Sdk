@@ -8,11 +8,13 @@ public interface IWorkflowValidationService
     Task<bool> RequiresApprovalAsync(IWorkflowEnabled entity, string operation);
 }
 
+#pragma warning disable CS9113
 public class WorkflowValidationService(
     IWorkflowConfigCacheService configCacheService,
     IWorkflowService workflowService,
     ICurrentUserService currentUserService,
     ILogger<WorkflowValidationService> logger) : IWorkflowValidationService
+#pragma warning restore CS9113
 {
     public Task<Result> ValidateCanEditAsync(IWorkflowEnabled entity)
     {

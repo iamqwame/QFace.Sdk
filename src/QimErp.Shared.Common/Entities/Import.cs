@@ -55,7 +55,7 @@ public class Import : GuidAuditableEntity
             StartedAt = DateTime.UtcNow,
             LastUpdatedAt = DateTime.UtcNow,
             TenantId = tenantId
-        }.OnCreate(userId, userEmail, userName);
+        }.OnCreate(userId, userEmail, userName!);
        
         
 
