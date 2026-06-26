@@ -825,24 +825,25 @@ public static class SharedServiceCollectionExtensions
 
     private static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
-        // Add health check endpoints
+        // Health check endpoints must be publicly accessible — they're hit by load balancers
+        // and monitoring without credentials. AllowAnonymous overrides any FallbackPolicy.
         app.MapHealthChecks("/health", new HealthCheckOptions
         {
-            AllowCachingResponses = false, // Always return fresh health status
-            Predicate = _ => true // Include all health checks
-        });
+            AllowCachingResponses = false,
+            Predicate = _ => true
+        }).AllowAnonymous();
 
         app.MapHealthChecks("/alive", new HealthCheckOptions
         {
-            Predicate = r => r.Tags.Contains("live"), // Liveness checks
+            Predicate = r => r.Tags.Contains("live"),
             AllowCachingResponses = false
-        });
+        }).AllowAnonymous();
 
         app.MapHealthChecks("/ready", new HealthCheckOptions
         {
-            Predicate = r => r.Tags.Contains("ready"), // Readiness checks
+            Predicate = r => r.Tags.Contains("ready"),
             AllowCachingResponses = false
-        });
+        }).AllowAnonymous();
 
         return app;
     }
