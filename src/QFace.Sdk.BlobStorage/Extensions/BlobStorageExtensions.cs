@@ -16,6 +16,7 @@ public static class BlobStorageExtensions
 
         // Register services
             services.AddSingleton<IAmazonS3>(sp => CreateS3Client(sp));
+            services.AddScoped<IImageResizeService, ImageResizeService>();
             services.AddScoped<IFileUploadService, FileUploadService>();
             
             return services;

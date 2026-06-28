@@ -183,6 +183,9 @@ public class OrganizationalUnitUpdatedEvent : DomainEvent
     public string? ManagerName { get; set; }
     public string? ManagerCode { get; set; }
     public string? ManagerEmail { get; set; }
+    public string? ManagerJobTitle { get; set; }
+    public string? ManagerProfilePicture { get; set; }
+    public DateTimeOffset? ManagerAssignedAt { get; set; }
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public string? Extension { get; set; }
@@ -207,6 +210,9 @@ public class OrganizationalUnitUpdatedEvent : DomainEvent
         string? managerName,
         string? managerCode,
         string? managerEmail,
+        string? managerJobTitle,
+        string? managerProfilePicture,
+        DateTimeOffset? managerAssignedAt,
         string? phone,
         string? email,
         string? extension,
@@ -231,6 +237,9 @@ public class OrganizationalUnitUpdatedEvent : DomainEvent
         ManagerName = managerName;
         ManagerCode = managerCode;
         ManagerEmail = managerEmail;
+        ManagerJobTitle = managerJobTitle;
+        ManagerProfilePicture = managerProfilePicture;
+        ManagerAssignedAt = managerAssignedAt;
         Phone = phone;
         Email = email;
         Extension = extension;
@@ -252,6 +261,9 @@ public class OrganizationalUnitUpdatedEvent : DomainEvent
         string? managerName,
         string? managerCode,
         string? managerEmail,
+        string? managerJobTitle,
+        string? managerProfilePicture,
+        DateTimeOffset? managerAssignedAt,
         string? phone,
         string? email,
         string? extension,
@@ -276,6 +288,9 @@ public class OrganizationalUnitUpdatedEvent : DomainEvent
             managerName,
             managerCode,
             managerEmail,
+            managerJobTitle,
+            managerProfilePicture,
+            managerAssignedAt,
             phone,
             email,
             extension,

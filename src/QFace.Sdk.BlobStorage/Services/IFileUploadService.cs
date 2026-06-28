@@ -118,4 +118,15 @@ public interface IFileUploadService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of full S3 keys under the prefix</returns>
     Task<IReadOnlyList<string>> ListObjectKeysAsync(string prefix, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Uploads the source <paramref name="file"/> as five public S3 objects:
+    /// original + four WebP variants (thumb 48, sm 96, md 256, lg 512).
+    /// Returns CDN URLs for all variants.
+    /// </summary>
+    Task<ProfileImageVariants> UploadProfileImageVariantsAsync(
+        IFormFile file,
+        string folder,
+        string baseFileName,
+        CancellationToken cancellationToken = default);
 }

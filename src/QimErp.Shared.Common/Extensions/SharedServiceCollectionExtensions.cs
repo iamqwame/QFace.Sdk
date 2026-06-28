@@ -22,6 +22,7 @@ using QimErp.Shared.Common.Middlewares;
 using QimErp.Shared.Common.Options;
 using QimErp.Shared.Common.Services.Cache;
 using QimErp.Shared.Common.Services.MultiTenancy;
+using QimErp.Shared.Common.Services.TenantActivity;
 using QimErp.Shared.Common.Services.Workflow;
 using Swashbuckle.AspNetCore.SwaggerUI;
 
@@ -543,6 +544,8 @@ public static class SharedServiceCollectionExtensions
         services.AddScoped<QFace.Sdk.Temporal.Interceptors.ITenantScopeSetter>(
             sp => (QFace.Sdk.Temporal.Interceptors.ITenantScopeSetter)sp.GetRequiredService<ITenantContext>());
 
+        services.TryAddScoped<ITenantActivityRecorder, TenantActivityRecorder>();
+
         return services;
     }
 
@@ -850,8 +853,19 @@ public static class SharedServiceCollectionExtensions
     /// If no multiplexer is registered the check reports Healthy with "Redis not configured" so modules
     /// without Redis start cleanly.
     /// </summary>
+    // Marker type used by AddQimErpRedisHealthCheck to detect duplicate calls.
+    private sealed class RedisHealthCheckRegisteredMarker { }
+
     public static IHealthChecksBuilder AddQimErpRedisHealthCheck(this IHealthChecksBuilder builder)
     {
+        // Idempotent guard — AddCoreServices and AddDefaultHealthChecks both call this; the second
+        // call must be a no-op to prevent "Duplicate health checks" crash at startup.
+        // Health checks are stored in IConfigureOptions<HealthCheckServiceOptions>, not as direct
+        // ServiceDescriptors, so we use a private marker singleton as the registration flag.
+        if (builder.Services.Any(sd => sd.ServiceType == typeof(RedisHealthCheckRegisteredMarker)))
+            return builder;
+        builder.Services.AddSingleton<RedisHealthCheckRegisteredMarker>();
+
         var muxRegistered = builder.Services.Any(sd => sd.ServiceType == typeof(StackExchange.Redis.IConnectionMultiplexer));
         if (!muxRegistered)
             return builder.AddCheck("redis", () => HealthCheckResult.Healthy("Redis not configured"), tags: ["ready"]);

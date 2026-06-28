@@ -15,11 +15,13 @@ public class FileUploadService : IFileUploadService
     private readonly string _region;
     private readonly ILogger<FileUploadService> _logger;
     private readonly BlobStorageOptions _options;
+    private readonly IImageResizeService _imageResizeService;
 
     public FileUploadService(
         IAmazonS3 s3Client,
         IOptions<BlobStorageOptions> options,
-        ILogger<FileUploadService> logger)
+        ILogger<FileUploadService> logger,
+        IImageResizeService imageResizeService)
     {
         _s3Client = s3Client;
         _options = options.Value;
@@ -33,7 +35,8 @@ public class FileUploadService : IFileUploadService
         _cdnBaseDomain = _options.Bucket?.CdnBaseDomain ?? 
                          "cdn.digitaloceanspaces.com";
         _logger = logger;
-            
+        _imageResizeService = imageResizeService;
+
         // Log the service URL, bucket and CDN setup for debugging
         _logger.LogInformation("Initialized S3FileUploadService with service URL: {ServiceUrl}, bucket: {BucketName}, region: {Region}, CDN base domain: {CdnBaseDomain}",
             _options.ServiceURL, _bucketName, _region, _cdnBaseDomain);
@@ -543,6 +546,105 @@ public class FileUploadService : IFileUploadService
             _logger.LogError(ex, "S3 error uploading content to {S3Key}: {Message}", s3Key, ex.Message);
             throw;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<ProfileImageVariants> UploadProfileImageVariantsAsync(
+        IFormFile file,
+        string folder,
+        string baseFileName,
+        CancellationToken cancellationToken = default)
+    {
+        if (file == null || file.Length == 0)
+            throw new ArgumentException("File is empty or null", nameof(file));
+
+        // Read source bytes once so each variant resize gets a fresh MemoryStream
+        byte[] sourceBytes;
+        using (var readStream = new MemoryStream())
+        {
+            await file.CopyToAsync(readStream, cancellationToken);
+            sourceBytes = readStream.ToArray();
+        }
+
+        var extension = Path.GetExtension(file.FileName).TrimStart('.').ToLowerInvariant();
+        if (string.IsNullOrEmpty(extension)) extension = "jpg";
+
+        // Define the four WebP variants
+        var variants = new[]
+        {
+            (name: "thumb", width: 48,  height: 48),
+            (name: "sm",    width: 96,  height: 96),
+            (name: "md",    width: 256, height: 256),
+            (name: "lg",    width: 512, height: 512),
+        };
+
+        // Build variant upload tasks
+        var variantTasks = variants.Select(async v =>
+        {
+            using var srcStream = new MemoryStream(sourceBytes);
+            var webpBytes = await _imageResizeService.ResizeToWebPAsync(srcStream, v.width, v.height, 85, cancellationToken);
+            var s3Key = $"{folder.TrimEnd('/')}/{baseFileName}_{v.name}.webp";
+            var cdnUrl = await UploadBytesPublicAsync(webpBytes, s3Key, "image/webp", cancellationToken);
+            return (v.name, cdnUrl);
+        }).ToList();
+
+        // Build original upload task
+        var originalKey = $"{folder.TrimEnd('/')}/{baseFileName}_original.{extension}";
+        var originalTask = UploadBytesPublicAsync(sourceBytes, originalKey, file.ContentType ?? "application/octet-stream", cancellationToken);
+
+        // Run all five concurrently
+        await Task.WhenAll(variantTasks.Concat(new[] { originalTask.ContinueWith(_ => ("original", _.Result), cancellationToken) }));
+
+        var variantResults = await Task.WhenAll(variantTasks);
+        var originalUrl = await originalTask;
+
+        var dict = variantResults.ToDictionary(r => r.name, r => r.cdnUrl);
+
+        return new ProfileImageVariants
+        {
+            Thumb    = dict.GetValueOrDefault("thumb"),
+            Sm       = dict.GetValueOrDefault("sm"),
+            Md       = dict.GetValueOrDefault("md"),
+            Lg       = dict.GetValueOrDefault("lg"),
+            Original = originalUrl,
+        };
+    }
+
+    /// <summary>
+    /// Uploads raw bytes as a public S3 object and returns the CDN URL.
+    /// </summary>
+    private async Task<string> UploadBytesPublicAsync(byte[] bytes, string s3Key, string contentType, CancellationToken cancellationToken)
+    {
+        using var memoryStream = new MemoryStream(bytes);
+
+        if (IsMinIOOrGeneric())
+        {
+            var putRequest = new PutObjectRequest
+            {
+                BucketName  = _bucketName,
+                Key         = s3Key,
+                InputStream = memoryStream,
+                ContentType = contentType
+            };
+            // MinIO/Generic providers do not support CannedACL
+            await _s3Client.PutObjectAsync(putRequest, cancellationToken);
+        }
+        else
+        {
+            using var transferUtility = new TransferUtility(_s3Client);
+            var uploadRequest = new TransferUtilityUploadRequest
+            {
+                InputStream = memoryStream,
+                BucketName  = _bucketName,
+                Key         = s3Key,
+                ContentType = contentType,
+                CannedACL   = S3CannedACL.PublicRead
+            };
+            await transferUtility.UploadAsync(uploadRequest, cancellationToken);
+        }
+
+        _logger.LogInformation("Uploaded variant to S3 with key: {S3Key}", s3Key);
+        return GetCdnUrl(s3Key);
     }
 
     /// <inheritdoc />
