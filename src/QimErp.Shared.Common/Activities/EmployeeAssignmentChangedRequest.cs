@@ -23,4 +23,16 @@ public class EmployeeAssignmentChangedRequest
     public string? NewOrgUnitName { get; set; }
     public string? NewOrgUnitCode { get; set; }
     public Guid? OldOrgUnitId   { get; set; }
+
+    // Station fields (populated when EventType == "StationChanged")
+    public Guid? NewStationId   { get; set; }
+    public string? NewStationName { get; set; }
+    public string? NewStationCode { get; set; }
+    public Guid? OldStationId   { get; set; }
+
+    // Job-status fields (populated when EventType == "JobStatusChanged")
+    public Guid? NewJobStatusId   { get; set; }
+    public string? NewJobStatusName { get; set; }
+    public string? NewJobStatusCode { get; set; }
+    public Guid? OldJobStatusId   { get; set; }
 }
