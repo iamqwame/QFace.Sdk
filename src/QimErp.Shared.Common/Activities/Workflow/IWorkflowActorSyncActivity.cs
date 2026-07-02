@@ -10,7 +10,7 @@ namespace QimErp.Shared.Common.Activities.Workflow;
 /// <c>qimerp-platform-workflow-actor-sync</c> and a scoped implementation of this
 /// interface.
 ///
-/// Producer modules (today: QimErp.CoreHr.Employee for employee actors; later:
+/// Producer modules (today: QimErp.CoreHr.People for employee actors; later:
 /// Customers/Vendors/External modules for their respective actors) schedule these
 /// activities on Workflow's task queue with a mapped <see cref="WorkflowActorChangedEvent"/>
 /// payload. Upserts are keyed by (TenantId, SourceType, SourceId).

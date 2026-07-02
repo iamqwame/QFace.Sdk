@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>QFace.Sdk.RedisCache</PackageId>
-        <Version>1.0.0</Version>
+        <Version>1.0.1</Version>
         <Authors>IAmQwame</Authors>
         <Company>QFace</Company>
         <Description>A Redis caching SDK for .NET applications supporting both Upstash Redis (HTTP) and standard Redis (StackExchange.Redis TCP).</Description>
@@ -36,7 +36,7 @@
     <!-- Documentation files -->
     <ItemGroup>
         <None Include="$(SolutionDir)README.md" Pack="true" PackagePath="\" />
-        <None Include="$(SolutionDir)docs\redis-cache.md" Pack="true" PackagePath="content\docs\" />
+        <None Include="$(SolutionDir)docs\redis-cache.md" Pack="true" PackagePath="content\docs\" Condition="Exists('$(SolutionDir)docs\redis-cache.md')" />
         <None Include="$(SolutionDir)docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
     </ItemGroup>
 

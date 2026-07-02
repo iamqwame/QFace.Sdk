@@ -45,8 +45,11 @@ public class FileUploadService : IFileUploadService
     private bool SupportsCannedAcl()
     {
         var provider = _options.Provider ?? "";
+        // AWS S3 buckets created after April 2023 have ACLs disabled by default.
+        // DigitalOcean, Wasabi, Backblaze support ACLs; MinIO/Generic/AWS do not.
         return !provider.Equals("MinIO", StringComparison.OrdinalIgnoreCase) &&
-               !provider.Equals("Generic", StringComparison.OrdinalIgnoreCase);
+               !provider.Equals("Generic", StringComparison.OrdinalIgnoreCase) &&
+               !provider.Equals("AWS", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool IsMinIOOrGeneric()
@@ -251,9 +254,15 @@ public class FileUploadService : IFileUploadService
             throw new ArgumentException("S3 key cannot be null or empty", nameof(s3Key));
         }
 
-        // For DigitalOcean Spaces CDN, the format is:
-        // https://bucket-name.region.cdn.digitaloceanspaces.com/path/to/file.jpg
-        return $"https://{_bucketName}.{_region}.{_cdnBaseDomain}/{s3Key}";
+        // If a CDN base domain is configured use it: https://bucket.region.cdnDomain/key
+        if (!string.IsNullOrWhiteSpace(_cdnBaseDomain))
+            return $"https://{_bucketName}.{_region}.{_cdnBaseDomain}/{s3Key}";
+
+        // Native AWS S3: https://bucket.s3.region.amazonaws.com/key
+        if (!string.IsNullOrWhiteSpace(_region))
+            return $"https://{_bucketName}.s3.{_region}.amazonaws.com/{s3Key}";
+
+        return $"https://{_bucketName}.s3.amazonaws.com/{s3Key}";
     }
 
     /// <summary>
@@ -638,13 +647,18 @@ public class FileUploadService : IFileUploadService
                 BucketName  = _bucketName,
                 Key         = s3Key,
                 ContentType = contentType,
-                CannedACL   = S3CannedACL.PublicRead
+                // Do not set CannedACL — modern S3 buckets have ACLs disabled by default.
+                // Objects are served via bucket policy or pre-signed URLs instead.
             };
             await transferUtility.UploadAsync(uploadRequest, cancellationToken);
         }
 
         _logger.LogInformation("Uploaded variant to S3 with key: {S3Key}", s3Key);
-        return GetCdnUrl(s3Key);
+
+        // Return a pre-signed URL so the image is accessible even when the bucket
+        // has Block Public Access enabled (the common AWS default).
+        var expiryMinutes = _options.UrlExpirationMinutes > 0 ? _options.UrlExpirationMinutes : 43200;
+        return (await GetPreSignedUrlAsync(s3Key, expiryMinutes));
     }
 
     /// <inheritdoc />

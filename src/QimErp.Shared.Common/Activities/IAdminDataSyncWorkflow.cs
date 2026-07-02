@@ -4,7 +4,7 @@ namespace QimErp.Shared.Common.Activities;
 
 /// <summary>
 /// Temporal workflow interface for admin reference data sync fan-out.
-/// Implemented by AdminDataSyncWorkflow in QimErp.CoreHr.Employee.WebApi.
+/// Implemented by AdminDataSyncWorkflow in QimErp.CoreHr.People.WebApi.
 /// Referenced here so admin services (in Shared) can start the workflow
 /// without a cross-project dependency on the WebApi.
 /// </summary>

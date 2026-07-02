@@ -4,7 +4,7 @@ namespace QimErp.Shared.Common.Activities;
 
 /// <summary>
 /// Temporal workflow interface for bulk employee sync during imports.
-/// Implemented by EmployeeBulkSyncWorkflow in QimErp.CoreHr.Employee.WebApi.
+/// Implemented by EmployeeBulkSyncWorkflow in QimErp.CoreHr.People.WebApi.
 ///
 /// During a bulk import, the import processor fires one EmployeeBulkSyncWorkflow per
 /// chunk of 200 employees instead of one EmployeeSyncWorkflow per employee.

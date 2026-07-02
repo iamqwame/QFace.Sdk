@@ -336,7 +336,7 @@ public class UpstashRedisProvider : IRedisProvider
         if (value is string str)
             return str;
 
-        return JsonConvert.SerializeObject(value);
+        return JsonConvert.SerializeObject(value, RedisJsonSettings.Settings);
     }
 
     private T Deserialize<T>(string value)
@@ -349,7 +349,7 @@ public class UpstashRedisProvider : IRedisProvider
 
         try
         {
-            return JsonConvert.DeserializeObject<T>(value);
+            return JsonConvert.DeserializeObject<T>(value, RedisJsonSettings.Settings);
         }
         catch (Exception ex)
         {

@@ -244,7 +244,7 @@ public class StackExchangeRedisProvider : IRedisProvider
         if (value is string str)
             return str;
 
-        return JsonConvert.SerializeObject(value);
+        return JsonConvert.SerializeObject(value, RedisJsonSettings.Settings);
     }
 
     private T Deserialize<T>(RedisValue value)
@@ -259,7 +259,7 @@ public class StackExchangeRedisProvider : IRedisProvider
 
         try
         {
-            return JsonConvert.DeserializeObject<T>(stringValue);
+            return JsonConvert.DeserializeObject<T>(stringValue, RedisJsonSettings.Settings);
         }
         catch (Exception ex)
         {

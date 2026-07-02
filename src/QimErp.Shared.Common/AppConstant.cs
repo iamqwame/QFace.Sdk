@@ -11,12 +11,12 @@ public static class AppConstant
     /// QimErp.CoreHr (upload/profile picture) and QimErp.HROperations.EmployeeEngagement
     /// (disciplinary case documents). Everything else has been moved to the module that owns it:
     ///   - Learning storage  → LearningStorageConstants (QimErp.CoreHr.Learning.Shared.Constants)
-    ///   - News storage      → SharedConstant.BlobStorage (QimErp.CoreHr.Employee.Shared.Constants)
+    ///   - News storage      → SharedConstant.BlobStorage (QimErp.CoreHr.People.Shared.Constants)
     ///   - Taxation constants → TaxationConstants (QimErp.Shared.Common.Processors — internal)
     ///   - Workflow states   → WorkflowConstants (QimErp.Shared.Common.Services.Workflow — internal)
     ///   - Cache regions     → SharedConstants.Cache (QimErp.IAM.Shared)
     ///   - Payroll lookups   → SharedConstant (QimErp.Payroll.Core.Shared.Constants)
-    ///   - HR API tags/URLs  → SharedConstant (QimErp.CoreHr.Employee.Shared.Constants)
+    ///   - HR API tags/URLs  → SharedConstant (QimErp.CoreHr.People.Shared.Constants)
     ///   - Surveys constants → SurveysConstants (QimErp.HrOperations.Surveys.Shared.Constants)
     ///   - Engagement const. → EngagementConstants (QimErp.HrOperations.EmployeeEngagement.Shared.Constants)
     ///   - Recruitment const.→ SharedConstant (QimErp.HrOperations.Recruitment.Shared.Constants)

@@ -44,7 +44,7 @@ From repo root `current-sprint`:
 ```bash
 dotnet pack QFace.Sdk/src/QFace.Sdk.RedisCache/QFace.Sdk.RedisCache.csproj -c Release -o ./local-nuget
 dotnet build QFace.Sdk/src/QimErp.Shared.Common/QimErp.Shared.Common.csproj -c Release
-dotnet build QimErp.CoreHr/src/Modules/Employees/QimErp.CoreHr.Employee.WebApi/QimErp.CoreHr.Employee.WebApi.csproj -c Release
+dotnet build QimErp.CoreHr/src/Modules/People/QimErp.CoreHr.People.WebApi/QimErp.CoreHr.People.WebApi.csproj -c Release
 ```
 
 If CoreHr still references `QimErp.Shared.Common` as a **NuGet** package, rebuild/pack Shared.Common and bump feed versions, or add a **ProjectReference** from `QimErp.CoreHr.Shared` to the Shared.Common **project** for local work.

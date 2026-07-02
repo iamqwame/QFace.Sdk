@@ -5,7 +5,7 @@ namespace QimErp.Shared.Common.Activities.Engagement;
 /// <summary>
 /// Activity interface for creating CoreHR EmployeeQuery records when engagement events occur
 /// (Risk created, Health Issue created, Disciplinary Case created).
-/// Implemented in QimErp.CoreHr.Employee.WebApi.
+/// Implemented in QimErp.CoreHr.People.WebApi.
 /// Task queue: qimerp-corehr-engagement-sync
 /// </summary>
 public interface IEngagementSyncActivity
