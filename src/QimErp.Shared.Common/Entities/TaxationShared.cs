@@ -164,58 +164,27 @@ public class TaxationShared : GuidAuditableEntity
             Create("NHIL", 2.5m)
                 .WithComputationMethod()
                 .WithType(TaxationConstants.TaxType.Sales)
-                .WithTaxGroup()
-                .WithSequence(5)
-                .WithDescription("National Health Insurance Levy")
+                .WithTaxGroup("NHIL")
+                .WithSequence(1)
+                .WithDescription("National Health Insurance Levy (VAT Act 2025 / Act 1151)")
+                .WithLegalNotes("Creditable input tax from Jan 2026")
                 .AddDistribution(),
 
-            Create("GETFUND", 2.5m)
+            Create("GETFund", 2.5m)
                 .WithComputationMethod()
                 .WithType(TaxationConstants.TaxType.Sales)
-                .WithTaxGroup()
-                .WithSequence(5)
-                .WithDescription("Ghana Education Trust Fund")
+                .WithTaxGroup("GETFund")
+                .WithSequence(2)
+                .WithDescription("Ghana Education Trust Fund Levy (VAT Act 2025 / Act 1151)")
+                .WithLegalNotes("Creditable input tax from Jan 2026")
                 .AddDistribution(),
 
-            Create("NHIL", 2.5m)
-                .WithComputationMethod()
-                .WithType(TaxationConstants.TaxType.Sales)
-                .WithTaxGroup()
-                .WithSequence(5)
-                .WithDescription("National Health Insurance Levy")
-                .AddDistribution(),
-
-            Create("COVID-19", 1m)
-                .WithComputationMethod()
-                .WithType(TaxationConstants.TaxType.Sales)
-                .WithTaxGroup()
-                .WithSequence(5)
-                .WithDescription("COVID-19 Health Recovery Levy")
-                .AddDistribution(),
-
-            Create("Standard VAT Rate", 12.5m)
-                .WithComputationMethod()
-                .WithType(TaxationConstants.TaxType.Sales)
-                .WithTaxGroup()
-                .WithSequence(5)
-                .WithDescription("General taxable goods and services.")
-                .AddDistribution(),
-
-            Create("Standard VAT Rate", 12.5m)
+            Create("VAT", 15m)
                 .WithComputationMethod()
                 .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup("VAT")
-                .WithSequence(5)
-                .WithDescription("General taxable goods and services.")
-                .AddDistribution(),
-
-            Create("VAT Flat Rate Scheme (VFRS)", 3m)
-                .WithComputationMethod()
-                .WithType(TaxationConstants.TaxType.Sales)
-                .WithTaxGroup("VAT")
-                .WithLabelOnInvoices("3% VAT")
-                .WithSequence(5)
-                .WithDescription("Small-scale retailers and wholesalers")
+                .WithSequence(3)
+                .WithDescription("Standard VAT rate per VAT Act 2025 (Act 1151), effective Jan 2026")
                 .AddDistribution(),
 
             Create("VAT Exempt", 0m)
@@ -223,9 +192,33 @@ public class TaxationShared : GuidAuditableEntity
                 .WithType(TaxationConstants.TaxType.Sales)
                 .WithTaxGroup("VAT")
                 .WithLabelOnInvoices("0% VAT")
-                .WithSequence(5)
+                .WithSequence(4)
                 .WithDescription("Healthcare, education, financial services, and specified agricultural goods.")
-                .AddDistribution()
+                .AddDistribution(),
+
+            Create("NHIL (Purchase)", 2.5m)
+                .WithComputationMethod()
+                .WithType(TaxationConstants.TaxType.Purchases)
+                .WithTaxGroup("NHIL")
+                .WithSequence(5)
+                .WithDescription("Input NHIL — creditable per Act 1151")
+                .AddDistribution("50700", "Purchase Tax"),
+
+            Create("GETFund (Purchase)", 2.5m)
+                .WithComputationMethod()
+                .WithType(TaxationConstants.TaxType.Purchases)
+                .WithTaxGroup("GETFund")
+                .WithSequence(6)
+                .WithDescription("Input GETFund — creditable per Act 1151")
+                .AddDistribution("50700", "Purchase Tax"),
+
+            Create("VAT (Purchase)", 15m)
+                .WithComputationMethod()
+                .WithType(TaxationConstants.TaxType.Purchases)
+                .WithTaxGroup("VAT")
+                .WithSequence(7)
+                .WithDescription("Input VAT at 15% per Act 1151")
+                .AddDistribution("50700", "Purchase Tax")
         ];
     }
 

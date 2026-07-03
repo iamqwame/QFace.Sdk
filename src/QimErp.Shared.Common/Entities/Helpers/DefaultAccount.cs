@@ -57,6 +57,10 @@ public static class DefaultAccount
         { AccountType.SalesTax, new Account("63e9c58f-f4a2-4732-8459-25c62b716d52", "20300", "Sales Tax") },
         { AccountType.PurchaseTax, new Account("85d36679-08f8-4d41-95bd-3cc7cf08c8b0", "50700", "Purchase Tax") },
         { AccountType.CustomerAdvance, new Account("f8c3d9a1-2b45-4c7d-89f1-1a2b3c4d5e6f", "20120", "Customer Advances") },
+        {
+            AccountType.VendorAdvance,
+            new Account("a1b2c3d4-e5f6-7890-abcd-ef1234567890", "20130", "Vendor Advances")
+        },
 
 
     };
