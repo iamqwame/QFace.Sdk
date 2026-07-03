@@ -168,7 +168,7 @@ public class TaxationShared : GuidAuditableEntity
                 .WithSequence(1)
                 .WithDescription("National Health Insurance Levy (VAT Act 2025 / Act 1151)")
                 .WithLegalNotes("Creditable input tax from Jan 2026")
-                .AddDistribution(),
+                .AddDistribution("20302", "NHIL Output Payable"),
 
             Create("GETFund", 2.5m)
                 .WithComputationMethod()
@@ -177,7 +177,7 @@ public class TaxationShared : GuidAuditableEntity
                 .WithSequence(2)
                 .WithDescription("Ghana Education Trust Fund Levy (VAT Act 2025 / Act 1151)")
                 .WithLegalNotes("Creditable input tax from Jan 2026")
-                .AddDistribution(),
+                .AddDistribution("20303", "GETFund Output Payable"),
 
             Create("VAT", 15m)
                 .WithComputationMethod()
@@ -185,7 +185,7 @@ public class TaxationShared : GuidAuditableEntity
                 .WithTaxGroup("VAT")
                 .WithSequence(3)
                 .WithDescription("Standard VAT rate per VAT Act 2025 (Act 1151), effective Jan 2026")
-                .AddDistribution(),
+                .AddDistribution("20301", "VAT Output Payable"),
 
             Create("VAT Exempt", 0m)
                 .WithComputationMethod()
@@ -222,17 +222,17 @@ public class TaxationShared : GuidAuditableEntity
         ];
     }
 
-    private TaxationShared AddDistribution(string accountId = "451000", string accountName = "VAT Payable")
+    private TaxationShared AddDistribution(string accountCode = "20301", string accountName = "VAT Output Payable")
     {
-        AddInvoiceDistribution(TaxationConstants.Core.DistributionBaseOnTheBase, null, "FIXED_01", accountId,
+        AddInvoiceDistribution(TaxationConstants.Core.DistributionBaseOnTheBase, null, "FIXED_01", accountCode,
             accountName);
         AddInvoiceDistribution(TaxationConstants.Core.DistributionBaseOnThePercentageOfTheBase, 100, "FIXED_01",
-            accountId,
+            accountCode,
             accountName);
-        AddRefundDistribution(TaxationConstants.Core.DistributionBaseOnTheBase, null, "FIXED_01", "451000",
+        AddRefundDistribution(TaxationConstants.Core.DistributionBaseOnTheBase, null, "FIXED_01", accountCode,
             accountName);
         AddRefundDistribution(TaxationConstants.Core.DistributionBaseOnThePercentageOfTheBase, 100, "FIXED_01",
-            accountId,
+            accountCode,
             accountName);
         return this;
     }
