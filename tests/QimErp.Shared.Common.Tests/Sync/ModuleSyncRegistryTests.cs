@@ -60,4 +60,11 @@ public class ModuleSyncRegistryTests
         ModuleSyncRegistry.ResolveAdminDataBackfillStep("payroll")
             .Should().Be("EnsureAdminDataInPayroll");
     }
+
+    [Fact]
+    public void ResolveSetupStepQueue_SyncSubscriptionModules_RoutesToTenantBillingSetup()
+    {
+        ModuleSyncRegistry.ResolveSetupStepQueue("SyncSubscriptionModules")
+            .Should().Be("qimerp-iam-tenant-setup");
+    }
 }

@@ -19,6 +19,7 @@ using QFace.Sdk.Temporal.Interceptors;
 using QimErp.Shared.Common.Behaviours;
 using QimErp.Shared.Common.Database;
 using QimErp.Shared.Common.Middlewares;
+using QimErp.Shared.Common.Services.TenantSetup;
 using QimErp.Shared.Common.Options;
 using QimErp.Shared.Common.Services.Cache;
 using QimErp.Shared.Common.Services.MultiTenancy;
@@ -380,6 +381,7 @@ public static class SharedServiceCollectionExtensions
         // Register ITenantContext (required by UseTenantContext middleware in UseAppSecurity)
         // Use TryAddScoped to avoid duplicate registration if already registered by AddDbContextWithOutbox
         services.TryAddScoped<ITenantContext, TenantContext>();
+        services.TryAddScoped<ITenantModuleAccessService, TenantModuleAccessService>();
 
         // Register SDK Redis Cache services (reads from "RedisCache" configuration section)
         services.AddRedisCache(configuration);

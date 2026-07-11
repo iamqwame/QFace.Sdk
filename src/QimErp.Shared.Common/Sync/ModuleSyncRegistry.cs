@@ -79,11 +79,24 @@ public static class ModuleSyncRegistry
         new("project", ModuleKeys.Project,
             ["SetupOperationsProjectTenant"],
             AdminDataBackfillStep: "EnsureAdminDataInProject"),
+
+        // Plugins — narrower than a module install: flip on one capability inside an
+        // already-installed module, via the module's own idempotent Enable/Disable activity.
+        // ModuleKey is the OWNING module (used only to build the outgoing SelectedModules
+        // payload for the setup-step dispatch, harmless since it's already selected) — it is
+        // NOT used for Tenant.SelectedModules dual-write, which is skipped entirely for
+        // IsPlugin=true entries (see AppStoreModuleRegistry.ResolveModuleKey).
+        new("ssnit-filing", ModuleKeys.Payroll,
+            ["EnablePluginSsnitFiling"],
+            RequiresItemKey: "payroll",
+            IsPlugin: true,
+            DisableStep: "DisablePluginSsnitFiling"),
     ];
 
     private static readonly SetupStepRoute[] SetupRoutes =
     [
         new("EnsureSubscription", "qimerp-iam-tenant-setup"),
+        new("SyncSubscriptionModules", "qimerp-iam-tenant-setup"),
         new("CreateFirstEmployee", "qimerp-corehr-employee-tenant-setup"),
         new("AssignSuperAdminRole", "qimerp-iam-tenant-onboarding"),
         new("SetupIAMTenant", "qimerp-iam-tenant-onboarding"),
@@ -121,6 +134,11 @@ public static class ModuleSyncRegistry
         new("EnsureEmployeeInLeave", "qimerp-leave-tenant-setup"),
         new("EnsureEmployeeInRecruitment", "qimerp-recruitment-tenant-setup"),
         new("EnsureEmployeeInSurveys", "qimerp-surveys-tenant-setup"),
+
+        // Plugin enable/disable — dispatched to the owning module's existing setup queue,
+        // no new worker process.
+        new("EnablePluginSsnitFiling", "qimerp-payroll-tenant-setup"),
+        new("DisablePluginSsnitFiling", "qimerp-payroll-tenant-setup"),
     ];
 
     private static readonly SyncSubscription[] Subscriptions =
@@ -165,7 +183,9 @@ public static class ModuleSyncRegistry
         SetupRoutes.ToDictionary(r => r.StepName, r => r.TaskQueue, StringComparer.Ordinal);
 
     private static readonly Dictionary<string, ModuleSyncDefinition> ByModuleKey =
-        Modules.ToDictionary(m => m.ModuleKey, m => m, StringComparer.OrdinalIgnoreCase);
+        Modules
+            .Where(m => !m.IsPlugin)
+            .ToDictionary(m => m.ModuleKey, m => m, StringComparer.OrdinalIgnoreCase);
 
     public static IReadOnlyList<ModuleSyncDefinition> GetAllModules() => Modules;
 
@@ -189,6 +209,12 @@ public static class ModuleSyncRegistry
 
     public static string? ResolveAdminDataBackfillStep(string itemKey) =>
         TryGetModule(itemKey)?.AdminDataBackfillStep;
+
+    public static string? ResolveDisableStep(string itemKey) =>
+        TryGetModule(itemKey)?.DisableStep;
+
+    public static bool IsPlugin(string itemKey) =>
+        TryGetModule(itemKey)?.IsPlugin ?? false;
 
     public static IEnumerable<ModuleSyncDefinition> ResolvePrerequisites(string itemKey)
     {

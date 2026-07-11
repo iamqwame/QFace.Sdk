@@ -1,10 +1,6 @@
 namespace QimErp.Shared.Common.TenantSetup;
 
-/// <summary>
-/// Normalizes tenant module selection: accepts only known <see cref="ModuleKeys"/>,
-/// always unions <see cref="BaseModel.IncludedModuleKeys"/>, and deduplicates.
-/// Unknown tokens (e.g. obsolete bundle labels) are ignored.
-/// </summary>
+/// <summary>Filters unknown module tokens, always unions <see cref="BaseModel.IncludedModuleKeys"/>, deduplicates.</summary>
 public static class BaseModelResolver
 {
     private static readonly HashSet<string> KnownModuleKeys = new(StringComparer.OrdinalIgnoreCase)

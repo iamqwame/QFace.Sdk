@@ -10,6 +10,8 @@ public sealed record ModuleSyncDefinition(
     string? RequiresItemKey = null,
     string[]? PrerequisiteItemKeys = null,
     string? EmployeeBackfillStep = null,
-    string? AdminDataBackfillStep = null);
+    string? AdminDataBackfillStep = null,
+    bool IsPlugin = false,
+    string? DisableStep = null);
 
 public sealed record SetupStepRoute(string StepName, string TaskQueue);
