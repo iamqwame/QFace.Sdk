@@ -14,7 +14,7 @@ public class TenantOnboardingStartRequest
     public string SuperAdminFirstName { get; set; } = string.Empty;
     public string SuperAdminLastName { get; set; } = string.Empty;
     public string PlanType { get; set; } = string.Empty;
-    public int UserCount { get; set; }
+    public int SeatCount { get; set; }
     public string[] SelectedModules { get; set; } = [];
     public string? SelectedBundle { get; set; }
     public string BillingCycle { get; set; } = "Monthly";

@@ -44,6 +44,9 @@ public class EmployeeChangedEvent : DomainEvent
     public bool MustChangePassword { get; set; } = true;
     public bool IsSeed { get; set; }
 
+    /// <summary>Tenant installed modules — set by EmployeeSyncWorkflow before fan-out.</summary>
+    public List<string>? SyncSelectedModules { get; set; }
+
     public EmployeeChangedEvent()
     {
     }

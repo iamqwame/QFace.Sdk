@@ -494,6 +494,9 @@ public class FiscalYearUpdatedEvent : DomainEvent
 /// </summary>
 public class JournalEntryPostedEvent : DomainEvent
 {
+    /// <summary>Resolved by orchestrator from IAM; activities no-op when target module is not installed.</summary>
+    public List<string>? SelectedModules { get; set; }
+
     public Guid JournalEntryId { get; set; }
     public string EntryNumber { get; set; } = string.Empty;
     public DateTime EntryDate { get; set; }

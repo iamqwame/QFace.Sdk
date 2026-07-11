@@ -17,4 +17,7 @@ public class EmployeeSyncRequest
 
     /// <summary>Employee email — required for Deleted so IAM can look up and deactivate the user account.</summary>
     public string EmployeeEmail { get; set; } = string.Empty;
+
+    /// <summary>Tenant installed modules — loaded by orchestrator when not supplied by caller.</summary>
+    public List<string>? SelectedModules { get; set; }
 }

@@ -12,7 +12,7 @@ public class TenantModuleSetupRequest
     public string? BillingCycle { get; set; }
     public List<string>? SelectedModules { get; set; }
     public string? SelectedBundle { get; set; }
-    public int? UserCount { get; set; }
+    public int? SeatCount { get; set; }
     public decimal? TotalCost { get; set; }
     public string? CallbackUrl { get; set; }
     // Employee fields (CreateFirstEmployee + SyncEmployee)

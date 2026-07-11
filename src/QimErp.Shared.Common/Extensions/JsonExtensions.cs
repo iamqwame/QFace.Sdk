@@ -138,3 +138,32 @@ public class SafeJsonbListConverter<T> : ValueConverter<List<T>, string>
         }
     }
 }
+
+public class SafeJsonbObjectConverter<T> : ValueConverter<T?, string> where T : class
+{
+    public SafeJsonbObjectConverter() : base(
+        v => SafeSerialize(v),
+        v => SafeDeserialize(v))
+    {
+    }
+
+    private static string SafeSerialize(T? value) =>
+        value is null ? string.Empty : value.Serialize();
+
+    private static T? SafeDeserialize(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            return value.Deserialize<T>();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+}

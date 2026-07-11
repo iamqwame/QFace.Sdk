@@ -23,4 +23,7 @@ public class AdminDataSyncRequest
     /// Department = 1 (triggers additional JobTitle OU reference updates).
     /// </summary>
     public int? OrgUnitType { get; set; }
+
+    /// <summary>Tenant installed modules — loaded by orchestrator when not supplied by caller.</summary>
+    public List<string>? SelectedModules { get; set; }
 }

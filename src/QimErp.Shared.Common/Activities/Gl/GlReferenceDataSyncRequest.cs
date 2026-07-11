@@ -27,6 +27,9 @@ public class GlReferenceDataSyncRequest
     public GlReferenceSyncOperation Operation { get; set; }
     public string TenantId { get; set; } = string.Empty;
 
+    /// <summary>Resolved by orchestrator from IAM; activities no-op when target module is not installed.</summary>
+    public List<string>? SelectedModules { get; set; }
+
     public ChartOfAccountUpdatedEvent? ChartOfAccountUpdated { get; set; }
     public ChartOfAccountDeletedEvent? ChartOfAccountDeleted { get; set; }
     public CostCenterUpdatedEvent? CostCenterUpdated { get; set; }

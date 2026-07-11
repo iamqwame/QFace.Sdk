@@ -24,7 +24,7 @@ public interface IEmployeeSyncActivity
     /// <param name="tenantId">Tenant scope.</param>
     /// <param name="employeeEmail">Email — used by IAM to locate and deactivate the user account.</param>
     [Activity]
-    Task SyncEmployeeDeletedAsync(Guid employeeId, string tenantId, string employeeEmail);
+    Task SyncEmployeeDeletedAsync(Guid employeeId, string tenantId, string employeeEmail, List<string>? selectedModules);
 
     /// <summary>
     /// Called when an employee is terminated in CoreHR.
