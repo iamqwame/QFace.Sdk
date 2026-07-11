@@ -80,17 +80,60 @@ public static class ModuleSyncRegistry
             ["SetupOperationsProjectTenant"],
             AdminDataBackfillStep: "EnsureAdminDataInProject"),
 
+        // Attendance — catalog module stub so biometric-sync plugin can declare a prerequisite.
+        new("attendance", ModuleKeys.Attendance, ["SetupAttendanceTenant"]),
+
         // Plugins — narrower than a module install: flip on one capability inside an
         // already-installed module, via the module's own idempotent Enable/Disable activity.
         // ModuleKey is the OWNING module (used only to build the outgoing SelectedModules
         // payload for the setup-step dispatch, harmless since it's already selected) — it is
         // NOT used for Tenant.SelectedModules dual-write, which is skipped entirely for
         // IsPlugin=true entries (see AppStoreModuleRegistry.ResolveModuleKey).
-        new("ssnit-filing", ModuleKeys.Payroll,
+        new(PluginKeys.SsnitFiling, ModuleKeys.Payroll,
             ["EnablePluginSsnitFiling"],
             RequiresItemKey: "payroll",
             IsPlugin: true,
             DisableStep: "DisablePluginSsnitFiling"),
+        new(PluginKeys.GhIpssExport, ModuleKeys.Payroll,
+            ["EnablePluginGhIpssExport"],
+            RequiresItemKey: "payroll",
+            IsPlugin: true,
+            DisableStep: "DisablePluginGhIpssExport"),
+        new(PluginKeys.PayslipWhatsapp, ModuleKeys.Payroll,
+            ["EnablePluginPayslipWhatsapp"],
+            RequiresItemKey: "payroll",
+            IsPlugin: true,
+            DisableStep: "DisablePluginPayslipWhatsapp"),
+        new(PluginKeys.BiometricSync, ModuleKeys.CoreHR,
+            ["EnablePluginBiometricSync"],
+            RequiresItemKey: "attendance",
+            IsPlugin: true,
+            DisableStep: "DisablePluginBiometricSync"),
+        new(PluginKeys.Esign, ModuleKeys.CoreHR,
+            ["EnablePluginEsign"],
+            RequiresItemKey: "core-hr",
+            IsPlugin: true,
+            DisableStep: "DisablePluginEsign"),
+        new(PluginKeys.ChatNotify, ModuleKeys.Workflow,
+            ["EnablePluginChatNotify"],
+            RequiresItemKey: "workflows",
+            IsPlugin: true,
+            DisableStep: "DisablePluginChatNotify"),
+        new(PluginKeys.SmsNotify, ModuleKeys.Workflow,
+            ["EnablePluginSmsNotify"],
+            RequiresItemKey: "workflows",
+            IsPlugin: true,
+            DisableStep: "DisablePluginSmsNotify"),
+        new(PluginKeys.ConferenceNotify, ModuleKeys.Workflow,
+            ["EnablePluginConferenceNotify"],
+            RequiresItemKey: "workflows",
+            IsPlugin: true,
+            DisableStep: "DisablePluginConferenceNotify"),
+        new(PluginKeys.WebhookNotify, ModuleKeys.Workflow,
+            ["EnablePluginWebhookNotify"],
+            RequiresItemKey: "workflows",
+            IsPlugin: true,
+            DisableStep: "DisablePluginWebhookNotify"),
     ];
 
     private static readonly SetupStepRoute[] SetupRoutes =
@@ -124,6 +167,7 @@ public static class ModuleSyncRegistry
         new("SetupCashManagementTenant", "qimerp-accounting-cash-tenant-setup"),
         new("SetupOperationsInventoryTenant", "qimerp-operations-inventory-tenant-setup"),
         new("SetupOperationsProjectTenant", "qimerp-operations-project-tenant-setup"),
+        new("SetupAttendanceTenant", "qimerp-corehr-employee-tenant-setup"),
         new("EnsureEmployeeInPayroll", "qimerp-payroll-tenant-setup"),
         new("EnsureEmployeeInLearning", "qimerp-learning-tenant-setup"),
         new("EnsureEmployeeInPerformance", "qimerp-performance-tenant-setup"),
@@ -139,6 +183,22 @@ public static class ModuleSyncRegistry
         // no new worker process.
         new("EnablePluginSsnitFiling", "qimerp-payroll-tenant-setup"),
         new("DisablePluginSsnitFiling", "qimerp-payroll-tenant-setup"),
+        new("EnablePluginGhIpssExport", "qimerp-payroll-tenant-setup"),
+        new("DisablePluginGhIpssExport", "qimerp-payroll-tenant-setup"),
+        new("EnablePluginPayslipWhatsapp", "qimerp-payroll-tenant-setup"),
+        new("DisablePluginPayslipWhatsapp", "qimerp-payroll-tenant-setup"),
+        new("EnablePluginBiometricSync", "qimerp-corehr-employee-tenant-setup"),
+        new("DisablePluginBiometricSync", "qimerp-corehr-employee-tenant-setup"),
+        new("EnablePluginEsign", "qimerp-corehr-employee-tenant-setup"),
+        new("DisablePluginEsign", "qimerp-corehr-employee-tenant-setup"),
+        new("EnablePluginChatNotify", "qimerp-workflow-tenant-setup"),
+        new("DisablePluginChatNotify", "qimerp-workflow-tenant-setup"),
+        new("EnablePluginSmsNotify", "qimerp-workflow-tenant-setup"),
+        new("DisablePluginSmsNotify", "qimerp-workflow-tenant-setup"),
+        new("EnablePluginConferenceNotify", "qimerp-workflow-tenant-setup"),
+        new("DisablePluginConferenceNotify", "qimerp-workflow-tenant-setup"),
+        new("EnablePluginWebhookNotify", "qimerp-workflow-tenant-setup"),
+        new("DisablePluginWebhookNotify", "qimerp-workflow-tenant-setup"),
     ];
 
     private static readonly SyncSubscription[] Subscriptions =

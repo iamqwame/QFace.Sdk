@@ -29,4 +29,15 @@ public static class SharedCacheKeys
 
     public static string TenantModuleSnapshot(Guid tenantId)
         => TenantModuleSnapshot(tenantId.ToString());
+
+    /// <summary>
+    /// Tenant plugin snapshot — written by IAM on manifest refresh, read by any service
+    /// gating plugin-specific endpoints via <see cref="Services.TenantSetup.ITenantPluginAccessService"/>.
+    /// Key: qface:qimerp:{tenantId}:shared:tenant_plugin_snapshot
+    /// </summary>
+    public static string TenantPluginSnapshot(string tenantId)
+        => $"{Prefix}{tenantId}:shared:tenant_plugin_snapshot";
+
+    public static string TenantPluginSnapshot(Guid tenantId)
+        => TenantPluginSnapshot(tenantId.ToString());
 }

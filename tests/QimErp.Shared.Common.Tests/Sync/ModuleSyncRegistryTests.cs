@@ -67,4 +67,68 @@ public class ModuleSyncRegistryTests
         ModuleSyncRegistry.ResolveSetupStepQueue("SyncSubscriptionModules")
             .Should().Be("qimerp-iam-tenant-setup");
     }
+
+    [Fact]
+    public void IsPlugin_AllNineCatalogPlugins_ReturnTrue()
+    {
+        foreach (var key in PluginKeys.All)
+        {
+            ModuleSyncRegistry.IsPlugin(key).Should().BeTrue($"expected plugin for {key}");
+        }
+    }
+
+    [Fact]
+    public void ResolveDisableStep_ConferenceNotify_ReturnsDisableActivity()
+    {
+        ModuleSyncRegistry.ResolveDisableStep(PluginKeys.ConferenceNotify)
+            .Should().Be("DisablePluginConferenceNotify");
+    }
+
+    [Fact]
+    public void ResolveSetupStepQueue_EnablePluginWebhookNotify_RoutesToWorkflowSetup()
+    {
+        ModuleSyncRegistry.ResolveSetupStepQueue("EnablePluginWebhookNotify")
+            .Should().Be("qimerp-workflow-tenant-setup");
+    }
+
+    [Fact]
+    public void ResolveDisableStep_ChatNotify_ReturnsDisableActivity()
+    {
+        ModuleSyncRegistry.ResolveDisableStep(PluginKeys.ChatNotify)
+            .Should().Be("DisablePluginChatNotify");
+    }
+
+    [Fact]
+    public void ResolveDisableStep_WebhookNotify_ReturnsDisableActivity()
+    {
+        ModuleSyncRegistry.ResolveDisableStep(PluginKeys.WebhookNotify)
+            .Should().Be("DisablePluginWebhookNotify");
+    }
+
+    [Fact]
+    public void ResolveSetupStepQueue_EnablePluginChatNotify_RoutesToWorkflowSetup()
+    {
+        ModuleSyncRegistry.ResolveSetupStepQueue("EnablePluginChatNotify")
+            .Should().Be("qimerp-workflow-tenant-setup");
+    }
+
+    [Fact]
+    public void ResolveDisableStep_SsnitFiling_ReturnsDisableActivity()
+    {
+        ModuleSyncRegistry.ResolveDisableStep(PluginKeys.SsnitFiling)
+            .Should().Be("DisablePluginSsnitFiling");
+    }
+
+    [Fact]
+    public void ResolveSetupStepQueue_EnablePluginEsign_RoutesToCoreHrSetup()
+    {
+        ModuleSyncRegistry.ResolveSetupStepQueue("EnablePluginEsign")
+            .Should().Be("qimerp-corehr-employee-tenant-setup");
+    }
+
+    [Fact]
+    public void TryResolveItemKey_Attendance_ReturnsCatalogSlug()
+    {
+        ModuleSyncRegistry.TryResolveItemKey(ModuleKeys.Attendance).Should().Be("attendance");
+    }
 }

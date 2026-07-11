@@ -27,4 +27,5 @@ public static class ModuleKeys
     public const string CashManagement       = "CashManagement";
     public const string Inventory            = "Inventory";
     public const string Project              = "Project";
+    public const string Attendance           = "Attendance";
 }

@@ -382,6 +382,7 @@ public static class SharedServiceCollectionExtensions
         // Use TryAddScoped to avoid duplicate registration if already registered by AddDbContextWithOutbox
         services.TryAddScoped<ITenantContext, TenantContext>();
         services.TryAddScoped<ITenantModuleAccessService, TenantModuleAccessService>();
+        services.TryAddScoped<ITenantPluginAccessService, TenantPluginAccessService>();
 
         // Register SDK Redis Cache services (reads from "RedisCache" configuration section)
         services.AddRedisCache(configuration);
