@@ -23,4 +23,10 @@ public static class SharedCacheKeys
 
     public static string TenantBranding(Guid tenantId)
         => TenantBranding(tenantId.ToString());
+
+    public static string TenantModuleSnapshot(string tenantId)
+        => $"{Prefix}{tenantId}:shared:tenant_module_snapshot";
+
+    public static string TenantModuleSnapshot(Guid tenantId)
+        => TenantModuleSnapshot(tenantId.ToString());
 }

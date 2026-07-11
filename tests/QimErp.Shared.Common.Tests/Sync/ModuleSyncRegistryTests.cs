@@ -15,8 +15,10 @@ public class ModuleSyncRegistryTests
         var subscribers = ModuleSyncRegistry.FilterByInstalled(SyncType.Employee, modules);
 
         subscribers.Should().Contain(s => s.ModuleKey == ModuleKeys.Payroll);
-        subscribers.Should().NotContain(s => s.ModuleKey == ModuleKeys.Leave);
+        subscribers.Should().Contain(s => s.ModuleKey == ModuleKeys.Leave);
+        subscribers.Should().NotContain(s => s.ModuleKey == ModuleKeys.Recruitment);
         subscribers.Should().Contain(s => s.ActivitySuffix == "IAM");
+        subscribers.Should().Contain(s => s.ActivitySuffix == "TenantBilling");
         subscribers.Should().Contain(s => s.ActivitySuffix == "TenantBilling");
     }
 
