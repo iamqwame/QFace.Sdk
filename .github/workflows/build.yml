@@ -101,7 +101,11 @@ jobs:
             fi
 
             echo "📦 Processing $project_name..."
-            dotnet restore "$project"
+            # Restore against both the local nupkgs folder (for packages already packed
+            # earlier in this same loop iteration) and nuget.org — otherwise a commit that
+            # bumps several interdependent SDK packages together fails NU1102 here, since
+            # the "Publish to NuGet" step only runs after this whole loop completes.
+            dotnet restore "$project" -s ./nupkgs -s https://api.nuget.org/v3/index.json
             dotnet build "$project" -c Release --no-restore
             dotnet pack "$project" -c Release --no-build -o ./nupkgs
           done
