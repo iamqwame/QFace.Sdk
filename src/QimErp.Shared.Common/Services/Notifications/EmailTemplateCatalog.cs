@@ -124,6 +124,13 @@ public static class EmailTemplateCatalog
         ["FirstName", "IpAddress", "LoginCity", "LoginCountry", "LoginTime", "Browser", "Device"],
         []);
 
+    // ── App Store ──────────────────────────────────────────────────────────────
+
+    public static readonly EmailTemplateDefinition AppStoreItemInstalled = new(
+        "app-store-item-installed",
+        ["FirstName", "ItemName", "ItemTypeLabel", "ItemInitial", "PriceLabel"],
+        ["Link", "Portal", "InstalledByName"]);
+
     public static IReadOnlyDictionary<string, EmailTemplateDefinition> All => AllLazy.Value;
 
     private static readonly Lazy<IReadOnlyDictionary<string, EmailTemplateDefinition>> AllLazy = new(() =>
@@ -151,6 +158,7 @@ public static class EmailTemplateCatalog
             ["password-reset"]              = PasswordReset,
             ["password-reset-confirmation"] = PasswordResetConfirmation,
             ["login-success"]               = LoginSuccess,
+            ["app-store-item-installed"]    = AppStoreItemInstalled,
         });
 
     public static EmailTemplateDefinition? TryGet(string templateCode) =>
