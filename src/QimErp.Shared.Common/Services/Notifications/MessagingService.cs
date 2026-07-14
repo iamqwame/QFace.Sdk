@@ -26,13 +26,13 @@ public class MessagingService(
                     Message = $"Hello {username}, you have successfully logged into your QimERP account."
                 };
 
-                logger.LogInformation("📤 [Messaging] Queuing login SMS for {PhoneNumber}...", phoneNumber);
+                logger.LogInformation("[Messaging] Queuing login SMS for {PhoneNumber}...", phoneNumber);
                 await notificationStarter.SendAsync(smsMessage);
             }
 
             if (!string.IsNullOrEmpty(email))
             {
-                logger.LogInformation("📤 [Messaging] Queuing login email for {Email}...", email);
+                logger.LogInformation("[Messaging] Queuing login email for {Email}...", email);
                 await notificationStarter.SendEmailAsync(
                     email,
                     "Login Notification",
@@ -59,13 +59,13 @@ public class MessagingService(
                     Message = $"Hello {username}, your QimERP account has been created successfully."
                 };
 
-                logger.LogInformation("📤 [Messaging] Queuing registration SMS for {PhoneNumber}...", phoneNumber);
+                logger.LogInformation("[Messaging] Queuing registration SMS for {PhoneNumber}...", phoneNumber);
                 await notificationStarter.SendAsync(smsMessage);
             }
 
             if (!string.IsNullOrEmpty(email))
             {
-                logger.LogInformation("📤 [Messaging] Queuing registration email for {Email}...", email);
+                logger.LogInformation("[Messaging] Queuing registration email for {Email}...", email);
                 await notificationStarter.SendTemplatedEmailAsync(
                     email,
                     "Registration Successful",
@@ -88,7 +88,7 @@ public class MessagingService(
     {
         try
         {
-            logger.LogInformation("📤 [Messaging] Queuing password reset email for {Email}...", email);
+            logger.LogInformation("[Messaging] Queuing password reset email for {Email}...", email);
             await notificationStarter.SendTemplatedEmailAsync(
                 email,
                 "Password Reset Request",
@@ -110,7 +110,7 @@ public class MessagingService(
     {
         try
         {
-            logger.LogInformation("📤 [Messaging] Queuing email verification for {Email}...", email);
+            logger.LogInformation("[Messaging] Queuing email verification for {Email}...", email);
             await notificationStarter.SendTemplatedEmailAsync(
                 email,
                 "Email Verification",

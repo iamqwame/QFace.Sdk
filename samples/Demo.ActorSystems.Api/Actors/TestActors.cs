@@ -35,7 +35,7 @@ public class UserActor : BaseActor
         // Set up message handling
         Receive<UserMessage>(message =>
         {
-            _logger.LogInformation("👤 [UserActor] Processing user: {Name} ({Email})", 
+            _logger.LogInformation("[UserActor] Processing user: {Name} ({Email})", 
                 message.Name, message.Email);
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] UserActor processed: {message.Name} - {message.Email}");
         });
@@ -58,14 +58,14 @@ public class MultiPurposeActor : BaseActor
         // Handle string messages
         Receive<string>(message =>
         {
-            _logger.LogInformation("🔤 [MultiPurposeActor] String message: {Message}", message);
+            _logger.LogInformation("[MultiPurposeActor] String message: {Message}", message);
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] MultiPurposeActor (String): {message}");
         });
         
         // Handle user messages
         Receive<UserMessage>(message =>
         {
-            _logger.LogInformation("👤 [MultiPurposeActor] User message: {Name} ({Email})", 
+            _logger.LogInformation("[MultiPurposeActor] User message: {Name} ({Email})", 
                 message.Name, message.Email);
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] MultiPurposeActor (User): {message.Name} - {message.Email}");
         });
@@ -73,7 +73,7 @@ public class MultiPurposeActor : BaseActor
         // Handle email messages
         Receive<EmailMessage>(message =>
         {
-            _logger.LogInformation("📧 [MultiPurposeActor] Email message: {Subject} to {ToEmail}", 
+            _logger.LogInformation("[MultiPurposeActor] Email message: {Subject} to {ToEmail}", 
                 message.Subject, message.ToEmail);
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] MultiPurposeActor (Email): {message.Subject} to {message.ToEmail}");
         });
@@ -81,14 +81,14 @@ public class MultiPurposeActor : BaseActor
         // Handle number messages
         Receive<int>(number =>
         {
-            _logger.LogInformation("🔢 [MultiPurposeActor] Number message: {Number}", number);
+            _logger.LogInformation("[MultiPurposeActor] Number message: {Number}", number);
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] MultiPurposeActor (Number): {number}");
         });
         
         // Handle custom command messages
         Receive<CommandMessage>(command =>
         {
-            _logger.LogInformation("⚡ [MultiPurposeActor] Command: {Command} with data: {Data}", 
+            _logger.LogInformation("[MultiPurposeActor] Command: {Command} with data: {Data}", 
                 command.Command, command.Data);
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] MultiPurposeActor (Command): {command.Command} - {command.Data}");
         });

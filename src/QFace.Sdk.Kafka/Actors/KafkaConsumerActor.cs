@@ -142,7 +142,7 @@ internal class KafkaConsumerActor : BaseActor
             
             _consumingTask = Task.Run(async () => await ConsumeLoop(_cancellationTokenSource.Token));
             
-            _logger.LogInformation($"[Kafka] Started consuming from topics: {string.Join(", ", message.Topics)}");
+            _logger.LogInformation("[Kafka] Started consuming from topics: {Topics}", string.Join(", ", message.Topics));
         }
         catch (Exception ex)
         {
@@ -276,7 +276,7 @@ internal class KafkaConsumerActor : BaseActor
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"[Kafka] Failed to deserialize/cast message from {result.TopicPartition}:{result.Offset} to type {targetType.Name}");
+                    _logger.LogError(ex, "[Kafka] Failed to deserialize/cast message from {TopicPartition}:{Offset} to type {TargetType}", result.TopicPartition, result.Offset, targetType.Name);
                     // Could implement dead letter queue logic here
                 }
             }
@@ -306,7 +306,7 @@ internal class KafkaConsumerActor : BaseActor
                         _consumer.Commit(offsetsToCommit);
                     }
                     
-                    _logger.LogDebug($"[Kafka] Committed offsets for {offsetsToCommit.Count} partitions");
+                    _logger.LogDebug("[Kafka] Committed offsets for {PartitionCount} partitions", offsetsToCommit.Count);
                 }
             }
         }

@@ -34,7 +34,7 @@ public class RestSmsProvider: ISmsProvider
 {
     try
     {
-        _logger.LogInformation("📱 Sending SMS to {PhoneNumbers}", string.Join(", ", phoneNumbers));
+        _logger.LogInformation("Sending SMS to {PhoneNumbers}", string.Join(", ", phoneNumbers));
 
         var requestMessage = new HttpRequestMessage(HttpMethod.Post, _endpoint);
         requestMessage.Headers.TryAddWithoutValidation("Host", "api.smsonlinegh.com");
@@ -57,11 +57,11 @@ public class RestSmsProvider: ISmsProvider
         var responseContent = await response.Content.ReadAsStringAsync();
 
         // Always log the raw API response for debugging
-        _logger.LogInformation("📡 SMS API Response: {ResponseContent}", responseContent);
+        _logger.LogInformation("SMS API Response: {ResponseContent}", responseContent);
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("⚠️ HTTP request failed. Status: {StatusCode}. Response: {ResponseContent}",
+            _logger.LogWarning("HTTP request failed. Status: {StatusCode}. Response: {ResponseContent}",
                 response.StatusCode, responseContent);
             return (false, responseContent);
         }
@@ -73,12 +73,12 @@ public class RestSmsProvider: ISmsProvider
 
             // Check if handshake was successful first
             var handshakeLabel = parsed?.Handshake?.Label;
-            _logger.LogInformation("🔍 Handshake debug - Label: '{Label}', IsHSHK_OK: {IsMatch}", 
+            _logger.LogInformation("Handshake debug - Label: '{Label}', IsHSHK_OK: {IsMatch}", 
                 handshakeLabel, handshakeLabel == "HSHK_OK");
             
             if (handshakeLabel != "HSHK_OK")
             {
-                _logger.LogWarning("⚠️ SMS API handshake failed. Label: {Label}", handshakeLabel ?? "Unknown");
+                _logger.LogWarning("SMS API handshake failed. Label: {Label}", handshakeLabel ?? "Unknown");
                 return (false, responseContent);
             }
 
@@ -92,32 +92,32 @@ public class RestSmsProvider: ISmsProvider
                 // Success status codes: DS_SUBMIT_ENROUTE (2105) indicates message is successfully queued
                 if (statusId == 2105 || statusLabel == "DS_SUBMIT_ENROUTE")
                 {
-                    _logger.LogInformation("✅ SMS successfully queued for delivery! Batch: {BatchId}, Status: {Status}",
+                    _logger.LogInformation("SMS successfully queued for delivery! Batch: {BatchId}, Status: {Status}",
                         parsed?.Data?.Batch, statusLabel);
                     return (true, responseContent);
                 }
                 else
                 {
-                    _logger.LogWarning("⚠️ SMS delivery failed. Status ID: {StatusId}, Label: {StatusLabel}", 
+                    _logger.LogWarning("SMS delivery failed. Status ID: {StatusId}, Label: {StatusLabel}", 
                         statusId, statusLabel);
                     return (false, responseContent);
                 }
             }
             else
             {
-                _logger.LogWarning("⚠️ SMS delivery status unknown. No destination status found.");
+                _logger.LogWarning("SMS delivery status unknown. No destination status found.");
                 return (false, responseContent);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Failed to parse SMS API response.");
+            _logger.LogError(ex, "Failed to parse SMS API response.");
             return (false, responseContent);
         }
     }
     catch (Exception ex)
     {
-        _logger.LogError(ex, "❌ Exception sending SMS: {Message}", ex.Message);
+        _logger.LogError(ex, "Exception sending SMS: {Message}", ex.Message);
         return (false, ex.Message);
     }
 }

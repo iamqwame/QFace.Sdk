@@ -37,7 +37,7 @@ public static class LoggerUserContextScopeExtensions
     }
 
     /// <summary>
-    /// MediatR pipeline scope: <c>CorrelationId</c>, <c>TenantId</c> (domain name when present), <c>UserId</c> (acting user email per observability standard), <c>RequestType</c>.
+    /// MediatR pipeline scope: <c>CorrelationId</c>, <c>TenantId</c> (domain name when present), <c>UserId</c> (opaque acting-user identifier, not PII), <c>RequestType</c>.
     /// </summary>
     public static IDisposable BeginMediatrObservabilityScope(
         this ILogger logger,
@@ -53,8 +53,8 @@ public static class LoggerUserContextScopeExtensions
         if (!string.IsNullOrWhiteSpace(tenantKey))
             items.Add(new KeyValuePair<string, object>("TenantId", tenantKey));
 
-        var actorEmail = currentUser.GetUserEmail();
-        items.Add(new KeyValuePair<string, object>("UserId", string.IsNullOrWhiteSpace(actorEmail) ? "unknown" : actorEmail));
+        var actorId = currentUser.GetUserId();
+        items.Add(new KeyValuePair<string, object>("UserId", string.IsNullOrWhiteSpace(actorId) ? "unknown" : actorId));
 
         items.Add(new KeyValuePair<string, object>("RequestType", requestTypeName));
 

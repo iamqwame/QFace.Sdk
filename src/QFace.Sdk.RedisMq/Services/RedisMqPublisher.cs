@@ -55,7 +55,7 @@ public class RedisMqPublisher : IRedisMqPublisher
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"[Redis] Failed to publish message to channel '{channelName}'");
+            _logger.LogError(ex, "[Redis] Failed to publish message to channel '{ChannelName}'", channelName);
             return Task.FromResult(false);
         }
     }

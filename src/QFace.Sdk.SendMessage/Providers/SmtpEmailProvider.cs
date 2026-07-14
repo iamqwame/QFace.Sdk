@@ -44,18 +44,18 @@ public class SmtpEmailProvider : IEmailProvider
             if (_isConfigured)
             {
                 var mode = _config.IsLocalHost ? "localhost" : "production";
-                _logger.LogInformation("📧 SMTP provider configured for {Mode}: {Server}:{Port}", mode, _config.SmtpServer, _config.SmtpPort);
+                _logger.LogInformation("SMTP provider configured for {Mode}: {Server}:{Port}", mode, _config.SmtpServer, _config.SmtpPort);
             }
             else
             {
-                _logger.LogWarning("⚠️ SMTP provider not fully configured");
+                _logger.LogWarning("SMTP provider not fully configured");
             }
 
             return Task.FromResult(_isConfigured);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error initializing SMTP provider: {Message}", ex.Message);
+            _logger.LogError(ex, "Error initializing SMTP provider: {Message}", ex.Message);
             return Task.FromResult(false);
         }
     }
@@ -71,7 +71,7 @@ public class SmtpEmailProvider : IEmailProvider
     {
         if (!_isConfigured)
         {
-            _logger.LogError("❌ Cannot send email: SMTP provider not properly configured");
+            _logger.LogError("Cannot send email: SMTP provider not properly configured");
             return false;
         }
             
@@ -90,7 +90,7 @@ public class SmtpEmailProvider : IEmailProvider
 
             using var smtp = new SmtpClient();
 
-            _logger.LogInformation("📤 Connecting to SMTP server {SmtpServer}:{SmtpPort}...", _config.SmtpServer, _config.SmtpPort);
+            _logger.LogInformation("Connecting to SMTP server {SmtpServer}:{SmtpPort}...", _config.SmtpServer, _config.SmtpPort);
 
             if (_config.IsLocalHost)
             {
@@ -105,35 +105,35 @@ public class SmtpEmailProvider : IEmailProvider
                 await smtp.AuthenticateAsync(_config.SmtpUser, _config.SmtpPassword);
             }
 
-            _logger.LogInformation("📩 Sending email to {ToEmail} | Subject: {Subject}", toEmail, subject);
+            _logger.LogInformation("Sending email to {ToEmail} | Subject: {Subject}", toEmail, subject);
             await smtp.SendAsync(email);
             await smtp.DisconnectAsync(true);
 
-            _logger.LogInformation("✅ Email sent successfully to {ToEmail}", toEmail);
+            _logger.LogInformation("Email sent successfully to {ToEmail}", toEmail);
             return true;
         }
         catch (SmtpCommandException ex)
         {
             // Permanent recipient/address rejection (e.g. 550 unknown user) — soft fail, no retry
-            _logger.LogError("❌ SMTP recipient error {StatusCode}: {Message}", ex.StatusCode, ex.Message);
+            _logger.LogError("SMTP recipient error {StatusCode}: {Message}", ex.StatusCode, ex.Message);
             return false;
         }
         catch (SmtpProtocolException ex)
         {
             // Protocol / handshake failure — connection problem, let Temporal retry
-            _logger.LogError("❌ SMTP protocol error (connection problem): {Message}", ex.Message);
+            _logger.LogError("SMTP protocol error (connection problem): {Message}", ex.Message);
             throw;
         }
         catch (Exception ex) when (ex is System.Net.Sockets.SocketException or IOException or TimeoutException)
         {
             // Network / connection failure — let Temporal retry
-            _logger.LogError(ex, "❌ SMTP connection failure: {Message}", ex.Message);
+            _logger.LogError(ex, "SMTP connection failure: {Message}", ex.Message);
             throw;
         }
         catch (Exception ex)
         {
             // Parse errors, config issues, unexpected — soft fail
-            _logger.LogError(ex, "❌ Unexpected error sending email to {ToEmail}", toEmail);
+            _logger.LogError(ex, "Unexpected error sending email to {ToEmail}", toEmail);
             return false;
         }
     }

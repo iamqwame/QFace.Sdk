@@ -143,6 +143,7 @@ public static class ModuleSyncRegistry
         new("CreateFirstEmployee", "qimerp-corehr-employee-tenant-setup"),
         new("AssignSuperAdminRole", "qimerp-iam-tenant-onboarding"),
         new("SetupIAMTenant", "qimerp-iam-tenant-onboarding"),
+        new("SeedTenantReferenceData", "qimerp-iam-tenant-onboarding"),
         new("SetupCoreHrTenant", "qimerp-corehr-employee-tenant-setup"),
         new("SetupPayrollTenant", "qimerp-payroll-tenant-setup"),
         new("SetupBenefitTenant", "qimerp-benefit-tenant-setup"),
@@ -234,6 +235,11 @@ public static class ModuleSyncRegistry
         new(SyncType.AssignmentChanged, ModuleKeys.Payroll, "qimerp-payroll-employee-sync", "Payroll"),
 
         new(SyncType.JournalEntryPosted, ModuleKeys.BudgetPlanning, "qimerp-accounting-budget-planning-je-sync", "BudgetPlanning"),
+
+        new(SyncType.TenantReference, ModuleKeys.CoreHR, "qimerp-corehr-tenant-reference-sync", "CoreHR"),
+        new(SyncType.TenantReference, ModuleKeys.Payroll, "qimerp-payroll-tenant-reference-sync", "Payroll"),
+        new(SyncType.TenantReference, ModuleKeys.Leave, "qimerp-leave-tenant-reference-sync", "Leave"),
+        new(SyncType.TenantReference, ModuleKeys.CoreAccounting, "qimerp-accounting-tenant-reference-sync", "Accounting"),
     ];
 
     private static readonly Dictionary<string, ModuleSyncDefinition> ByItemKey =

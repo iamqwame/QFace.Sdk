@@ -29,9 +29,9 @@ public class MessageConsumer
     public async Task HandleNormalMessage(MessageDto message)
     {
         _logger.LogInformation("--- NORMAL MESSAGE RECEIVED ---");
-        _logger.LogInformation($"ID: {message.Id}");
-        _logger.LogInformation($"Content: {message.Content}");
-        _logger.LogInformation($"Timestamp: {message.Timestamp}");
+        _logger.LogInformation("ID: {MessageId}", message.Id);
+        _logger.LogInformation("Content: {MessageContent}", message.Content);
+        _logger.LogInformation("Timestamp: {MessageTimestamp}", message.Timestamp);
         _logger.LogInformation("-----------------------------");
         
         // Simulate processing time
@@ -42,9 +42,9 @@ public class MessageConsumer
     public async Task HandleDemoMessage(MessageDto message)
     {
         _logger.LogInformation(">>> DEMO CHANNEL MESSAGE <<<");
-        _logger.LogInformation($"ID: {message.Id}");
-        _logger.LogInformation($"Content: {message.Content}");
-        _logger.LogInformation($"Timestamp: {message.Timestamp}");
+        _logger.LogInformation("ID: {MessageId}", message.Id);
+        _logger.LogInformation("Content: {MessageContent}", message.Content);
+        _logger.LogInformation("Timestamp: {MessageTimestamp}", message.Timestamp);
         _logger.LogInformation(">>>>>>>>>>>>>>><<<<<<<<<<<<<<<");
         
         await Task.Delay(100);

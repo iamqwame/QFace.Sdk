@@ -106,7 +106,7 @@ public static class KafkaExtensions
         var logger = LoggerFactory.Create(builder => builder.AddConsole())
             .CreateLogger("Kafka Consumer Discovery");
 
-        logger.LogInformation($"Scanning {assemblies.Length} assemblies for Kafka consumers");
+        logger.LogInformation("Scanning {AssemblyCount} assemblies for Kafka consumers", assemblies.Length);
 
         // Find all consumer classes
         var consumerTypes = new HashSet<Type>();
@@ -114,25 +114,25 @@ public static class KafkaExtensions
         {
             try
             {
-                logger.LogInformation($"Scanning assembly: {assembly.FullName}");
+                logger.LogInformation("Scanning assembly: {AssemblyName}", assembly.FullName);
 
                 var assemblyConsumers = assembly.GetTypes()
                     .Where(t =>
                     {
                         // Check for public types that inherit from KafkaConsumerBase
-                        bool isConsumerType = t.IsPublic && !t.IsAbstract && 
+                        bool isConsumerType = t.IsPublic && !t.IsAbstract &&
                                             t.IsSubclassOf(typeof(KafkaConsumerBase));
 
                         if (isConsumerType)
                         {
-                            logger.LogInformation($"Found Kafka consumer type: {t.FullName}");
+                            logger.LogInformation("Found Kafka consumer type: {ConsumerType}", t.FullName);
                         }
 
                         return isConsumerType;
                     })
                     .ToList();
 
-                logger.LogInformation($"Kafka consumers found in {assembly.FullName}: {assemblyConsumers.Count}");
+                logger.LogInformation("Kafka consumers found in {AssemblyName}: {ConsumerCount}", assembly.FullName, assemblyConsumers.Count);
 
                 foreach (var consumerType in assemblyConsumers)
                 {
@@ -141,23 +141,23 @@ public static class KafkaExtensions
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Error scanning assembly {assembly.FullName}");
+                logger.LogError(ex, "Error scanning assembly {AssemblyName}", assembly.FullName);
             }
         }
 
-        logger.LogInformation($"Total Kafka consumer types discovered: {consumerTypes.Count}");
+        logger.LogInformation("Total Kafka consumer types discovered: {ConsumerTypeCount}", consumerTypes.Count);
 
         // Register all consumers in DI
         foreach (var consumerType in consumerTypes)
         {
             services.AddScoped(consumerType);
-            logger.LogInformation($"Registered Kafka consumer: {consumerType.FullName}");
+            logger.LogInformation("Registered Kafka consumer: {ConsumerType}", consumerType.FullName);
         }
 
         // Find and register consumer methods
         var consumerMetadata = DiscoverConsumerMethods(consumerTypes, services, logger);
 
-        logger.LogInformation($"Total consumer metadata entries: {consumerMetadata.Count}");
+        logger.LogInformation("Total consumer metadata entries: {ConsumerMetadataCount}", consumerMetadata.Count);
 
         // Register consumer metadata
         services.AddSingleton(consumerMetadata);
@@ -193,8 +193,9 @@ public static class KafkaExtensions
                     if (topicAttribute != null)
                     {
                         logger.LogInformation(
-                            $"Found topic method: {consumerType.FullName}.{m.Name} " +
-                            $"(Group: {topicAttribute.TopicGroup ?? "none"}, DirectTopics: {string.Join(",", topicAttribute.DirectTopics ?? new string[0])})");
+                            "Found topic method: {ConsumerType}.{MethodName} (Group: {TopicGroup}, DirectTopics: {DirectTopics})",
+                            consumerType.FullName, m.Name, topicAttribute.TopicGroup ?? "none",
+                            string.Join(",", topicAttribute.DirectTopics ?? new string[0]));
                     }
 
                     return topicAttribute != null;
@@ -234,13 +235,14 @@ public static class KafkaExtensions
                     consumerMetadata.Add(metadata);
                     
                     logger.LogInformation(
-                        $"Registered consumer method: {consumerType.Name}.{method.Name} " +
-                        $"-> Topics: [{string.Join(", ", topics)}]");
+                        "Registered consumer method: {ConsumerType}.{MethodName} -> Topics: [{Topics}]",
+                        consumerType.Name, method.Name, string.Join(", ", topics));
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, 
-                        $"Failed to resolve topics for {consumerType.FullName}.{method.Name}: {ex.Message}");
+                    logger.LogError(ex,
+                        "Failed to resolve topics for {ConsumerType}.{MethodName}: {ErrorMessage}",
+                        consumerType.FullName, method.Name, ex.Message);
                     throw;
                 }
             }
@@ -382,7 +384,7 @@ public static class KafkaExtensions
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"[Kafka] Failed to initialize Kafka: {ex.Message}");
+            logger.LogError(ex, "[Kafka] Failed to initialize Kafka: {ErrorMessage}", ex.Message);
         }
 
         return serviceProvider;

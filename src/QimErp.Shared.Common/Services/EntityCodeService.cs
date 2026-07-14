@@ -35,57 +35,37 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
     private static string CacheKey(string tenantId, string entityType)
         => $"shared:{tenantId}:lookup:entity-code-config:{entityType}";
 
-    // SDK-wide defaults shared across all modules.
-    // For entity types that belong to a single module, register them via the
-    // moduleDefaults constructor parameter in the concrete subclass instead.
-    private static readonly Dictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)>
-        _sdkDefaults = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Employee"]        = ("EMP", "",  false, 7),
-            ["OvertimeRecord"]  = ("OT",  "-", true,  4),
-            ["Loan"]            = ("LN",  "-", true,  4),
-            ["SalaryAdvance"]   = ("ADV", "-", true,  4),
-            ["PayrollRun"]      = ("PR",  "-", true,  4),
-            ["Allowance"]       = ("ALL", "-", false, 4),
-            ["Deduction"]       = ("DED", "-", false, 4),
-            ["Vendor"]          = ("VEN", "",  false, 6),
-            ["Invoice"]         = ("INV", "-", true,  5),
-        };
-
-    // Merged lookup: SDK defaults + module-specific defaults supplied at construction.
-    // Module entries win over SDK entries on key collision.
+    // Every entity type a module knows about is declared explicitly via the moduleDefaults
+    // constructor parameter in that module's own concrete subclass — there is no implicit
+    // SDK-wide set shared across all modules. A module's numbering page only ever lists
+    // entity types it actually generates codes for.
     private readonly IReadOnlyDictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)> _defaults;
-
-    /// <summary>Base constructor — no module-specific defaults.</summary>
-    protected EntityCodeService(TContext context, IDistributedCacheService cache, ILogger logger)
-        : this(context, cache, logger, null) { }
+    private readonly string _moduleName;
 
     /// <summary>
-    /// Constructor that accepts module-specific defaults.
-    /// Entries in <paramref name="moduleDefaults"/> take precedence over SDK defaults on collision.
-    /// Use this overload in concrete subclasses to register entity types that belong only to that module.
     /// </summary>
+    /// <param name="moduleName">
+    /// Display name of the module this service belongs to (e.g. "Payroll", "Inventory").
+    /// Attributed to every entity type in <paramref name="moduleDefaults"/> — this is the only
+    /// module whose settings page will ever list these entity types.
+    /// </param>
+    /// <param name="moduleDefaults">
+    /// Entity types this module generates codes for. A module that shares an entity type with
+    /// another module (e.g. AR and Billing both generate "Invoice" numbers) registers its own
+    /// entry here — each module keeps a fully separate config/sequence in its own database.
+    /// </param>
     protected EntityCodeService(
         TContext context,
         IDistributedCacheService cache,
         ILogger logger,
-        IReadOnlyDictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)>? moduleDefaults)
+        string moduleName,
+        IReadOnlyDictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)>? moduleDefaults = null)
     {
         _context = context;
         _cache   = cache;
         _logger  = logger;
-
-        if (moduleDefaults is null || moduleDefaults.Count == 0)
-        {
-            _defaults = _sdkDefaults;
-        }
-        else
-        {
-            var merged = new Dictionary<string, (string, string, bool, int)>(_sdkDefaults, StringComparer.OrdinalIgnoreCase);
-            foreach (var (key, value) in moduleDefaults)
-                merged[key] = value;
-            _defaults = merged;
-        }
+        _moduleName = moduleName;
+        _defaults = moduleDefaults ?? new Dictionary<string, (string, string, bool, int)>(StringComparer.OrdinalIgnoreCase);
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -194,6 +174,20 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
             entityType, tenantId, maxFound);
 
         return maxFound;
+    }
+
+    public IReadOnlyCollection<string> GetKnownEntityTypes() => _defaults.Keys.ToArray();
+
+    public string GetModuleFor(string entityType) => _moduleName;
+
+    public async Task<IReadOnlyList<EntityCodeConfig>> GetAllConfigsAsync(string tenantId, CancellationToken ct = default)
+    {
+        var configs = new List<EntityCodeConfig>(_defaults.Count);
+        foreach (var entityType in _defaults.Keys)
+        {
+            configs.Add(await GetOrCreateConfigAsync(tenantId, entityType, ct));
+        }
+        return configs;
     }
 
     // ── Internal helpers ──────────────────────────────────────────────────────

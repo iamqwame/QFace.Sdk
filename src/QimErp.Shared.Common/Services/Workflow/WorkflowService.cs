@@ -104,8 +104,8 @@ public class WorkflowService(
                 entity.WorkflowCode = workflowCode;
             }
             
-            logger.LogDebug("Calling InitiateWorkflow extension method for {EntityType}. User={UserEmail}, Operation={Operation}", 
-                entity.EntityType, currentUserEmail, operation);
+            logger.LogDebug("Calling InitiateWorkflow extension method for {EntityType}. UserId={UserId}, Operation={Operation}",
+                entity.EntityType, currentUser, operation);
             
             entity.InitiateWorkflow(currentUserEmail, currentUser, currentUserName, $"Workflow initiated for {operation}");
 
@@ -151,8 +151,8 @@ public class WorkflowService(
             // TODO: Update workflow history in database
             // TODO: Log completion activity
 
-            logger.LogInformation("Completed workflow {WorkflowHistoryId} with status {FinalStatus} by {CompletedByEmail}",
-                workflowHistoryId, finalStatus, completedByEmail);
+            logger.LogInformation("Completed workflow {WorkflowHistoryId} with status {FinalStatus} by {CompletedByEmployeeId}",
+                workflowHistoryId, finalStatus, completedByEmployeeId ?? "unknown");
         }
         catch (Exception ex)
         {

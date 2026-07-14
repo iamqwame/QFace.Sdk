@@ -41,7 +41,7 @@ public class SendMessageActor : BaseActor
     {
         try
         {
-            _logger.LogInformation("📨 Received message command of type {MessageType}", command.MessageType);
+            _logger.LogInformation("Received message command of type {MessageType}", command.MessageType);
 
             switch (command.MessageType)
             {
@@ -58,15 +58,15 @@ public class SendMessageActor : BaseActor
                     break;
                     
                 default:
-                    _logger.LogWarning("⚠️ Unknown message type: {MessageType}", command.MessageType);
+                    _logger.LogWarning("Unknown message type: {MessageType}", command.MessageType);
                     break;
             }
                 
-            _logger.LogInformation("✅ Finished processing message command of type {MessageType}", command.MessageType);
+            _logger.LogInformation("Finished processing message command of type {MessageType}", command.MessageType);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Exception while processing message command");
+            _logger.LogError(ex, "Exception while processing message command");
         }
     }
 
@@ -74,26 +74,26 @@ public class SendMessageActor : BaseActor
     {
         try
         {
-            _logger.LogInformation("📧 Starting email send to {ToEmails} | Subject: {Subject}", 
+            _logger.LogInformation("Starting email send to {ToEmails} | Subject: {Subject}", 
                 JsonSerializer.Serialize(command.ToEmails), command.Subject);
 
             if (string.IsNullOrEmpty(command.Template))
             {
                 _emailProvider.SendEmailAsync(command.ToEmails, command.Subject, command.Body)
                     .GetAwaiter().GetResult();
-                _logger.LogInformation("✅ Email sent successfully to {ToEmails}", JsonSerializer.Serialize(command.ToEmails));
+                _logger.LogInformation("Email sent successfully to {ToEmails}", JsonSerializer.Serialize(command.ToEmails));
             }
             else
             {
                 var formattedBody = ReplacePlaceholders(command.Template, command.Replacements);
                 _emailProvider.SendEmailAsync(command.ToEmails, command.Subject, formattedBody)
                     .GetAwaiter().GetResult();
-                _logger.LogInformation("✅ Templated email sent successfully to {ToEmails}", JsonSerializer.Serialize(command.ToEmails));
+                _logger.LogInformation("Templated email sent successfully to {ToEmails}", JsonSerializer.Serialize(command.ToEmails));
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Failed to send email to {ToEmails}", JsonSerializer.Serialize(command.ToEmails));
+            _logger.LogError(ex, "Failed to send email to {ToEmails}", JsonSerializer.Serialize(command.ToEmails));
         }
     }
 
@@ -101,7 +101,7 @@ public class SendMessageActor : BaseActor
     {
         try
         {
-            _logger.LogInformation("📱 Starting SMS send to {ToPhoneNumbers}", 
+            _logger.LogInformation("Starting SMS send to {ToPhoneNumbers}", 
                 JsonSerializer.Serialize(command.ToPhoneNumbers));
 
             if (string.IsNullOrEmpty(command.Template))
@@ -110,9 +110,9 @@ public class SendMessageActor : BaseActor
                     .GetAwaiter().GetResult();
 
                 if (success)
-                    _logger.LogInformation("✅ SMS sent successfully to {ToPhoneNumbers}. API Response: {Response}", JsonSerializer.Serialize(command.ToPhoneNumbers), response);
+                    _logger.LogInformation("SMS sent successfully to {ToPhoneNumbers}. API Response: {Response}", JsonSerializer.Serialize(command.ToPhoneNumbers), response);
                 else
-                    _logger.LogWarning("⚠️ SMS sending failed to {ToPhoneNumbers}. API Response: {Response}", JsonSerializer.Serialize(command.ToPhoneNumbers), response);
+                    _logger.LogWarning("SMS sending failed to {ToPhoneNumbers}. API Response: {Response}", JsonSerializer.Serialize(command.ToPhoneNumbers), response);
             }
             else
             {
@@ -121,20 +121,20 @@ public class SendMessageActor : BaseActor
                     .GetAwaiter().GetResult();
 
                 if (success)
-                    _logger.LogInformation("✅ Templated SMS sent successfully to {ToPhoneNumbers}. API Response: {Response}", JsonSerializer.Serialize(command.ToPhoneNumbers), response);
+                    _logger.LogInformation("Templated SMS sent successfully to {ToPhoneNumbers}. API Response: {Response}", JsonSerializer.Serialize(command.ToPhoneNumbers), response);
                 else
-                    _logger.LogWarning("⚠️ Templated SMS sending failed to {ToPhoneNumbers}. API Response: {Response}", JsonSerializer.Serialize(command.ToPhoneNumbers), response);
+                    _logger.LogWarning("Templated SMS sending failed to {ToPhoneNumbers}. API Response: {Response}", JsonSerializer.Serialize(command.ToPhoneNumbers), response);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Failed to send SMS to {ToPhoneNumbers}", JsonSerializer.Serialize(command.ToPhoneNumbers));
+            _logger.LogError(ex, "Failed to send SMS to {ToPhoneNumbers}", JsonSerializer.Serialize(command.ToPhoneNumbers));
         }
     }
 
     private void HandleDualChannelSend(SendMessageCommand command)
     {
-        _logger.LogInformation("📬 Starting dual-channel message to {ToEmails} and {ToPhoneNumbers}", 
+        _logger.LogInformation("Starting dual-channel message to {ToEmails} and {ToPhoneNumbers}", 
             JsonSerializer.Serialize(command.ToEmails), JsonSerializer.Serialize(command.ToPhoneNumbers));
                             
         try
@@ -143,15 +143,15 @@ public class SendMessageActor : BaseActor
             {
                 _emailProvider.SendEmailAsync(command.ToEmails, command.Subject, command.Body)
                     .GetAwaiter().GetResult();
-                _logger.LogInformation("✅ Email part sent successfully");
+                _logger.LogInformation("Email part sent successfully");
 
                 var (success, response) = _smsProvider.SendSmsAsync(command.ToPhoneNumbers, command.Body)
                     .GetAwaiter().GetResult();
 
                 if (success)
-                    _logger.LogInformation("✅ SMS part sent successfully. API Response: {Response}", response);
+                    _logger.LogInformation("SMS part sent successfully. API Response: {Response}", response);
                 else
-                    _logger.LogWarning("⚠️ SMS part failed. API Response: {Response}", response);
+                    _logger.LogWarning("SMS part failed. API Response: {Response}", response);
             }
             else
             {
@@ -159,20 +159,20 @@ public class SendMessageActor : BaseActor
 
                 _emailProvider.SendEmailAsync(command.ToEmails, command.Subject, formattedContent)
                     .GetAwaiter().GetResult();
-                _logger.LogInformation("✅ Templated email part sent successfully");
+                _logger.LogInformation("Templated email part sent successfully");
 
                 var (success, response) = _smsProvider.SendSmsAsync(command.ToPhoneNumbers, formattedContent)
                     .GetAwaiter().GetResult();
 
                 if (success)
-                    _logger.LogInformation("✅ Templated SMS part sent successfully. API Response: {Response}", response);
+                    _logger.LogInformation("Templated SMS part sent successfully. API Response: {Response}", response);
                 else
-                    _logger.LogWarning("⚠️ Templated SMS part failed. API Response: {Response}", response);
+                    _logger.LogWarning("Templated SMS part failed. API Response: {Response}", response);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error sending dual-channel message");
+            _logger.LogError(ex, "Error sending dual-channel message");
         }
     }
         
@@ -187,12 +187,12 @@ public class SendMessageActor : BaseActor
                     replacement.Value, 
                     RegexOptions.IgnoreCase);
             }
-            _logger.LogInformation("🛠️ Placeholder replacements done successfully");
+            _logger.LogInformation("Placeholder replacements done successfully");
             return template;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error replacing placeholders in template");
+            _logger.LogError(ex, "Error replacing placeholders in template");
             return template; // Return raw if failed
         }
     }

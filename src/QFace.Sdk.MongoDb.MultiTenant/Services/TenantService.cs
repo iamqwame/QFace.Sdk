@@ -234,8 +234,8 @@ public class TenantService : ITenantService
             };
             
             await _userRepository.InsertOneAsync(user, cancellationToken);
-            _logger.LogInformation("Created admin user: {UserId}, Email: {Email} for tenant: {TenantId}", 
-                user.Id, user.Email, tenant.Id);
+            _logger.LogInformation("Created admin user: {UserId} for tenant: {TenantId}",
+                user.Id, tenant.Id);
                 
             // 6. Associate user with tenant as admin
             var tenantUser = new TenantUser
@@ -279,11 +279,11 @@ public class TenantService : ITenantService
                 try
                 {
                     await SendWelcomeEmailAsync(tenant, user, request.AdminInfo.Password, cancellationToken);
-                    _logger.LogInformation("Sent welcome email to admin: {Email}", user.Email);
+                    _logger.LogInformation("Sent welcome email to admin: {UserId}", user.Id);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to send welcome email to admin: {Email}", user.Email);
+                    _logger.LogError(ex, "Failed to send welcome email to admin: {UserId}", user.Id);
                     // Continue execution - we've created everything, but email sending failed
                 }
             }
@@ -531,7 +531,7 @@ public class TenantService : ITenantService
                 
                 if (user is not { IsActive: true })
                 {
-                    _logger.LogWarning("Authentication failed: User {Username} not found or inactive", usernameOrEmail);
+                    _logger.LogWarning("Authentication failed: User not found or inactive for tenant {TenantCode}", tenantCode);
                     return AuthResult.Failed("Invalid username or password");
                 }
                 
@@ -615,7 +615,7 @@ public class TenantService : ITenantService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during authentication for user {Username} in tenant {TenantCode}", usernameOrEmail, tenantCode);
+                _logger.LogError(ex, "Error during authentication for tenant {TenantCode}", tenantCode);
                 return AuthResult.Failed("An unexpected error occurred during authentication");
             }
         }

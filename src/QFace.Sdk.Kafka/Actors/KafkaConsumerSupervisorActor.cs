@@ -51,14 +51,14 @@ internal class KafkaConsumerSupervisorActor : BaseActor
                 var consumerActor = Context.ActorOf(consumerActorProps, consumerActorName);
                 _consumerActors[consumerActorName] = consumerActor;
                 
-                _logger.LogInformation($"[Kafka] Created consumer actor: {consumerActorName}");
+                _logger.LogInformation("[Kafka] Created consumer actor: {ConsumerActorName}", consumerActorName);
                 
                 // Start consuming immediately
                 var startMessage = new StartConsumingMessage(metadata.Topics, metadata.ConsumerGroupId ?? _serviceProvider.GetRequiredService<IOptions<KafkaConsumerConfig>>().Value.GroupId);
                 consumerActor.Tell(startMessage);
             }
             
-            _logger.LogInformation($"[Kafka] Supervisor initialized {_consumerActors.Count} consumer actors");
+            _logger.LogInformation("[Kafka] Supervisor initialized {ConsumerActorCount} consumer actors", _consumerActors.Count);
         }
         catch (Exception ex)
         {

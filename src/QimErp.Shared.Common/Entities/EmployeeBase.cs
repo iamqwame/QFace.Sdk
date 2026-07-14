@@ -13,7 +13,13 @@ public abstract class EmployeeBase : GuidAuditableEntity
     public string? MiddleName { get; protected set; }
     public string? Email { get; protected set; }
     public string? ProfilePicture { get; protected set; }
-    
+
+    /// <summary>"Male" | "Female" | "Unspecified" | null — synced from CoreHr's Employee.Gender.</summary>
+    public string? Gender { get; protected set; }
+
+    /// <summary>e.g. "Active", "Probation", "Terminated" — module-specific values, common shape.</summary>
+    public string EmploymentStatus { get; protected set; } = "Active";
+
     // Current Manager/Supervisor relationship
     public Guid? CurrentSupervisorId { get; protected set; }
     public string? CurrentSupervisorName { get; protected set; }
@@ -48,6 +54,8 @@ public abstract class EmployeeBase : GuidAuditableEntity
     public string FullName => string.IsNullOrWhiteSpace(MiddleName)
         ? $"{FirstName} {LastName}"
         : $"{FirstName} {MiddleName} {LastName}";
+
+    public bool IsFemale => string.Equals(Gender, "Female", StringComparison.OrdinalIgnoreCase);
 
     protected EmployeeBase() { }
 
@@ -168,6 +176,24 @@ public abstract class EmployeeBase : GuidAuditableEntity
     public EmployeeBase WithProfilePicture(string? profilePictureUrl)
     {
         ProfilePicture = profilePictureUrl;
+        return this;
+    }
+
+    /// <summary>
+    /// Updates gender ("Male" | "Female" | "Unspecified" | null)
+    /// </summary>
+    public EmployeeBase WithGender(string? gender)
+    {
+        Gender = gender;
+        return this;
+    }
+
+    /// <summary>
+    /// Updates employment status (e.g. "Active", "Probation", "Terminated")
+    /// </summary>
+    public EmployeeBase WithEmploymentStatus(string status)
+    {
+        EmploymentStatus = status;
         return this;
     }
 

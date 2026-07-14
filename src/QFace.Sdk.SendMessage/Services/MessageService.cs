@@ -22,7 +22,7 @@ public class MessageService : IMessageService
     {
         try
         {
-            _logger.LogInformation("📧 Creating email request to {ToEmail} | Subject: {Subject}", toEmail, subject);
+            _logger.LogInformation("Creating email request to {ToEmail} | Subject: {Subject}", toEmail, subject);
                 
             var command = SendMessageCommand.CreateEmailOnly(toEmail, subject, body);
             _actorService.Tell<SendMessageActor>(command);
@@ -31,7 +31,7 @@ public class MessageService : IMessageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error creating email request to {ToEmail}", toEmail);
+            _logger.LogError(ex, "Error creating email request to {ToEmail}", toEmail);
             return Task.FromResult(false);
         }
     }
@@ -42,7 +42,7 @@ public class MessageService : IMessageService
     {
         try
         {
-            _logger.LogInformation("📧 Creating templated email request to {ToEmail} | Subject: {Subject}", toEmail, subject);
+            _logger.LogInformation("Creating templated email request to {ToEmail} | Subject: {Subject}", toEmail, subject);
                 
             var command = SendMessageCommand.CreateEmailWithTemplateOnly(toEmail, subject, template, replacements);
             _actorService.Tell<SendMessageActor>(command);
@@ -51,7 +51,7 @@ public class MessageService : IMessageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error creating templated email request for {ToEmail}", toEmail);
+            _logger.LogError(ex, "Error creating templated email request for {ToEmail}", toEmail);
             return Task.FromResult(false);
         }
     }
@@ -63,7 +63,7 @@ public class MessageService : IMessageService
     {
         try
         {
-            _logger.LogInformation("📱 Creating SMS request to {ToPhoneNumbers}", toPhoneNumbers);
+            _logger.LogInformation("Creating SMS request to {ToPhoneNumbers}", toPhoneNumbers);
                 
             var command = SendMessageCommand.CreateSMSOnly(toPhoneNumbers, message);
             _actorService.Tell<SendMessageActor>(command);
@@ -72,7 +72,7 @@ public class MessageService : IMessageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error creating SMS request to {ToPhoneNumbers}", toPhoneNumbers);
+            _logger.LogError(ex, "Error creating SMS request to {ToPhoneNumbers}", toPhoneNumbers);
             return Task.FromResult(false);
         }
     }
@@ -83,7 +83,7 @@ public class MessageService : IMessageService
     {
         try
         {
-            _logger.LogInformation("📱 Creating templated SMS request to {ToPhoneNumbers}", toPhoneNumbers);
+            _logger.LogInformation("Creating templated SMS request to {ToPhoneNumbers}", toPhoneNumbers);
                 
             var command = SendMessageCommand.CreateSMSWithTemplateOnly(toPhoneNumbers, template, replacements);
             _actorService.Tell<SendMessageActor>(command);
@@ -92,7 +92,7 @@ public class MessageService : IMessageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error creating templated SMS request for {ToPhoneNumbers}", toPhoneNumbers);
+            _logger.LogError(ex, "Error creating templated SMS request for {ToPhoneNumbers}", toPhoneNumbers);
             return Task.FromResult(false);
         }
     }
@@ -105,7 +105,7 @@ public class MessageService : IMessageService
     {
         try
         {
-            _logger.LogInformation("📬 Creating dual-channel message to {ToEmail} and {ToPhoneNumbers}", 
+            _logger.LogInformation("Creating dual-channel message to {ToEmail} and {ToPhoneNumbers}", 
                 toEmail, toPhoneNumbers);
                 
             var command = SendMessageCommand.CreateBoth(toEmail[0], toPhoneNumbers[0], subject, body);
@@ -115,7 +115,7 @@ public class MessageService : IMessageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error creating dual-channel message", ex);
+            _logger.LogError(ex, "Error creating dual-channel message");
             return Task.FromResult(false);
         }
     }
@@ -125,13 +125,13 @@ public class MessageService : IMessageService
     {
         try
         {
-            _logger.LogInformation("📨 Processing message command via actor");
+            _logger.LogInformation("Processing message command via actor");
             _actorService.Tell<SendMessageActor>(command);
             return Task.FromResult(true); // Returning success as the actor takes over
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error processing message command");
+            _logger.LogError(ex, "Error processing message command");
             return Task.FromResult(false);
         }
     }

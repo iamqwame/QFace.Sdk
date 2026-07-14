@@ -40,7 +40,7 @@ public class GraphEmailProvider : IEmailProvider
             // Check if Graph provider is selected
             if (_config.Provider?.ToUpperInvariant() != "GRAPH")
             {
-                _logger.LogInformation("📧 Graph provider not selected (Provider: {Provider})", _config.Provider);
+                _logger.LogInformation("Graph provider not selected (Provider: {Provider})", _config.Provider);
                 _isConfigured = false;
                 return Task.FromResult(false);
             }
@@ -50,7 +50,7 @@ public class GraphEmailProvider : IEmailProvider
                 string.IsNullOrEmpty(_config.ClientId) ||
                 string.IsNullOrEmpty(_config.ClientSecret))
             {
-                _logger.LogWarning("⚠️ Graph provider not fully configured. Missing TenantId, ClientId, or ClientSecret");
+                _logger.LogWarning("Graph provider not fully configured. Missing TenantId, ClientId, or ClientSecret");
                 _isConfigured = false;
                 return Task.FromResult(false);
             }
@@ -62,7 +62,7 @@ public class GraphEmailProvider : IEmailProvider
 
             if (string.IsNullOrEmpty(sendAsUser))
             {
-                _logger.LogWarning("⚠️ Graph provider requires FromEmail or SendAsUser");
+                _logger.LogWarning("Graph provider requires FromEmail or SendAsUser");
                 _isConfigured = false;
                 return Task.FromResult(false);
             }
@@ -77,12 +77,12 @@ public class GraphEmailProvider : IEmailProvider
             _graphClient = new GraphServiceClient(credential);
             _isConfigured = true;
 
-            _logger.LogInformation("📧 Microsoft Graph provider configured. Sending as: {SendAsUser}", sendAsUser);
+            _logger.LogInformation("Microsoft Graph provider configured. Sending as: {SendAsUser}", sendAsUser);
             return Task.FromResult(true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error initializing Microsoft Graph provider: {Message}", ex.Message);
+            _logger.LogError(ex, "Error initializing Microsoft Graph provider: {Message}", ex.Message);
             _isConfigured = false;
             return Task.FromResult(false);
         }
@@ -104,7 +104,7 @@ public class GraphEmailProvider : IEmailProvider
     {
         if (!_isConfigured || _graphClient == null)
         {
-            _logger.LogError("❌ Cannot send email: Graph provider not properly configured");
+            _logger.LogError("Cannot send email: Graph provider not properly configured");
             return false;
         }
 
@@ -114,7 +114,7 @@ public class GraphEmailProvider : IEmailProvider
                 ? _config.SendAsUser 
                 : _config.FromEmail;
 
-            _logger.LogInformation("📤 Sending email via Microsoft Graph to {ToEmail} | Subject: {Subject}", 
+            _logger.LogInformation("Sending email via Microsoft Graph to {ToEmail} | Subject: {Subject}", 
                 string.Join(", ", toEmail), subject);
 
             var message = new Message
@@ -155,7 +155,7 @@ public class GraphEmailProvider : IEmailProvider
                     SaveToSentItems = true
                 });
 
-            _logger.LogInformation("✅ Email sent successfully via Microsoft Graph to {ToEmail}", string.Join(", ", toEmail));
+            _logger.LogInformation("Email sent successfully via Microsoft Graph to {ToEmail}", string.Join(", ", toEmail));
             return true;
         }
         catch (Microsoft.Graph.Models.ODataErrors.ODataError odataError)
@@ -164,7 +164,7 @@ public class GraphEmailProvider : IEmailProvider
                 ? _config.SendAsUser 
                 : _config.FromEmail;
                 
-            _logger.LogError("❌ Graph API Error sending email to {ToEmail}", toEmail);
+            _logger.LogError("Graph API Error sending email to {ToEmail}", toEmail);
             _logger.LogError("   Error Code: {ErrorCode}", odataError.Error?.Code);
             _logger.LogError("   Error Message: {ErrorMessage}", odataError.Error?.Message);
             if (odataError.Error?.Details != null)
@@ -179,7 +179,7 @@ public class GraphEmailProvider : IEmailProvider
             if (odataError.Error?.Code == "Authorization_RequestDenied" || 
                 odataError.Error?.Message?.Contains("Access is denied") == true)
             {
-                _logger.LogError("   ⚠ This usually means:");
+                _logger.LogError("   This usually means:");
                 _logger.LogError("      1. Mail.Send permission not granted with admin consent");
                 _logger.LogError("      2. Permission hasn't propagated yet (wait 1-2 minutes)");
                 _logger.LogError("      3. User {SendAsUser} doesn't exist or app can't access it", sendAsUser);
@@ -189,7 +189,7 @@ public class GraphEmailProvider : IEmailProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Unexpected error sending email via Microsoft Graph to {ToEmail}", toEmail);
+            _logger.LogError(ex, "Unexpected error sending email via Microsoft Graph to {ToEmail}", toEmail);
             return false;
         }
     }

@@ -58,10 +58,10 @@ internal class KafkaProducerActor : BaseActor
             }
 
             _producer = new ProducerBuilder<string, string>(producerConfig)
-                .SetErrorHandler((_, e) => 
-                    _logger.LogError($"[Kafka] Producer error: {e.Reason} - {e.Code}"))
-                .SetStatisticsHandler((_, json) => 
-                    _logger.LogDebug($"[Kafka] Producer statistics: {json}"))
+                .SetErrorHandler((_, e) =>
+                    _logger.LogError("[Kafka] Producer error: {Reason} - {Code}", e.Reason, e.Code))
+                .SetStatisticsHandler((_, json) =>
+                    _logger.LogDebug("[Kafka] Producer statistics: {Statistics}", json))
                 .Build();
                 
             _logger.LogInformation("[Kafka] Producer actor initialized successfully");
@@ -130,18 +130,18 @@ internal class KafkaProducerActor : BaseActor
             }
 
             _logger.LogInformation(
-                $"[Kafka] ✅ Produced message to {result.Topic}:{result.Partition}:{result.Offset} " +
-                $"(Key: {message.Key ?? "null"})");
-                
+                "[Kafka] Produced message to {Topic}:{Partition}:{Offset} (Key: {Key})",
+                result.Topic, result.Partition, result.Offset, message.Key ?? "null");
+
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"[Kafka] ❌ Failed to produce message to topic {message.Topic}. Error: {ex.Message}");
-            
+            _logger.LogError(ex, "[Kafka] Failed to produce message to topic {Topic}. Error: {ErrorMessage}", message.Topic, ex.Message);
+
             if (currentRetry < 3) // TODO: Make configurable
             {
-                _logger.LogInformation($"[Kafka] Retrying produce ({currentRetry + 1}/3)...");
+                _logger.LogInformation("[Kafka] Retrying produce ({RetryAttempt}/3)...", currentRetry + 1);
                 await Task.Delay(1000 * (currentRetry + 1)); // Exponential backoff
                 return await ProduceWithRetryAsync(message, currentRetry + 1);
             }

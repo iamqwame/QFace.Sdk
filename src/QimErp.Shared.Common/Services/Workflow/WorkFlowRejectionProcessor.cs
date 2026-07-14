@@ -31,18 +31,18 @@ public class WorkflowRejectionProcessor(
         CancellationToken cancellationToken = default)
         where TContext : DbContext
     {
-        logger.LogInformation("📨 [WorkflowRejectionProcessor] Processing rejection request for WorkflowId={WorkflowId}, EntityType={EntityType}, EntityId={EntityId}",
+        logger.LogInformation("[WorkflowRejectionProcessor] Processing rejection request for WorkflowId={WorkflowId}, EntityType={EntityType}, EntityId={EntityId}",
             @event.WorkflowId, @event.EntityType, @event.EntityId);
 
         if (string.IsNullOrWhiteSpace(@event.EntityId) || !Guid.TryParse(@event.EntityId, out var entityId))
         {
-            logger.LogWarning("⚠️ [WorkflowRejectionProcessor] Missing or invalid EntityId for event. Ignoring message.");
+            logger.LogWarning("[WorkflowRejectionProcessor] Missing or invalid EntityId for event. Ignoring message.");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(@event.EntityType))
         {
-            logger.LogWarning("⚠️ [WorkflowRejectionProcessor] Missing EntityType for event. Ignoring message.");
+            logger.LogWarning("[WorkflowRejectionProcessor] Missing EntityType for event. Ignoring message.");
             return;
         }
 
@@ -50,7 +50,7 @@ public class WorkflowRejectionProcessor(
 
         if (entity == null)
         {
-            logger.LogWarning("⚠️ [WorkflowRejectionProcessor] Entity not found with Id={EntityId}, EntityType={EntityType}",
+            logger.LogWarning("[WorkflowRejectionProcessor] Entity not found with Id={EntityId}, EntityType={EntityType}",
                 entityId, @event.EntityType);
             return;
         }
@@ -63,7 +63,7 @@ public class WorkflowRejectionProcessor(
 
         if (string.IsNullOrWhiteSpace(workflowCode))
         {
-            logger.LogWarning("⚠️ [WorkflowRejectionProcessor] WorkflowCode is not available for EntityType={EntityType}, EntityId={EntityId}",
+            logger.LogWarning("[WorkflowRejectionProcessor] WorkflowCode is not available for EntityType={EntityType}, EntityId={EntityId}",
                 @event.EntityType, entityId);
             return;
         }
@@ -79,7 +79,7 @@ public class WorkflowRejectionProcessor(
 
         if (workflowDefinition == null)
         {
-            logger.LogWarning("⚠️ [WorkflowRejectionProcessor] No workflow definition found for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
+            logger.LogWarning("[WorkflowRejectionProcessor] No workflow definition found for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
                 workflowCode, @event.EntityType);
             return;
         }
@@ -89,7 +89,7 @@ public class WorkflowRejectionProcessor(
 
         if (currentStep == null)
         {
-            logger.LogWarning("⚠️ [WorkflowRejectionProcessor] No workflow step found for current state. WorkflowCode={WorkflowCode}, CurrentState={CurrentState}",
+            logger.LogWarning("[WorkflowRejectionProcessor] No workflow step found for current state. WorkflowCode={WorkflowCode}, CurrentState={CurrentState}",
                 workflowCode, currentState);
             return;
         }
@@ -100,7 +100,7 @@ public class WorkflowRejectionProcessor(
             @event.UserName,
             @event.RejectionReason);
 
-        logger.LogInformation("❌ Rejecting workflow for {EntityType} {EntityId} at step {StepName}",
+        logger.LogInformation("Rejecting workflow for {EntityType} {EntityId} at step {StepName}",
             @event.EntityType, entityId, currentStep.Name);
 
         await PublishRejectionNotificationsAsync(
@@ -127,7 +127,7 @@ public class WorkflowRejectionProcessor(
             await context.SaveChangesAsync(cancellationToken);
         }
 
-        logger.LogInformation("✅ [WorkflowRejectionProcessor] Successfully processed rejection request for WorkflowId={WorkflowId}, Status=Rejected",
+        logger.LogInformation("[WorkflowRejectionProcessor] Successfully processed rejection request for WorkflowId={WorkflowId}, Status=Rejected",
             @event.WorkflowId);
     }
 
@@ -162,14 +162,14 @@ public class WorkflowRejectionProcessor(
 
             if (entityType == null || dbSetProperty == null)
             {
-                logger.LogWarning("⚠️ [WorkflowRejectionProcessor] No DbSet found for EntityType={EntityType} in DbContext {ContextType}",
+                logger.LogWarning("[WorkflowRejectionProcessor] No DbSet found for EntityType={EntityType} in DbContext {ContextType}",
                     entityTypeName, contextType.Name);
                 return null;
             }
 
             if (!typeof(IWorkflowEnabled).IsAssignableFrom(entityType))
             {
-                logger.LogWarning("⚠️ [WorkflowRejectionProcessor] EntityType={EntityType} does not implement IWorkflowEnabled",
+                logger.LogWarning("[WorkflowRejectionProcessor] EntityType={EntityType} does not implement IWorkflowEnabled",
                     entityTypeName);
                 return null;
             }
@@ -177,7 +177,7 @@ public class WorkflowRejectionProcessor(
             var setMethod = typeof(DbContext).GetMethod("Set", Type.EmptyTypes);
             if (setMethod == null)
             {
-                logger.LogWarning("⚠️ [WorkflowRejectionProcessor] Could not find Set method on DbContext");
+                logger.LogWarning("[WorkflowRejectionProcessor] Could not find Set method on DbContext");
                 return null;
             }
 
@@ -185,7 +185,7 @@ public class WorkflowRejectionProcessor(
             var dbSet = setGenericMethod.Invoke(context, null);
             if (dbSet == null)
             {
-                logger.LogWarning("⚠️ [WorkflowRejectionProcessor] Could not get DbSet for EntityType={EntityType}",
+                logger.LogWarning("[WorkflowRejectionProcessor] Could not get DbSet for EntityType={EntityType}",
                     entityTypeName);
                 return null;
             }
@@ -193,7 +193,7 @@ public class WorkflowRejectionProcessor(
             var idProperty = entityType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
             if (idProperty == null)
             {
-                logger.LogWarning("⚠️ [WorkflowRejectionProcessor] EntityType={EntityType} does not have an Id property",
+                logger.LogWarning("[WorkflowRejectionProcessor] EntityType={EntityType} does not have an Id property",
                     entityTypeName);
                 return null;
             }
@@ -209,7 +209,7 @@ public class WorkflowRejectionProcessor(
                 .FirstOrDefault(m => m.Name == "Where" && m.GetParameters().Length == 2);
             if (whereMethod == null)
             {
-                logger.LogWarning("⚠️ [WorkflowRejectionProcessor] Could not find Where method");
+                logger.LogWarning("[WorkflowRejectionProcessor] Could not find Where method");
                 return null;
             }
 
@@ -217,7 +217,7 @@ public class WorkflowRejectionProcessor(
             var queryable = dbSet as IQueryable;
             if (queryable == null)
             {
-                logger.LogWarning("⚠️ [WorkflowRejectionProcessor] DbSet is not IQueryable");
+                logger.LogWarning("[WorkflowRejectionProcessor] DbSet is not IQueryable");
                 return null;
             }
 
@@ -235,7 +235,7 @@ public class WorkflowRejectionProcessor(
 
             if (firstOrDefaultAsyncMethod == null)
             {
-                logger.LogWarning("⚠️ [WorkflowRejectionProcessor] Could not find FirstOrDefaultAsync method");
+                logger.LogWarning("[WorkflowRejectionProcessor] Could not find FirstOrDefaultAsync method");
                 return null;
             }
 
@@ -255,7 +255,7 @@ public class WorkflowRejectionProcessor(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "❌ [WorkflowRejectionProcessor] Error retrieving entity by type. EntityType={EntityType}, EntityId={EntityId}",
+            logger.LogError(ex, "[WorkflowRejectionProcessor] Error retrieving entity by type. EntityType={EntityType}, EntityId={EntityId}",
                 entityTypeName, entityId);
             return null;
         }
@@ -281,7 +281,7 @@ public class WorkflowRejectionProcessor(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "⚠️ [WorkflowRejectionProcessor] Error querying EntityWorkflowSteps from DbContext. EntityWorkflowSteps table may not exist in this context.");
+            logger.LogWarning(ex, "[WorkflowRejectionProcessor] Error querying EntityWorkflowSteps from DbContext. EntityWorkflowSteps table may not exist in this context.");
             return null;
         }
     }
@@ -306,13 +306,13 @@ public class WorkflowRejectionProcessor(
     {
         if (_systemOptions.TemporalOwnsWorkflowNotifications)
         {
-            logger.LogDebug("📧 [WorkflowRejectionProcessor] Skipping legacy publish — Temporal owns workflow notifications.");
+            logger.LogDebug("[WorkflowRejectionProcessor] Skipping legacy publish — Temporal owns workflow notifications.");
             return;
         }
 
         if (notifications == null || !notifications.SendEmailNotifications)
         {
-            logger.LogDebug("📧 [WorkflowRejectionProcessor] Email notifications are disabled. Skipping rejection notification sending.");
+            logger.LogDebug("[WorkflowRejectionProcessor] Email notifications are disabled. Skipping rejection notification sending.");
             return;
         }
 
@@ -337,11 +337,11 @@ public class WorkflowRejectionProcessor(
 
         if (recipients.Count == 0)
         {
-            logger.LogDebug("📧 [WorkflowRejectionProcessor] No recipients found for rejection notifications.");
+            logger.LogDebug("[WorkflowRejectionProcessor] No recipients found for rejection notifications.");
             return;
         }
 
-        logger.LogInformation("📧 [WorkflowRejectionProcessor] Sending rejection notifications to {RecipientCount} recipients",
+        logger.LogInformation("[WorkflowRejectionProcessor] Sending rejection notifications to {RecipientCount} recipients",
             recipients.Count);
 
         var entityDisplayName = GetEntityDisplayName(entity);
@@ -391,12 +391,12 @@ public class WorkflowRejectionProcessor(
 
                 await notificationStarter.SendAsync(message);
 
-                logger.LogInformation("✅ [WorkflowRejectionProcessor] Successfully sent rejection notification to {Recipient}",
+                logger.LogInformation("[WorkflowRejectionProcessor] Successfully sent rejection notification to {Recipient}",
                     recipient);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ [WorkflowRejectionProcessor] Failed to send rejection notification to {Recipient}",
+                logger.LogError(ex, "[WorkflowRejectionProcessor] Failed to send rejection notification to {Recipient}",
                     recipient);
             }
         }

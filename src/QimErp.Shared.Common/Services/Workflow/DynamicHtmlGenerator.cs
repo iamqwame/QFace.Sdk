@@ -52,7 +52,7 @@ public class DynamicHtmlGenerator(ILogger<DynamicHtmlGenerator> logger) : IDynam
 
         if (currentStep == null && !string.IsNullOrWhiteSpace(currentStepCode))
         {
-            logger.LogWarning("⚠️ [DynamicHtmlGenerator] Current step code {StepCode} not found in workflow definition. Using first step as current.",
+            logger.LogWarning("[DynamicHtmlGenerator] Current step code {StepCode} not found in workflow definition. Using first step as current.",
                 currentStepCode);
             currentStep = orderedSteps.FirstOrDefault();
         }

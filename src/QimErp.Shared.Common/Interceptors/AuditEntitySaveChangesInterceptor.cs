@@ -494,7 +494,7 @@ public class AuditEntitySaveChangesInterceptor(
 
             if (newStatus == WorkflowStatus.InProgress && oldStatus != WorkflowStatus.InProgress)
             {
-                logger.LogInformation("[CaptureWorkflowEvents] ✅ Status change detected: {EntityType} {EntityId} changed from {OldStatus} to InProgress. Will publish workflow event.",
+                logger.LogInformation("[CaptureWorkflowEvents] Status change detected: {EntityType} {EntityId} changed from {OldStatus} to InProgress. Will publish workflow event.",
                     entity.EntityType, GetEntityId(entity), oldStatus);
 
                 // Resolve TenantId - try userContextService first, then entity as fallback
@@ -513,7 +513,7 @@ public class AuditEntitySaveChangesInterceptor(
                     }
                     else
                     {
-                        logger.LogWarning("⚠️ [CaptureWorkflowEvents] TenantId is empty from both userContextService and entity for {EntityType} {EntityId}",
+                        logger.LogWarning("[CaptureWorkflowEvents] TenantId is empty from both userContextService and entity for {EntityType} {EntityId}",
                             entity.EntityType, GetEntityId(entity));
                     }
                 }
@@ -521,7 +521,7 @@ public class AuditEntitySaveChangesInterceptor(
                 // Validate TenantId before proceeding
                 if (string.IsNullOrWhiteSpace(resolvedTenantId))
                 {
-                    logger.LogError("❌ [CaptureWorkflowEvents] Cannot create WorkflowEventMessage - TenantId is empty for {EntityType} {EntityId}. Workflow event will not be published.",
+                    logger.LogError("[CaptureWorkflowEvents] Cannot create WorkflowEventMessage - TenantId is empty for {EntityType} {EntityId}. Workflow event will not be published.",
                         entity.EntityType, GetEntityId(entity));
                     continue; // Skip this entity and continue with the next one
                 }
@@ -579,7 +579,7 @@ public class AuditEntitySaveChangesInterceptor(
 
                 if (string.IsNullOrWhiteSpace(workflowHistoryId))
                 {
-                    logger.LogWarning("⚠️ [CaptureWorkflowEvents] CurrentWorkflowHistoryId is not set for {EntityType} {EntityId}. Workflow history may not be recorded correctly. WorkflowCode={WorkflowCode}",
+                    logger.LogWarning("[CaptureWorkflowEvents] CurrentWorkflowHistoryId is not set for {EntityType} {EntityId}. Workflow history may not be recorded correctly. WorkflowCode={WorkflowCode}",
                         entity.EntityType, GetEntityId(entity), workflowCode);
 
                     var fallbackWorkflowHistoryId = Guid.NewGuid();
@@ -623,7 +623,7 @@ public class AuditEntitySaveChangesInterceptor(
                 var bridge = serviceProvider.GetService<IWorkflowTriggerBridge>();
                 if (bridge == null)
                 {
-                    logger.LogWarning("⚠️ [CaptureWorkflowEvents] IWorkflowTriggerBridge is not registered. Workflow approval-required event will not be triggered for {EntityType} {EntityId}.",
+                    logger.LogWarning("[CaptureWorkflowEvents] IWorkflowTriggerBridge is not registered. Workflow approval-required event will not be triggered for {EntityType} {EntityId}.",
                         entity.EntityType, GetEntityId(entity));
                 }
                 else
@@ -632,14 +632,14 @@ public class AuditEntitySaveChangesInterceptor(
                     {
                         var handled = await bridge.TryTriggerTemporalWorkflowAsync(workflowMessage, cancellationToken);
                         if (handled)
-                            logger.LogInformation("✅ [CaptureWorkflowEvents] Temporal workflow triggered for {EntityType} {EntityId}", entity.EntityType, GetEntityId(entity));
+                            logger.LogInformation("[CaptureWorkflowEvents] Temporal workflow triggered for {EntityType} {EntityId}", entity.EntityType, GetEntityId(entity));
                         else
-                            logger.LogWarning("⚠️ [CaptureWorkflowEvents] WorkflowTriggerBridge returned false for {EntityType} {EntityId}. No workflow was started.",
+                            logger.LogWarning("[CaptureWorkflowEvents] WorkflowTriggerBridge returned false for {EntityType} {EntityId}. No workflow was started.",
                                 entity.EntityType, GetEntityId(entity));
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "❌ [CaptureWorkflowEvents] WorkflowTriggerBridge failed for {EntityType} {EntityId}. Error: {ErrorMessage}",
+                        logger.LogError(ex, "[CaptureWorkflowEvents] WorkflowTriggerBridge failed for {EntityType} {EntityId}. Error: {ErrorMessage}",
                             entity.EntityType, GetEntityId(entity), ex.Message);
                     }
                 }

@@ -19,6 +19,7 @@ public class EmployeeChangedEvent : DomainEvent
     public string? ReferenceCode { get; set; }
     public bool IsActive { get; set; }
     public string? EmploymentStatus { get; set; }
+    public string? Gender { get; set; }
     public Guid? OrganizationalUnitId { get; set; }
     public string? OrganizationalUnitName { get; set; }
     public string? OrganizationalUnitCode { get; set; }
@@ -86,6 +87,7 @@ public class EmployeeChangedEvent : DomainEvent
     public EmployeeChangedEvent WithReferenceCode(string? reference) { ReferenceCode = reference; return this; }
     public EmployeeChangedEvent Active(bool isActive = true) { IsActive = isActive; return this; }
     public EmployeeChangedEvent WithEmploymentStatus(string? status) { EmploymentStatus = status; return this; }
+    public EmployeeChangedEvent WithGender(string? gender) { Gender = gender; return this; }
     
     public EmployeeChangedEvent WithOrganizationalUnit(Guid? id, string? name, string? code = null) 
     { 

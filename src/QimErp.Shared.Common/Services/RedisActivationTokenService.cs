@@ -57,7 +57,7 @@ public class RedisActivationTokenService(
     {
         try
         {
-            logger.LogInformation("🔑 [Redis Activation Token] Generating activation token with email data for {Email}", request.Email);
+            logger.LogInformation("[Redis Activation Token] Generating activation token with email data for {Email}", request.Email);
 
             // Generate a secure random token
             var now = DateTime.UtcNow;
@@ -85,14 +85,14 @@ public class RedisActivationTokenService(
             var cacheKey = ActivationTokenCacheKey(request.Email);
             await cacheService.SetAsync(cacheKey, activationData, TimeSpan.FromMinutes(ActivationTokenTtlMinutes));
 
-            logger.LogInformation("✅ [Redis Activation Token] Activation token with email data generated and stored for {Email} with TTL {Ttl} minutes", 
+            logger.LogInformation("[Redis Activation Token] Activation token with email data generated and stored for {Email} with TTL {Ttl} minutes", 
                 request.Email, ActivationTokenTtlMinutes);
 
             return request.Token;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "❌ [Redis Activation Token] Failed to generate activation token with email data for {Email}", request.Email);
+            logger.LogError(ex, "[Redis Activation Token] Failed to generate activation token with email data for {Email}", request.Email);
             throw;
         }
     }
@@ -106,7 +106,7 @@ public class RedisActivationTokenService(
 
             if (activationData == null)
             {
-                logger.LogDebug("🔍 [Redis Activation Token] No activation token found for {Email}", email);
+                logger.LogDebug("[Redis Activation Token] No activation token found for {Email}", email);
                 return null;
             }
 
@@ -118,12 +118,12 @@ public class RedisActivationTokenService(
                 return null;
             }
 
-            logger.LogDebug("✅ [Redis Activation Token] Activation token retrieved for {Email}", email);
+            logger.LogDebug("[Redis Activation Token] Activation token retrieved for {Email}", email);
             return activationData;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "❌ [Redis Activation Token] Failed to get activation token for {Email}", email);
+            logger.LogError(ex, "[Redis Activation Token] Failed to get activation token for {Email}", email);
             return null;
         }
     }
@@ -136,19 +136,19 @@ public class RedisActivationTokenService(
             
             if (activationData == null)
             {
-                logger.LogWarning("⚠️ [Redis Activation Token] No activation token found for {Email}", email);
+                logger.LogWarning("[Redis Activation Token] No activation token found for {Email}", email);
                 return false;
             }
 
             if (activationData.IsUsed)
             {
-                logger.LogWarning("⚠️ [Redis Activation Token] Activation token already used for {Email}", email);
+                logger.LogWarning("[Redis Activation Token] Activation token already used for {Email}", email);
                 return false;
             }
 
             if (activationData.Token != token)
             {
-                logger.LogWarning("⚠️ [Redis Activation Token] Invalid activation token for {Email}", email);
+                logger.LogWarning("[Redis Activation Token] Invalid activation token for {Email}", email);
                 return false;
             }
 
@@ -157,12 +157,12 @@ public class RedisActivationTokenService(
             var cacheKey = ActivationTokenCacheKey(email);
             await cacheService.SetAsync(cacheKey, activationData, TimeSpan.FromMinutes(ActivationTokenTtlMinutes));
 
-            logger.LogInformation("✅ [Redis Activation Token] Activation token validated and consumed for {Email}", email);
+            logger.LogInformation("[Redis Activation Token] Activation token validated and consumed for {Email}", email);
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "❌ [Redis Activation Token] Failed to validate activation token for {Email}", email);
+            logger.LogError(ex, "[Redis Activation Token] Failed to validate activation token for {Email}", email);
             return false;
         }
     }
@@ -176,7 +176,7 @@ public class RedisActivationTokenService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "❌ [Redis Activation Token] Failed to check active activation token for {Email}", email);
+            logger.LogError(ex, "[Redis Activation Token] Failed to check active activation token for {Email}", email);
             return false;
         }
     }
@@ -187,11 +187,11 @@ public class RedisActivationTokenService(
         {
             var cacheKey = ActivationTokenCacheKey(email);
             await cacheService.RemoveAsync(cacheKey);
-            logger.LogInformation("🗑️ [Redis Activation Token] Activation token removed for {Email}", email);
+            logger.LogInformation("[Redis Activation Token] Activation token removed for {Email}", email);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "❌ [Redis Activation Token] Failed to remove activation token for {Email}", email);
+            logger.LogError(ex, "[Redis Activation Token] Failed to remove activation token for {Email}", email);
         }
     }
 

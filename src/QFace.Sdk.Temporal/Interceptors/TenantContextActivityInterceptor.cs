@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Temporalio.Activities;
@@ -84,10 +85,16 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
 
             var logger = TryGetLogger();
 
+            // Every log line for the rest of this activity carries TenantId + TraceId, so
+            // downstream logs (including ones emitted deep inside the activity body) stay
+            // correlated to the workflow's distributed trace instead of going dark at the
+            // Temporal boundary.
+            using var scope = logger?.BeginScope(BuildScopeItems(tenantId, activityType));
+
             if (userSvc is null)
             {
                 logger?.LogWarning(
-                    "[TenantContextActivityInterceptor] ITenantContextSetter not resolved for activity {ActivityType}. " +
+                    "ITenantContextSetter not resolved for activity {ActivityType}. " +
                     "TenantId will not be auto-stamped on DB entities.",
                     activityType);
                 // Do NOT return early — ITenantScopeSetter must still be seeded so EF global
@@ -97,7 +104,7 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
             if (string.IsNullOrWhiteSpace(tenantId))
             {
                 logger?.LogWarning(
-                    "[TenantContextActivityInterceptor] No TenantId found on input for activity {ActivityType}. " +
+                    "No TenantId found on input for activity {ActivityType}. " +
                     "DB saves will throw at the interceptor level if context is not seeded elsewhere.",
                     activityType);
                 return await base.ExecuteActivityAsync(input);
@@ -107,9 +114,7 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
             // Seed ITenantContext so EF global query filters (HasQueryFilter) see the correct
             // tenant and do not return cross-tenant rows or fail the filter check.
             tenantScope?.SetTenantScope(tenantId);
-            logger?.LogDebug(
-                "[TenantContextActivityInterceptor] Set ambient TenantId={TenantId} for activity {ActivityType}",
-                tenantId, activityType);
+            logger?.LogDebug("Set ambient TenantId={TenantId} for activity {ActivityType}", tenantId, activityType);
             try
             {
                 return await base.ExecuteActivityAsync(input);
@@ -119,6 +124,17 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
                 userSvc?.ClearTenantContext();
                 tenantScope?.ClearTenantScope();
             }
+        }
+
+        private static List<KeyValuePair<string, object>> BuildScopeItems(string? tenantId, string activityType)
+        {
+            var items = new List<KeyValuePair<string, object>>(3) { new("ActivityType", activityType) };
+            if (!string.IsNullOrWhiteSpace(tenantId))
+                items.Add(new("TenantId", tenantId));
+            var traceId = Activity.Current?.TraceId.ToString();
+            if (!string.IsNullOrWhiteSpace(traceId))
+                items.Add(new("TraceId", traceId));
+            return items;
         }
 
         private static string TryGetActivityType()

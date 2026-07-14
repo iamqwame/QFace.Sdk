@@ -78,7 +78,7 @@ public class KafkaProducer : IKafkaProducer, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"[Kafka] ❌ Failed to produce message to topic {topic}");
+            _logger.LogError(ex, "[Kafka] Failed to produce message to topic {Topic}", topic);
             throw;
         }
     }

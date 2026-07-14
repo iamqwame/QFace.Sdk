@@ -12,5 +12,9 @@ public sealed record TenantBrandingRecord(
     string? CompanyEmail,
     string? LogoUrl,
     string? Country,
-    string? Phone
+    string? Phone,
+    string? BaseCurrency = null,
+    string? CurrencySymbol = null,
+    string? DateFormat = null,
+    string? WorkingDays = null
 );

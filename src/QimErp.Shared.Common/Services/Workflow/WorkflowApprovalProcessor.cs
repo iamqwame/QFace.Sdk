@@ -32,18 +32,18 @@ public class WorkflowApprovalProcessor(
         CancellationToken cancellationToken = default)
         where TContext : DbContext
     {
-        logger.LogInformation("📨 [WorkflowApprovalProcessor] Processing approval request for WorkflowId={WorkflowId}, EntityType={EntityType}, EntityId={EntityId}",
+        logger.LogInformation("[WorkflowApprovalProcessor] Processing approval request for WorkflowId={WorkflowId}, EntityType={EntityType}, EntityId={EntityId}",
             @event.WorkflowId, @event.EntityType, @event.EntityId);
 
         if (string.IsNullOrWhiteSpace(@event.EntityId) || !Guid.TryParse(@event.EntityId, out var entityId))
         {
-            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] Missing or invalid EntityId for event. Ignoring message.");
+            logger.LogWarning("[WorkflowApprovalProcessor] Missing or invalid EntityId for event. Ignoring message.");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(@event.EntityType))
         {
-            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] Missing EntityType for event. Ignoring message.");
+            logger.LogWarning("[WorkflowApprovalProcessor] Missing EntityType for event. Ignoring message.");
             return;
         }
 
@@ -51,7 +51,7 @@ public class WorkflowApprovalProcessor(
 
         if (entity == null)
         {
-            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] Entity not found with Id={EntityId}, EntityType={EntityType}",
+            logger.LogWarning("[WorkflowApprovalProcessor] Entity not found with Id={EntityId}, EntityType={EntityType}",
                 entityId, @event.EntityType);
             return;
         }
@@ -67,7 +67,7 @@ public class WorkflowApprovalProcessor(
         
         if (string.IsNullOrWhiteSpace(workflowCode))
         {
-            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] WorkflowCode is not available for EntityType={EntityType}, EntityId={EntityId}",
+            logger.LogWarning("[WorkflowApprovalProcessor] WorkflowCode is not available for EntityType={EntityType}, EntityId={EntityId}",
                 @event.EntityType, entityId);
             return;
         }
@@ -83,14 +83,14 @@ public class WorkflowApprovalProcessor(
             if (workflowDefinition != null)
             {
                 logger.LogDebug(
-                    "📘 [WorkflowApprovalProcessor] Resolved workflow definition from central provider for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
+                    "[WorkflowApprovalProcessor] Resolved workflow definition from central provider for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
                     workflowCode, @event.EntityType);
             }
         }
 
         if (workflowDefinition == null)
         {
-            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] No workflow definition found for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
+            logger.LogWarning("[WorkflowApprovalProcessor] No workflow definition found for WorkflowCode={WorkflowCode}, EntityType={EntityType}",
                 workflowCode, @event.EntityType);
             return;
         }
@@ -102,7 +102,7 @@ public class WorkflowApprovalProcessor(
         var approvedStep = GetCurrentWorkflowStep(workflowDefinition, approvedStepCode);
         if (approvedStep == null)
         {
-            logger.LogWarning("⚠️ [WorkflowApprovalProcessor] No workflow step found for approved step. WorkflowCode={WorkflowCode}, ApprovedStepCode={ApprovedStepCode}",
+            logger.LogWarning("[WorkflowApprovalProcessor] No workflow step found for approved step. WorkflowCode={WorkflowCode}, ApprovedStepCode={ApprovedStepCode}",
                 workflowCode, approvedStepCode);
             return;
         }
@@ -128,7 +128,7 @@ public class WorkflowApprovalProcessor(
             {
                 auditableEntity.ActivateFromDraft();
             }
-            logger.LogInformation("✅ Completing workflow for {EntityType} {EntityId} - all steps approved. Approved step: {ApprovedStep}",
+            logger.LogInformation("Completing workflow for {EntityType} {EntityId} - all steps approved. Approved step: {ApprovedStep}",
                 @event.EntityType, entityId, approvedStepCode);
 
             await PublishNotificationsAsync(
@@ -146,7 +146,7 @@ public class WorkflowApprovalProcessor(
         {
             newStatus = WorkflowStatus.InProgress;
             entity.WorkflowStatus = newStatus;
-            logger.LogInformation("➡️ Moving {EntityType} {EntityId} to next step: {NextStep}. Approved step: {ApprovedStep}",
+            logger.LogInformation("Moving {EntityType} {EntityId} to next step: {NextStep}. Approved step: {ApprovedStep}",
                 @event.EntityType, entityId, nextStepCode, approvedStepCode);
 
             await PublishNotificationsAsync(
@@ -163,7 +163,7 @@ public class WorkflowApprovalProcessor(
             var nextStep = GetNextWorkflowStep(workflowDefinition, nextStepCode);
             if (nextStep != null && nextStep.RequiredApprovers.Count > 0)
             {
-                logger.LogDebug("📧 [WorkflowApprovalProcessor] Notifying required approvers for next step: {StepCode}",
+                logger.LogDebug("[WorkflowApprovalProcessor] Notifying required approvers for next step: {StepCode}",
                     nextStepCode);
                 await SendNextStepNotificationsAsync(
                     workflowDefinition,
@@ -176,7 +176,7 @@ public class WorkflowApprovalProcessor(
         {
             newStatus = WorkflowStatus.InProgress;
             entity.WorkflowStatus = newStatus;
-            logger.LogInformation("✅ Step completed for {EntityType} {EntityId} - no next step defined. Approved step: {ApprovedStep}",
+            logger.LogInformation("Step completed for {EntityType} {EntityId} - no next step defined. Approved step: {ApprovedStep}",
                 @event.EntityType, entityId, approvedStepCode);
 
             await PublishNotificationsAsync(
@@ -194,7 +194,7 @@ public class WorkflowApprovalProcessor(
         {
             newStatus = WorkflowStatus.InProgress;
             entity.WorkflowStatus = newStatus;
-            logger.LogInformation("✅ Step approved for {EntityType} {EntityId} - no transition defined. Approved step: {ApprovedStep}",
+            logger.LogInformation("Step approved for {EntityType} {EntityId} - no transition defined. Approved step: {ApprovedStep}",
                 @event.EntityType, entityId, approvedStepCode);
 
             await PublishNotificationsAsync(
@@ -226,7 +226,7 @@ public class WorkflowApprovalProcessor(
             await context.SaveChangesAsync(cancellationToken);
         }
         
-        logger.LogInformation("✅ [WorkflowApprovalProcessor] Successfully processed approval request for WorkflowId={WorkflowId}, Status={Status}",
+        logger.LogInformation("[WorkflowApprovalProcessor] Successfully processed approval request for WorkflowId={WorkflowId}, Status={Status}",
             @event.WorkflowId, newStatus);
     }
 
@@ -261,14 +261,14 @@ public class WorkflowApprovalProcessor(
 
             if (entityType == null || dbSetProperty == null)
             {
-                logger.LogWarning("⚠️ [WorkflowApprovalProcessor] No DbSet found for EntityType={EntityType} in DbContext {ContextType}",
+                logger.LogWarning("[WorkflowApprovalProcessor] No DbSet found for EntityType={EntityType} in DbContext {ContextType}",
                     entityTypeName, contextType.Name);
                 return null;
             }
 
             if (!typeof(IWorkflowEnabled).IsAssignableFrom(entityType))
             {
-                logger.LogWarning("⚠️ [WorkflowApprovalProcessor] EntityType={EntityType} does not implement IWorkflowEnabled",
+                logger.LogWarning("[WorkflowApprovalProcessor] EntityType={EntityType} does not implement IWorkflowEnabled",
                     entityTypeName);
                 return null;
             }
@@ -276,7 +276,7 @@ public class WorkflowApprovalProcessor(
             var setMethod = typeof(DbContext).GetMethod("Set", Type.EmptyTypes);
             if (setMethod == null)
             {
-                logger.LogWarning("⚠️ [WorkflowApprovalProcessor] Could not find Set method on DbContext");
+                logger.LogWarning("[WorkflowApprovalProcessor] Could not find Set method on DbContext");
                 return null;
             }
 
@@ -284,7 +284,7 @@ public class WorkflowApprovalProcessor(
             var dbSet = setGenericMethod.Invoke(context, null);
             if (dbSet == null)
             {
-                logger.LogWarning("⚠️ [WorkflowApprovalProcessor] Could not get DbSet for EntityType={EntityType}",
+                logger.LogWarning("[WorkflowApprovalProcessor] Could not get DbSet for EntityType={EntityType}",
                     entityTypeName);
                 return null;
             }
@@ -292,7 +292,7 @@ public class WorkflowApprovalProcessor(
             var idProperty = entityType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance);
             if (idProperty == null)
             {
-                logger.LogWarning("⚠️ [WorkflowApprovalProcessor] EntityType={EntityType} does not have an Id property",
+                logger.LogWarning("[WorkflowApprovalProcessor] EntityType={EntityType} does not have an Id property",
                     entityTypeName);
                 return null;
             }
@@ -308,7 +308,7 @@ public class WorkflowApprovalProcessor(
                 .FirstOrDefault(m => m.Name == "Where" && m.GetParameters().Length == 2);
             if (whereMethod == null)
             {
-                logger.LogWarning("⚠️ [WorkflowApprovalProcessor] Could not find Where method");
+                logger.LogWarning("[WorkflowApprovalProcessor] Could not find Where method");
                 return null;
             }
 
@@ -316,7 +316,7 @@ public class WorkflowApprovalProcessor(
             var queryable = dbSet as IQueryable;
             if (queryable == null)
             {
-                logger.LogWarning("⚠️ [WorkflowApprovalProcessor] DbSet is not IQueryable");
+                logger.LogWarning("[WorkflowApprovalProcessor] DbSet is not IQueryable");
                 return null;
             }
 
@@ -334,7 +334,7 @@ public class WorkflowApprovalProcessor(
             
             if (firstOrDefaultAsyncMethod == null)
             {
-                logger.LogWarning("⚠️ [WorkflowApprovalProcessor] Could not find FirstOrDefaultAsync method");
+                logger.LogWarning("[WorkflowApprovalProcessor] Could not find FirstOrDefaultAsync method");
                 return null;
             }
 
@@ -354,7 +354,7 @@ public class WorkflowApprovalProcessor(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "❌ [WorkflowApprovalProcessor] Error retrieving entity by type. EntityType={EntityType}, EntityId={EntityId}",
+            logger.LogError(ex, "[WorkflowApprovalProcessor] Error retrieving entity by type. EntityType={EntityType}, EntityId={EntityId}",
                 entityTypeName, entityId);
             return null;
         }
@@ -380,7 +380,7 @@ public class WorkflowApprovalProcessor(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "⚠️ [WorkflowApprovalProcessor] Error querying EntityWorkflowSteps from DbContext. EntityWorkflowSteps table may not exist in this context.");
+            logger.LogWarning(ex, "[WorkflowApprovalProcessor] Error querying EntityWorkflowSteps from DbContext. EntityWorkflowSteps table may not exist in this context.");
             return null;
         }
     }
@@ -417,13 +417,13 @@ public class WorkflowApprovalProcessor(
     {
         if (_systemOptions.TemporalOwnsWorkflowNotifications)
         {
-            logger.LogDebug("📧 [WorkflowNotification] Skipping legacy publish — Temporal owns workflow notifications.");
+            logger.LogDebug("[WorkflowNotification] Skipping legacy publish — Temporal owns workflow notifications.");
             return;
         }
 
         if (notifications == null || action == null)
         {
-            logger.LogDebug("📧 [WorkflowNotification] Notifications or action is null. Skipping notification publishing.");
+            logger.LogDebug("[WorkflowNotification] Notifications or action is null. Skipping notification publishing.");
             return;
         }
 
@@ -433,12 +433,12 @@ public class WorkflowApprovalProcessor(
             {
                 var smsMessage = BuildSmsNotification(@event, notificationType, stepName, action.SendNotificationTo);
                 await notificationStarter.SendAsync(smsMessage);
-                logger.LogInformation("📱 [WorkflowNotification] Published SMS notification for {NotificationType} to {RecipientCount} recipients",
+                logger.LogInformation("[WorkflowNotification] Published SMS notification for {NotificationType} to {RecipientCount} recipients",
                     notificationType, action.SendNotificationTo.Count);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ [WorkflowNotification] Failed to publish SMS notification for {NotificationType}. Continuing with email notifications.",
+                logger.LogError(ex, "[WorkflowNotification] Failed to publish SMS notification for {NotificationType}. Continuing with email notifications.",
                     notificationType);
             }
         }
@@ -473,13 +473,13 @@ public class WorkflowApprovalProcessor(
                 {
                     var emailMessage = BuildEmailNotification(@event, notificationType, stepName, recipients, entity, workflowDefinition);
                     await notificationStarter.SendAsync(emailMessage);
-                    logger.LogInformation("📧 [WorkflowNotification] Published Email notification for {NotificationType} to {RecipientCount} recipients",
+                    logger.LogInformation("[WorkflowNotification] Published Email notification for {NotificationType} to {RecipientCount} recipients",
                         notificationType, recipients.Count);
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ [WorkflowNotification] Failed to publish Email notification for {NotificationType}",
+                logger.LogError(ex, "[WorkflowNotification] Failed to publish Email notification for {NotificationType}",
                     notificationType);
             }
         }
@@ -650,14 +650,14 @@ public class WorkflowApprovalProcessor(
     {
         if (_systemOptions.TemporalOwnsWorkflowNotifications)
         {
-            logger.LogDebug("📧 [SendNextStepNotifications] Skipping — Temporal owns workflow notifications.");
+            logger.LogDebug("[SendNextStepNotifications] Skipping — Temporal owns workflow notifications.");
             return;
         }
 
         var notifications = workflowDefinition.Notifications;
         if (!notifications.SendEmailNotifications)
         {
-            logger.LogDebug("📧 [SendNextStepNotifications] Email notifications are disabled. Skipping next step notification sending.");
+            logger.LogDebug("[SendNextStepNotifications] Email notifications are disabled. Skipping next step notification sending.");
             return;
         }
 
@@ -669,12 +669,12 @@ public class WorkflowApprovalProcessor(
             if (approverEmails.Count > 0)
             {
                 recipients.AddRange(approverEmails);
-                logger.LogInformation("📧 [SendNextStepNotifications] Extracted {Count} valid emails from {TotalCount} required approvers for step {StepCode}",
+                logger.LogInformation("[SendNextStepNotifications] Extracted {Count} valid emails from {TotalCount} required approvers for step {StepCode}",
                     approverEmails.Count, nextStep.RequiredApprovers.Count, nextStep.StepCode);
             }
             else
             {
-                logger.LogDebug("📧 [SendNextStepNotifications] No valid emails found in {TotalCount} required approvers for step {StepCode}",
+                logger.LogDebug("[SendNextStepNotifications] No valid emails found in {TotalCount} required approvers for step {StepCode}",
                     nextStep.RequiredApprovers.Count, nextStep.StepCode);
             }
         }
@@ -683,11 +683,11 @@ public class WorkflowApprovalProcessor(
 
         if (recipients.Count == 0)
         {
-            logger.LogDebug("📧 [SendNextStepNotifications] No recipients found for next step notifications.");
+            logger.LogDebug("[SendNextStepNotifications] No recipients found for next step notifications.");
             return;
         }
 
-        logger.LogInformation("📧 [SendNextStepNotifications] Sending next step notifications to {RecipientCount} recipients for step {StepCode}",
+        logger.LogInformation("[SendNextStepNotifications] Sending next step notifications to {RecipientCount} recipients for step {StepCode}",
             recipients.Count, nextStep.StepCode);
 
         var baseUrl = _frontendSettings.BaseUrl;
@@ -739,12 +739,12 @@ public class WorkflowApprovalProcessor(
 
                 await notificationStarter.SendAsync(message);
 
-                logger.LogInformation("✅ [SendNextStepNotifications] Successfully sent next step notification to {Recipient} for step {StepCode}",
+                logger.LogInformation("[SendNextStepNotifications] Successfully sent next step notification to {Recipient} for step {StepCode}",
                     recipient, nextStep.StepCode);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ [SendNextStepNotifications] Failed to send next step notification to {Recipient} for step {StepCode}",
+                logger.LogError(ex, "[SendNextStepNotifications] Failed to send next step notification to {Recipient} for step {StepCode}",
                     recipient, nextStep.StepCode);
             }
         }
@@ -758,19 +758,19 @@ public class WorkflowApprovalProcessor(
     {
         if (_systemOptions.TemporalOwnsWorkflowNotifications)
         {
-            logger.LogDebug("📧 [SendRequesterNotification] Skipping — Temporal owns workflow notifications.");
+            logger.LogDebug("[SendRequesterNotification] Skipping — Temporal owns workflow notifications.");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(entity.WorkflowInitiatedByEmail))
         {
-            logger.LogDebug("📧 [SendRequesterNotification] WorkflowInitiatedByEmail is empty. Skipping requester notification.");
+            logger.LogDebug("[SendRequesterNotification] WorkflowInitiatedByEmail is empty. Skipping requester notification.");
             return;
         }
 
         if (!IsValidEmail(entity.WorkflowInitiatedByEmail))
         {
-            logger.LogWarning("⚠️ [SendRequesterNotification] WorkflowInitiatedByEmail '{Email}' is not a valid email. Skipping requester notification.",
+            logger.LogWarning("[SendRequesterNotification] WorkflowInitiatedByEmail '{Email}' is not a valid email. Skipping requester notification.",
                 entity.WorkflowInitiatedByEmail);
             return;
         }
@@ -792,7 +792,7 @@ public class WorkflowApprovalProcessor(
 
         if (isCompleted)
         {
-            logger.LogDebug("✅ [SendRequesterNotification] Detected completed workflow. NotificationType={Type}", notificationType);
+            logger.LogDebug("[SendRequesterNotification] Detected completed workflow. NotificationType={Type}", notificationType);
         }
 
         var completedDate = isCompleted && entity.WorkflowCompletedAt.HasValue
@@ -888,12 +888,12 @@ public class WorkflowApprovalProcessor(
             };
 
             await notificationStarter.SendAsync(message);
-            logger.LogInformation("✅ [SendRequesterNotification] Successfully sent {NotificationType} notification to requester {Email}",
+            logger.LogInformation("[SendRequesterNotification] Successfully sent {NotificationType} notification to requester {Email}",
                 notificationType, entity.WorkflowInitiatedByEmail);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "❌ [SendRequesterNotification] Failed to send {NotificationType} notification to requester {Email}",
+            logger.LogError(ex, "[SendRequesterNotification] Failed to send {NotificationType} notification to requester {Email}",
                 notificationType, entity.WorkflowInitiatedByEmail);
         }
     }
@@ -947,13 +947,13 @@ public class WorkflowApprovalProcessor(
             if (!string.IsNullOrWhiteSpace(approver.Value) && IsValidEmail(approver.Value))
             {
                 emails.Add(approver.Value.Trim());
-                logger.LogDebug("✅ [ExtractEmailsFromApprovers] Found valid email in approver {Type} Value: {Email}", approver.Type, approver.Value);
+                logger.LogDebug("[ExtractEmailsFromApprovers] Found valid email in approver {Type} Value: {Email}", approver.Type, approver.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(approver.ValueId) && IsValidEmail(approver.ValueId))
             {
                 emails.Add(approver.ValueId.Trim());
-                logger.LogDebug("✅ [ExtractEmailsFromApprovers] Found valid email in approver {Type} ValueId: {Email}", approver.Type, approver.ValueId);
+                logger.LogDebug("[ExtractEmailsFromApprovers] Found valid email in approver {Type} ValueId: {Email}", approver.Type, approver.ValueId);
             }
         }
 
@@ -979,7 +979,7 @@ public class WorkflowApprovalProcessor(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "⚠️ [ExtractEntityDetails] Error extracting entity details for {EntityType}. Continuing with basic details.",
+            logger.LogWarning(ex, "[ExtractEntityDetails] Error extracting entity details for {EntityType}. Continuing with basic details.",
                 entityTypeName);
         }
 
@@ -1041,7 +1041,7 @@ public class WorkflowApprovalProcessor(
                 }
                 catch (Exception ex)
                 {
-                    logger.LogDebug(ex, "⚠️ [ExtractEmployeeDetails] Error reading property {PropertyName} for Employee entity", propertyName);
+                    logger.LogDebug(ex, "[ExtractEmployeeDetails] Error reading property {PropertyName} for Employee entity", propertyName);
                 }
             }
         }
@@ -1087,7 +1087,7 @@ public class WorkflowApprovalProcessor(
                 }
                 catch (Exception ex)
                 {
-                    logger.LogDebug(ex, "⚠️ [ExtractGenericEntityDetails] Error reading property {PropertyName} for {EntityType} entity",
+                    logger.LogDebug(ex, "[ExtractGenericEntityDetails] Error reading property {PropertyName} for {EntityType} entity",
                         propertyName, entityType.Name);
                 }
             }

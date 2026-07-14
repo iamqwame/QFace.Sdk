@@ -101,7 +101,7 @@ public static class RedisMqExtensions
         var logger = LoggerFactory.Create(builder => builder.AddConsole())
             .CreateLogger("Redis Consumer Discovery");
 
-        logger.LogInformation($"Scanning {assemblies.Length} assemblies for consumers");
+        logger.LogInformation("Scanning {AssemblyCount} assemblies for consumers", assemblies.Length);
 
         // Find all consumer classes using a HashSet to ensure uniqueness
         var consumerTypes = new HashSet<Type>();
@@ -141,11 +141,11 @@ public static class RedisMqExtensions
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Unexpected error scanning assembly {assembly.FullName}");
+                logger.LogError(ex, "Unexpected error scanning assembly {AssemblyName}", assembly.FullName);
             }
         }
 
-        logger.LogInformation($"Total unique consumer types discovered: {consumerTypes.Count}");
+        logger.LogInformation("Total unique consumer types discovered: {ConsumerTypeCount}", consumerTypes.Count);
 
         // Register all consumers in DI
         foreach (var consumerType in consumerTypes)
@@ -185,7 +185,7 @@ public static class RedisMqExtensions
             }
         }
 
-        logger.LogInformation($"Total consumer metadata entries: {consumerMetadata.Count}");
+        logger.LogInformation("Total consumer metadata entries: {ConsumerMetadataCount}", consumerMetadata.Count);
 
         // Register consumer metadata
         services.AddSingleton(consumerMetadata);
@@ -337,7 +337,7 @@ public static class RedisMqExtensions
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"[Redis] Failed to initialize Redis: {ex.Message}");
+            logger.LogError(ex, "[Redis] Failed to initialize Redis: {ErrorMessage}", ex.Message);
         }
 
         return serviceProvider;

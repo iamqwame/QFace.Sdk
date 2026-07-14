@@ -47,6 +47,7 @@ public abstract class EmployeeBaseConfiguration<TEmployee> : AuditableEntityConf
         // Ignore computed properties
         builder.Ignore(e => e.IsActive);
         builder.Ignore(e => e.FullName);
+        builder.Ignore(e => e.IsFemale);
     }
 }
 

@@ -76,7 +76,7 @@ public static class UploadFile
         {
             try
             {
-                logger.LogInformation("📤 [File Upload] Uploading {FileType}: {FileName}", 
+                logger.LogInformation("[File Upload] Uploading {FileType}: {FileName}", 
                     request.FileType, request.File.FileName);
 
                 // Determine folder based on file type
@@ -99,14 +99,14 @@ public static class UploadFile
                     UploadedAt = DateTime.UtcNow
                 };
 
-                logger.LogInformation("✅ [File Upload Success] File uploaded: {FileName} -> {Url}", 
+                logger.LogInformation("[File Upload Success] File uploaded: {FileName} -> {Url}", 
                     request.File.FileName, uploadResult.SaveUrl);
 
                 return Result.WithSuccess(response);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ [File Upload Error] Failed to upload file: {FileName}", 
+                logger.LogError(ex, "[File Upload Error] Failed to upload file: {FileName}", 
                     request.File.FileName);
                 return Result.WithFailure<FileUploadResponse>(
                     new Error("UploadFile.Error", $"Failed to upload file: {ex.Message}"));
@@ -183,7 +183,7 @@ public class UploadFileEndpoint : ICarterModule
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ Error handling file upload request");
+                logger.LogError(ex, "Error handling file upload request");
                 return Results.StatusCode(500);
             }
         })

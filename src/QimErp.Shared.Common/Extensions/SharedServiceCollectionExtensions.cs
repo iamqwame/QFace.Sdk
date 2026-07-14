@@ -700,8 +700,6 @@ public static class SharedServiceCollectionExtensions
         return services;
     }
 
-
-
     /// <summary>
     /// Registers OpenTelemetry logging, metrics, and tracing (including ASP.NET Core, HttpClient, EF Core, and MediatR <see cref="ObservabilityTelemetry.MediatRActivitySourceName"/>).
     /// OTLP export is enabled when <c>OTEL_EXPORTER_OTLP_ENDPOINT</c> is set.

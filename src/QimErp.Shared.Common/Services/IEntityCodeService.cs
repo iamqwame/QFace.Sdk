@@ -47,4 +47,21 @@ public interface IEntityCodeService
     /// </summary>
     Task<long> ReconcileManualToAutoAsync(string tenantId, string entityType,
         IEnumerable<string> existingCodes, CancellationToken ct = default);
+
+    /// <summary>
+    /// Entity type keys this module actually generates codes for. Drives admin/settings UIs
+    /// that list every numbering rule a module exposes — never includes another module's types.
+    /// </summary>
+    IReadOnlyCollection<string> GetKnownEntityTypes();
+
+    /// <summary>
+    /// Returns the current (or auto-created) config for every entity type this service knows about.
+    /// </summary>
+    Task<IReadOnlyList<EntityCodeConfig>> GetAllConfigsAsync(string tenantId, CancellationToken ct = default);
+
+    /// <summary>
+    /// The module that owns numbering for this entity type (e.g. "Payroll", "Inventory") — always
+    /// this service's own module, since every entity type it knows about is one it registered itself.
+    /// </summary>
+    string GetModuleFor(string entityType);
 }

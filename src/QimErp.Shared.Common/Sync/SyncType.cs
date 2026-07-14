@@ -11,4 +11,6 @@ public enum SyncType
     AssignmentChanged,
     /// <summary>GL journal posted → Budget Planning actuals sync.</summary>
     JournalEntryPosted,
+    /// <summary>IAM master tenant reference data → module local copies (currency, FX, calendar, holidays).</summary>
+    TenantReference,
 }
