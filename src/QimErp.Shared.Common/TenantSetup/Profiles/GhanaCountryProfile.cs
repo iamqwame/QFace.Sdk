@@ -124,7 +124,8 @@ public class GhanaCountryProfile : ICountrySetupProfile
             Rules:               "Up to 5 working days within 30 days of birth.",
             Eligibility:         "All male employees.",
             Documentation:       "Birth notification.",
-            ApprovalProcess:     "Line manager approves; HR records."),
+            ApprovalProcess:     "Line manager approves; HR records.",
+            MenOnly:             true),
 
         new(
             Name:                "Study / Exam Leave",
@@ -181,7 +182,8 @@ public class GhanaCountryProfile : ICountrySetupProfile
             Rules:               "Maximum 30 calendar days per year. Does not affect statutory entitlements.",
             Eligibility:         "All confirmed staff. Subject to manager and HR approval.",
             Documentation:       "Written request with reason. Supporting documents where applicable.",
-            ApprovalProcess:     "Line manager + HR Director approval required."),
+            ApprovalProcess:     "Line manager + HR Director approval required.",
+            Unpaid:              true),
     ];
 
     // Codes must match PayrollCodes.AllowanceCodes.X / DeductionCodes.X in QimErp.Payroll.

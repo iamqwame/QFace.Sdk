@@ -29,7 +29,8 @@ public sealed record LeaveTypeDefinition(
     bool IsEarned, bool CarryOverAllowed, int? CarryOverDays,
     int? MaxConsecutiveDays, int? MinAdvanceNoticeDays, int? MaxPerRequest,
     string Description, string Rules, string Eligibility,
-    string Documentation, string ApprovalProcess);
+    string Documentation, string ApprovalProcess,
+    bool MenOnly = false, bool Unpaid = false);
 
 public sealed record PublicHolidayDefinition(
     string Name, int Month, int Day, bool IsFixed,

@@ -57,6 +57,8 @@ public abstract class EmployeeBase : GuidAuditableEntity
 
     public bool IsFemale => string.Equals(Gender, "Female", StringComparison.OrdinalIgnoreCase);
 
+    public bool IsMale => string.Equals(Gender, "Male", StringComparison.OrdinalIgnoreCase);
+
     protected EmployeeBase() { }
 
     protected EmployeeBase(

@@ -214,7 +214,8 @@ public sealed class NigeriaCountryProfile : GhanaCountryProfile
             Rules:               "Up to 5 working days within 30 days of birth.",
             Eligibility:         "All male employees.",
             Documentation:       "Birth notification.",
-            ApprovalProcess:     "Line manager approves; HR records."),
+            ApprovalProcess:     "Line manager approves; HR records.",
+            MenOnly:             true),
 
         new(
             Name:                "Study / Exam Leave",
@@ -472,7 +473,8 @@ public sealed class KenyaCountryProfile : GhanaCountryProfile
             Rules:               "14 calendar days within 7 days of birth.",
             Eligibility:         "All male employees.",
             Documentation:       "Birth notification.",
-            ApprovalProcess:     "Line manager approves; HR records."),
+            ApprovalProcess:     "Line manager approves; HR records.",
+            MenOnly:             true),
 
         new(
             Name:                "Study / Exam Leave",
