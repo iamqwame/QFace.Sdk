@@ -22,6 +22,19 @@ public class Import : GuidAuditableEntity
     public int BatchesSaved { get; set; }
     public int BatchesFailed { get; set; }
 
+    /// <summary>
+    /// Downstream sync outcome (e.g. IAM account provisioning), written back asynchronously
+    /// AFTER row-persistence <see cref="Status"/> already reports Completed. Orthogonal to
+    /// Status — a row-persistence "Completed" import can still end up with SyncFailedCount &gt; 0
+    /// if the fire-and-forget bulk-sync workflow(s) it dispatched failed for some employees.
+    /// Null until the first sync-outcome write-back arrives (i.e. sync hasn't reported in yet,
+    /// distinct from "reported zero failures").
+    /// </summary>
+    public int? SyncSucceededCount { get; set; }
+
+    /// <summary>See <see cref="SyncSucceededCount"/>.</summary>
+    public int? SyncFailedCount { get; set; }
+
     public Import()
     {
     }
@@ -132,6 +145,22 @@ public class Import : GuidAuditableEntity
         else
             BatchesFailed++;
 
+        LastUpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Accumulates a downstream sync outcome (e.g. one EmployeeBulkSyncWorkflow chunk's IAM
+    /// result) onto the running totals rather than overwriting them — a single import job can
+    /// fan out to multiple bulk-sync workflow runs (chunked), each reporting in independently,
+    /// so this must ADD, never replace. Callers persisting this via EF should prefer an
+    /// atomic SQL-level increment (e.g. ExecuteUpdateAsync) over load-mutate-save on this
+    /// in-memory method when multiple chunks can race concurrently — see
+    /// ImportService.UpdateSyncOutcomeAsync.
+    /// </summary>
+    public void RecordSyncOutcome(int succeeded, int failed)
+    {
+        SyncSucceededCount = (SyncSucceededCount ?? 0) + succeeded;
+        SyncFailedCount = (SyncFailedCount ?? 0) + failed;
         LastUpdatedAt = DateTime.UtcNow;
     }
 }

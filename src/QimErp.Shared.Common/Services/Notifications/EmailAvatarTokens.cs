@@ -27,8 +27,7 @@ public static class EmailAvatarTokens
         if (!string.IsNullOrWhiteSpace(configured))
             return configured;
 
-        var portal = configuration["FrontendSettings:BaseUrl"]?.TrimEnd('/')
-                     ?? "https://app.qimerp.com";
+        var portal = configuration["FrontendSettings:BaseUrl"]?.TrimEnd('/') ?? string.Empty;
         return $"{portal}/static/avatar-placeholder.png";
     }
 }

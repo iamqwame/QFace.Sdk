@@ -30,7 +30,7 @@ public class SharedServiceCollectionExtensionsTests
         // Assert
         var frontendSettings = provider.GetService<IOptions<FrontendSettings>>();
         frontendSettings.Should().NotBeNull();
-        frontendSettings!.Value.BaseUrl.Should().Be("https://app.qimerp.com");
+        frontendSettings!.Value.BaseUrl.Should().Be(string.Empty);
 
         var systemOptions = provider.GetService<IOptions<SystemOptions>>();
         systemOptions.Should().NotBeNull();

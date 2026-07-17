@@ -1,3 +1,5 @@
+using Temporalio.Workflows;
+
 namespace QimErp.Shared.Common.Activities.Payroll;
 
 /// <summary>
@@ -7,7 +9,9 @@ namespace QimErp.Shared.Common.Activities.Payroll;
 /// via IWorkflowStarter.
 /// Task queue: "qimerp-payroll-leave-sync"
 /// </summary>
+[Workflow("LeaveSyncWorkflow")]
 public interface ILeaveSyncWorkflow
 {
+    [WorkflowRun]
     Task RunAsync(LeaveSyncRequest request);
 }

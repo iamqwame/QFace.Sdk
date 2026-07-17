@@ -62,6 +62,16 @@ public class ModuleSyncRegistryTests
     }
 
     [Fact]
+    public void TryResolveAdminBackfillStep_Benefit_ResolvesToBenefitAdminSync()
+    {
+        var subscription = ModuleSyncRegistry.TryResolveAdminBackfillStep("EnsureAdminDataInBenefit");
+
+        subscription.Should().NotBeNull();
+        subscription!.ModuleKey.Should().Be(ModuleKeys.Benefits);
+        subscription.ActivitySuffix.Should().Be("Benefit");
+    }
+
+    [Fact]
     public void ResolveSetupStepQueue_SyncSubscriptionModules_RoutesToTenantBillingSetup()
     {
         ModuleSyncRegistry.ResolveSetupStepQueue("SyncSubscriptionModules")

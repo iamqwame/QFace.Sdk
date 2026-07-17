@@ -11,6 +11,21 @@ namespace QimErp.Shared.Common.Activities;
 ///
 /// EmployeeSyncWorkflow fans out to all module queues in parallel, calling the
 /// appropriate method based on the operation type.
+///
+/// Contract for implementers:
+/// - Default behavior is MIRROR-ONLY: create/update/deactivate a local read-model copy of the
+///   CoreHR employee. Most modules (Payroll, Learning, Benefit, Talent, WorkforcePlanning,
+///   Performance, EmployeeEngagement, Surveys) stop here — this is correct as-is, not a gap.
+/// - A module that needs POST-MIRROR CONFIGURATION (e.g. Leave's EnsureEmployeeLeaveConfiguredAsync,
+///   which creates the employee's EmployeeLeave balance row) must call its idempotent Ensure*
+///   primitive from ALL FOUR of these places, gated by ModuleSyncActivityGuard.ShouldProcess:
+///     1. SyncEmployeeCreatedAsync — the new-mirror-inserted branch
+///     2. SyncEmployeeCreatedAsync — the mirror-already-exists branch (re-sync / partial prior sync)
+///     3. SyncEmployeesCreatedBulkAsync — for EVERY incoming employee ID, not just newly-inserted ones
+///        (this is also what InstallCatalogItemWorkflow's module-install employee backfill calls)
+///     4. The module's own TenantSetupActivity.SyncEmployeeAsync (tenant-onboarding's first-employee
+///        insert path), on both the already-exists and newly-inserted branches
+///   See QimErp.HROperations's Leave module for the reference implementation of this pattern.
 /// </summary>
 public interface IEmployeeSyncActivity
 {

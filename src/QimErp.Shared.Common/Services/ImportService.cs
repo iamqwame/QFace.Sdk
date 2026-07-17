@@ -198,6 +198,60 @@ public abstract class ImportService<TContext> : IImportService
         return import;
     }
 
+    /// <summary>
+    /// Accumulates a downstream sync outcome (e.g. one EmployeeBulkSyncWorkflow chunk's IAM
+    /// provisioning result) onto the import's running SyncSucceededCount/SyncFailedCount
+    /// totals. A single import job can fan out to MULTIPLE bulk-sync workflow runs (chunked
+    /// ~200 employees each, dispatched with a stagger), and those chunks can report their
+    /// outcome concurrently/out of order. A naive load → mutate in memory → SaveChangesAsync
+    /// here would race: two chunks reading the same starting count and each writing back
+    /// "+1" would leave the counter at 1 instead of 2, silently dropping a chunk's
+    /// contribution. Using EF's ExecuteUpdateAsync instead emits a single
+    /// <c>UPDATE ... SET "SyncSucceededCount" = COALESCE("SyncSucceededCount", 0) + @p</c>
+    /// SQL statement scoped to this one row — the increment is evaluated and applied
+    /// atomically by the database itself, so concurrent chunk callbacks accumulate correctly
+    /// with no read-modify-write window and no optimistic-concurrency retry loop needed.
+    /// </summary>
+    public async Task UpdateSyncOutcomeAsync(
+        Guid importId,
+        int succeededCount,
+        int failedCount,
+        CancellationToken cancellationToken = default)
+    {
+        // Fetched separately (not as part of the atomic update) purely to key the cache
+        // invalidation below — TenantId is immutable once set, so there is no race here.
+        var tenantId = await Imports
+            .Where(i => i.Id == importId)
+            .Select(i => i.TenantId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (tenantId == null)
+        {
+            _logger.LogWarning("Import {ImportId} not found for sync outcome update", importId);
+            return;
+        }
+
+        var rowsAffected = await Imports
+            .Where(i => i.Id == importId)
+            .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(i => i.SyncSucceededCount, i => (i.SyncSucceededCount ?? 0) + succeededCount)
+                    .SetProperty(i => i.SyncFailedCount, i => (i.SyncFailedCount ?? 0) + failedCount)
+                    .SetProperty(i => i.LastUpdatedAt, DateTime.UtcNow),
+                cancellationToken);
+
+        if (rowsAffected == 0)
+        {
+            _logger.LogWarning("Import {ImportId} not found for sync outcome update", importId);
+            return;
+        }
+
+        await InvalidateCacheAsync(tenantId, importId);
+
+        _logger.LogInformation(
+            "Recorded sync outcome for ImportId: {ImportId}, ChunkSucceeded: {ChunkSucceeded}, ChunkFailed: {ChunkFailed}",
+            importId, succeededCount, failedCount);
+    }
+
     public async Task<Import?> GetImportAsync(Guid importId, CancellationToken cancellationToken = default)
     {
         try

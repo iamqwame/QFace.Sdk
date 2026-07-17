@@ -78,6 +78,7 @@ public static class ModuleSyncRegistry
         new("inventory", ModuleKeys.Inventory, ["SetupOperationsInventoryTenant"]),
         new("project", ModuleKeys.Project,
             ["SetupOperationsProjectTenant"],
+            EmployeeBackfillStep: "EnsureEmployeeInProject",
             AdminDataBackfillStep: "EnsureAdminDataInProject"),
 
         // Attendance — catalog module stub so biometric-sync plugin can declare a prerequisite.
@@ -144,6 +145,7 @@ public static class ModuleSyncRegistry
         new("AssignSuperAdminRole", "qimerp-iam-tenant-onboarding"),
         new("SetupIAMTenant", "qimerp-iam-tenant-onboarding"),
         new("SeedTenantReferenceData", "qimerp-iam-tenant-onboarding"),
+        new("RepublishTenantReferenceSync", "qimerp-iam-tenant-onboarding"),
         new("SetupCoreHrTenant", "qimerp-corehr-employee-tenant-setup"),
         new("SetupPayrollTenant", "qimerp-payroll-tenant-setup"),
         new("SetupBenefitTenant", "qimerp-benefit-tenant-setup"),
@@ -179,6 +181,7 @@ public static class ModuleSyncRegistry
         new("EnsureEmployeeInLeave", "qimerp-leave-tenant-setup"),
         new("EnsureEmployeeInRecruitment", "qimerp-recruitment-tenant-setup"),
         new("EnsureEmployeeInSurveys", "qimerp-surveys-tenant-setup"),
+        new("EnsureEmployeeInProject", "qimerp-operations-project-employee-sync"),
 
         // Plugin enable/disable — dispatched to the owning module's existing setup queue,
         // no new worker process.

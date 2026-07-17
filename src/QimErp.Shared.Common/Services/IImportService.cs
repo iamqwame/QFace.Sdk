@@ -40,6 +40,15 @@ public interface IImportService
     /// </summary>
     Task<Import?> IncrementBatchSaveOutcomeAsync(Guid importId, bool success, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Atomically ADDS a downstream sync outcome (e.g. one bulk-sync workflow chunk's IAM
+    /// result) onto the import's running SyncSucceededCount/SyncFailedCount totals. Safe to
+    /// call concurrently from multiple chunks of the same import — see the implementation in
+    /// <see cref="ImportService{TContext}"/> for why this must be an atomic accumulate, not a
+    /// load-mutate-save.
+    /// </summary>
+    Task UpdateSyncOutcomeAsync(Guid importId, int succeededCount, int failedCount, CancellationToken cancellationToken = default);
+
     Task<Import?> GetImportAsync(Guid importId, CancellationToken cancellationToken = default);
 
     Task<List<Import>> GetImportsAsync(
