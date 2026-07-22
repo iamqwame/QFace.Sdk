@@ -103,6 +103,14 @@ public interface IFileUploadService
     Task<string?> GetObjectContentAsync(string s3Key, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the raw bytes of an object from blob storage.
+    /// </summary>
+    /// <param name="s3Key">The S3 object key</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Object bytes, or null if not found</returns>
+    Task<byte[]?> GetObjectBytesAsync(string s3Key, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Uploads text content to blob storage.
     /// </summary>
     /// <param name="content">The content to upload</param>

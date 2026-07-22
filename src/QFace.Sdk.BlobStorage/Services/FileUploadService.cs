@@ -504,6 +504,18 @@ public class FileUploadService : IFileUploadService
     /// <inheritdoc />
     public async Task<string?> GetObjectContentAsync(string s3Key, CancellationToken cancellationToken = default)
     {
+        var bytes = await GetObjectBytesAsync(s3Key, cancellationToken);
+        if (bytes is null)
+        {
+            return null;
+        }
+
+        return Encoding.UTF8.GetString(bytes);
+    }
+
+    /// <inheritdoc />
+    public async Task<byte[]?> GetObjectBytesAsync(string s3Key, CancellationToken cancellationToken = default)
+    {
         if (string.IsNullOrEmpty(s3Key))
             throw new ArgumentException("S3 key cannot be null or empty", nameof(s3Key));
 
@@ -515,8 +527,9 @@ public class FileUploadService : IFileUploadService
                 Key = s3Key
             };
             using var response = await _s3Client.GetObjectAsync(request, cancellationToken);
-            using var reader = new StreamReader(response.ResponseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false);
-            return await reader.ReadToEndAsync();
+            using var memoryStream = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(memoryStream, cancellationToken);
+            return memoryStream.ToArray();
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound ||
                                            ex.StatusCode == System.Net.HttpStatusCode.BadRequest)

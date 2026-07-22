@@ -103,4 +103,22 @@ public abstract class WorkflowEnabledEntity : AuditableEntity, IWorkflowEnabled
             WorkflowComments = "Intermediate approval during seeding";
         }
     }
+
+    // ── Domain-status sync hooks ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by <c>WorkflowApprovalProcessor</c> once the generic <see cref="WorkflowStatus"/>
+    /// fields are set to Approved. Override on entities that carry their own domain status
+    /// enum (distinct from <see cref="WorkflowStatus"/>) to keep it in sync with the real
+    /// workflow outcome. No-op by default.
+    /// </summary>
+    public virtual void OnWorkflowApproved() { }
+
+    /// <summary>
+    /// Called by <c>WorkflowRejectionProcessor</c> once the generic <see cref="WorkflowStatus"/>
+    /// fields are set to Rejected. Override on entities that carry their own domain status
+    /// enum (distinct from <see cref="WorkflowStatus"/>) to keep it in sync with the real
+    /// workflow outcome. No-op by default.
+    /// </summary>
+    public virtual void OnWorkflowRejected(string? reason) { }
 }

@@ -22,36 +22,55 @@ public interface IWorkflowPlatformActivity
 
     /// <summary>
     /// Records a single step approval (history + CurrentState / NextStep).
+    ///
+    /// Takes a <see cref="RecordStepApprovalRequest"/> (not bare args) so the Temporal
+    /// tenant-seeding interceptor — which extracts a <c>TenantId</c> property off the
+    /// activity's argument object via reflection — can seed <c>ITenantContext</c> before
+    /// this runs. Without it, the tenant-scoped lookup of the Workflow row by id silently
+    /// finds nothing (fail-closed tenant isolation) and this activity no-ops: the signal
+    /// lands and Temporal advances internally, but the DB projection never updates —
+    /// "click Approve, nothing happens."
     /// </summary>
-    /// <param name="nextStepCode">
-    /// The step code the workflow moves to after this approval.
-    /// Null when isLastStep is true.
-    /// </param>
     [Activity]
-    Task RecordStepApprovalAsync(
-        Guid platformRecordId,
-        WorkflowStep step,
-        ApprovalSignal signal,
-        bool isLastStep,
-        string? nextStepCode);
+    Task RecordStepApprovalAsync(RecordStepApprovalRequest request);
 
     /// <summary>
     /// Marks the Platform Workflow record as Approved and sets completion fields.
     /// Called after FinalizeApprovalAsync on the last step to confirm completion.
     /// </summary>
     [Activity]
-    Task CompleteWorkflowRecordAsync(Guid platformRecordId);
+    Task CompleteWorkflowRecordAsync(CompleteWorkflowRecordRequest request);
 
     /// <summary>Marks the Platform Workflow record as Rejected.</summary>
     [Activity]
-    Task RecordRejectionAsync(
-        Guid platformRecordId,
-        WorkflowStep step,
-        ApprovalSignal signal);
+    Task RecordRejectionAsync(RecordRejectionRequest request);
 
     /// <summary>
     /// Marks the Platform Workflow record as Cancelled (timed out).
     /// </summary>
     [Activity]
-    Task RecordTimeoutAsync(Guid platformRecordId, WorkflowStep step);
+    Task RecordTimeoutAsync(RecordTimeoutRequest request);
 }
+
+/// <summary>
+/// Argument objects for <see cref="IWorkflowPlatformActivity"/> — each carries a public
+/// <c>TenantId</c> property for the Temporal tenant-seeding interceptor (see interface
+/// doc comment on <see cref="IWorkflowPlatformActivity.RecordStepApprovalAsync"/>).
+/// </summary>
+public record RecordStepApprovalRequest(
+    Guid PlatformRecordId,
+    WorkflowStep Step,
+    ApprovalSignal Signal,
+    bool IsLastStep,
+    string? NextStepCode,
+    string TenantId);
+
+public record CompleteWorkflowRecordRequest(Guid PlatformRecordId, string TenantId);
+
+public record RecordRejectionRequest(
+    Guid PlatformRecordId,
+    WorkflowStep Step,
+    ApprovalSignal Signal,
+    string TenantId);
+
+public record RecordTimeoutRequest(Guid PlatformRecordId, WorkflowStep Step, string TenantId);

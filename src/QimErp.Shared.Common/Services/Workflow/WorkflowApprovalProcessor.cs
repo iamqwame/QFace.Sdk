@@ -128,6 +128,10 @@ public class WorkflowApprovalProcessor(
             {
                 auditableEntity.ActivateFromDraft();
             }
+            if (entity is WorkflowEnabledEntity workflowEnabledEntity)
+            {
+                workflowEnabledEntity.OnWorkflowApproved();
+            }
             logger.LogInformation("Completing workflow for {EntityType} {EntityId} - all steps approved. Approved step: {ApprovedStep}",
                 @event.EntityType, entityId, approvedStepCode);
 

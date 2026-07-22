@@ -621,6 +621,16 @@ public class AuditEntitySaveChangesInterceptor(
                     entity.EntityType, GetEntityId(entity), workflowHistoryId, workflowCode, resolvedTenantId, tenantIdSource);
 
                 var bridge = serviceProvider.GetService<IWorkflowTriggerBridge>();
+                var approvalGate = serviceProvider.GetService<IWorkflowModuleApprovalGate>();
+                if (approvalGate is not null
+                    && !await approvalGate.IsApprovalModuleEnabledAsync(resolvedTenantId, cancellationToken))
+                {
+                    logger.LogDebug(
+                        "[CaptureWorkflowEvents] Workflow module not installed for tenant {TenantId} — skipping Temporal trigger for {EntityType} {EntityId}",
+                        resolvedTenantId, entity.EntityType, GetEntityId(entity));
+                    continue;
+                }
+
                 if (bridge == null)
                 {
                     logger.LogWarning("[CaptureWorkflowEvents] IWorkflowTriggerBridge is not registered. Workflow approval-required event will not be triggered for {EntityType} {EntityId}.",
@@ -700,6 +710,7 @@ public class AuditEntitySaveChangesInterceptor(
         var configCacheService = serviceProvider.GetService<IWorkflowConfigCacheService>();
         var workflowService = serviceProvider.GetService<IWorkflowService>();
         var definitionProvider = serviceProvider.GetService<IWorkflowDefinitionProvider>();
+        var approvalGate = serviceProvider.GetService<IWorkflowModuleApprovalGate>();
         if (configCacheService == null || workflowService == null) return;
 
         var currentUser = userContextService.GetUserId();
@@ -723,6 +734,21 @@ public class AuditEntitySaveChangesInterceptor(
             if (operation == null) continue;
 
             var tenantId = ResolveTenantIdForEntity(entity);
+
+            if (approvalGate is not null
+                && !await approvalGate.IsApprovalModuleEnabledAsync(tenantId, cancellationToken))
+            {
+                if (operation == "CREATE" && entry.Entity is AuditableEntity moduleOffAuditable)
+                {
+                    moduleOffAuditable.AsActive();
+                    logger.LogDebug(
+                        "Workflow module not installed for tenant {TenantId} — keeping {EntityType} active on create",
+                        tenantId, entity.EntityType);
+                }
+
+                continue;
+            }
+
             var workflowInitiatedForCreate = false;
             EntityWorkflowConfig? entityWorkflowConfig = null;
 

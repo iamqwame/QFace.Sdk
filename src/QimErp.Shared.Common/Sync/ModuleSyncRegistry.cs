@@ -31,7 +31,7 @@ public static class ModuleSyncRegistry
             ["SetupRecruitmentTenant", "InitialSetupRecruitment"],
             EmployeeBackfillStep: "EnsureEmployeeInRecruitment",
             AdminDataBackfillStep: "EnsureAdminDataInRecruitment"),
-        new("workflows", ModuleKeys.Workflow, ["InitialSetupWorkflow"]),
+        new("workflows", ModuleKeys.Workflow, ["InitialSetupWorkflow"], DisableStep: "DisableWorkflowModule"),
         new("performance", ModuleKeys.Performance,
             ["InitialSetupPerformance"],
             EmployeeBackfillStep: "EnsureEmployeeInPerformance"),
@@ -83,6 +83,7 @@ public static class ModuleSyncRegistry
 
         // Attendance — catalog module stub so biometric-sync plugin can declare a prerequisite.
         new("attendance", ModuleKeys.Attendance, ["SetupAttendanceTenant"]),
+        new("qim-ai", ModuleKeys.QimAI, ["SetupIntelligenceTenant"]),
 
         // Plugins — narrower than a module install: flip on one capability inside an
         // already-installed module, via the module's own idempotent Enable/Disable activity.
@@ -171,6 +172,7 @@ public static class ModuleSyncRegistry
         new("SetupOperationsInventoryTenant", "qimerp-operations-inventory-tenant-setup"),
         new("SetupOperationsProjectTenant", "qimerp-operations-project-tenant-setup"),
         new("SetupAttendanceTenant", "qimerp-corehr-employee-tenant-setup"),
+        new("SetupIntelligenceTenant", "qimerp-platform-intelligence-tenant-setup"),
         new("EnsureEmployeeInPayroll", "qimerp-payroll-tenant-setup"),
         new("EnsureEmployeeInLearning", "qimerp-learning-tenant-setup"),
         new("EnsureEmployeeInPerformance", "qimerp-performance-tenant-setup"),
@@ -203,6 +205,7 @@ public static class ModuleSyncRegistry
         new("DisablePluginConferenceNotify", "qimerp-workflow-tenant-setup"),
         new("EnablePluginWebhookNotify", "qimerp-workflow-tenant-setup"),
         new("DisablePluginWebhookNotify", "qimerp-workflow-tenant-setup"),
+        new("DisableWorkflowModule", "qimerp-workflow-tenant-setup"),
     ];
 
     private static readonly SyncSubscription[] Subscriptions =

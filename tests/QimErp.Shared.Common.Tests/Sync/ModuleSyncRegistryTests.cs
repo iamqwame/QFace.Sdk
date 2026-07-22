@@ -88,6 +88,15 @@ public class ModuleSyncRegistryTests
     }
 
     [Fact]
+    public void ResolveDisableStep_Workflows_ReturnsDisableWorkflowModule()
+    {
+        ModuleSyncRegistry.ResolveDisableStep("workflows")
+            .Should().Be("DisableWorkflowModule");
+        ModuleSyncRegistry.ResolveSetupStepQueue("DisableWorkflowModule")
+            .Should().Be("qimerp-workflow-tenant-setup");
+    }
+
+    [Fact]
     public void ResolveDisableStep_ConferenceNotify_ReturnsDisableActivity()
     {
         ModuleSyncRegistry.ResolveDisableStep(PluginKeys.ConferenceNotify)

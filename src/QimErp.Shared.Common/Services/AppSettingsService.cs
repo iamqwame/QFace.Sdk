@@ -76,6 +76,12 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     public async Task<bool> GetBooleanSettingAsync(string key, bool defaultValue = false)
     {
+        var cacheKey = $"{CacheKeyPrefix}{key}";
+        if (_cache.TryGetValue(cacheKey, out bool cachedValue))
+        {
+            return cachedValue;
+        }
+
         try
         {
             if (!_context.Database.CanConnect())
@@ -87,7 +93,9 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             var setting = await AppSettings
                 .FirstOrDefaultAsync(s => s.Key == key);
 
-            return setting?.GetBooleanValue() ?? defaultValue;
+            var value = setting?.GetBooleanValue() ?? defaultValue;
+            _cache.Set(cacheKey, value, TimeSpan.FromMinutes(CacheExpirationMinutes));
+            return value;
         }
         catch (Exception ex)
         {
@@ -98,6 +106,12 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     public async Task<int> GetIntSettingAsync(string key, int defaultValue = 0)
     {
+        var cacheKey = $"{CacheKeyPrefix}{key}";
+        if (_cache.TryGetValue(cacheKey, out int cachedValue))
+        {
+            return cachedValue;
+        }
+
         try
         {
             if (!_context.Database.CanConnect())
@@ -109,7 +123,9 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             var setting = await AppSettings
                 .FirstOrDefaultAsync(s => s.Key == key);
 
-            return setting?.GetIntValue() ?? defaultValue;
+            var value = setting?.GetIntValue() ?? defaultValue;
+            _cache.Set(cacheKey, value, TimeSpan.FromMinutes(CacheExpirationMinutes));
+            return value;
         }
         catch (Exception ex)
         {
@@ -120,6 +136,12 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     public async Task<decimal> GetDecimalSettingAsync(string key, decimal defaultValue = 0)
     {
+        var cacheKey = $"{CacheKeyPrefix}{key}";
+        if (_cache.TryGetValue(cacheKey, out decimal cachedValue))
+        {
+            return cachedValue;
+        }
+
         try
         {
             if (!_context.Database.CanConnect())
@@ -131,7 +153,9 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             var setting = await AppSettings
                 .FirstOrDefaultAsync(s => s.Key == key);
 
-            return setting?.GetDecimalValue() ?? defaultValue;
+            var value = setting?.GetDecimalValue() ?? defaultValue;
+            _cache.Set(cacheKey, value, TimeSpan.FromMinutes(CacheExpirationMinutes));
+            return value;
         }
         catch (Exception ex)
         {

@@ -50,15 +50,24 @@ public class ResponseLoggingMiddleware
             using var memoryStream = new MemoryStream();
             context.Response.Body = memoryStream;
 
-            // Continue with the request pipeline
-            await _next(context);
+            try
+            {
+                // Continue with the request pipeline
+                await _next(context);
 
-            // Log response details
-            await LogResponseAsync(context, memoryStream, originalBodyStream);
+                // Log response details
+                await LogResponseAsync(context, memoryStream, originalBodyStream);
+            }
+            finally
+            {
+                // Restore the original stream even on exception, or exception middleware
+                // upstream will try to write into this (now-disposed) MemoryStream.
+                context.Response.Body = originalBodyStream;
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing response for {Method} {Path}", 
+            _logger.LogError(ex, "Error processing response for {Method} {Path}",
                 context.Request.Method, context.Request.Path);
             throw;
         }

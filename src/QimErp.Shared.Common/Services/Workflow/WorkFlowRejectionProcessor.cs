@@ -100,6 +100,11 @@ public class WorkflowRejectionProcessor(
             @event.UserName,
             @event.RejectionReason);
 
+        if (entity is WorkflowEnabledEntity workflowEnabledEntity)
+        {
+            workflowEnabledEntity.OnWorkflowRejected(@event.RejectionReason);
+        }
+
         logger.LogInformation("Rejecting workflow for {EntityType} {EntityId} at step {StepName}",
             @event.EntityType, entityId, currentStep.Name);
 

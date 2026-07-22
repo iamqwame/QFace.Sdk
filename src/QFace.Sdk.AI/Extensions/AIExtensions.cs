@@ -28,6 +28,10 @@ public static class AIExtensions
         services.AddSingleton<ILLMProvider, AnthropicProvider>();
         services.AddSingleton<ILLMProvider, GoogleGeminiProvider>();
         services.AddSingleton<LLMProviderFactory>();
+
+        // Register embedding providers
+        services.AddSingleton<IEmbeddingProvider, GoogleGeminiEmbeddingProvider>();
+        services.AddSingleton<EmbeddingProviderFactory>();
         
         // Register forecasting algorithms
         services.AddSingleton<IForecastAlgorithm, TrendAnalysisAlgorithm>();
@@ -45,6 +49,7 @@ public static class AIExtensions
         services.AddScoped<IForecastingService, ForecastingService>();
         services.AddScoped<ISkillsAnalysisService, SkillsAnalysisService>();
         services.AddScoped<ILLMService, LLMService>();
+        services.AddScoped<IEmbeddingService, EmbeddingService>();
         
         return services;
     }

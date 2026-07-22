@@ -2,10 +2,14 @@ using Microsoft.Extensions.Options;
 using QimErp.Shared.Common.Options;
 using QimErp.Shared.Common.Services.MultiTenancy;
 
+using QimErp.Shared.Common.Services.TenantSetup;
+using QimErp.Shared.Common.TenantSetup;
+
 namespace QimErp.Shared.Common.Services.Workflow;
 
 public class WorkflowService(
     IWorkflowConfigCacheService configCacheService,
+    ITenantModuleAccessService moduleAccess,
     ITenantContext tenantContext,
     IOptions<SystemOptions> systemOptions,
     ILogger<WorkflowService> logger,
@@ -20,6 +24,9 @@ public class WorkflowService(
         {
             string entityType = entity.EntityType;
             var tenantId = ResolveTenantId(entity);
+
+            if (!await moduleAccess.IsModuleEnabledAsync(tenantId, ModuleKeys.Workflow))
+                return false;
 
             if (string.IsNullOrWhiteSpace(module))
             {

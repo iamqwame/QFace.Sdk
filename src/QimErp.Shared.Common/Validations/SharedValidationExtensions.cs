@@ -29,6 +29,58 @@ public static class SharedValidationExtensions
         }).WithMessage((model, phone) => $"Invalid phone number: '{phone}'.");
     }
 
+    // Same as MustBeValidPhoneNumber, but the region is resolved per-request (e.g. from a
+    // sibling country-code field) instead of a fixed default — for flows like tenant
+    // registration where the caller isn't assumed to be in a single country.
+    public static IRuleBuilderOptions<T, string> MustBeValidPhoneNumberForRegion<T>(
+        this IRuleBuilder<T, string> ruleBuilder, Func<T, string?> regionSelector)
+    {
+        return ruleBuilder.Must((model, phone) =>
+        {
+            var region = regionSelector(model);
+            if (string.IsNullOrWhiteSpace(region)) region = "GH";
+            try
+            {
+                var parsedPhone = PhoneNumberUtil.Parse(phone, region);
+                return PhoneNumberUtil.IsValidNumber(parsedPhone);
+            }
+            catch (NumberParseException)
+            {
+                return false;
+            }
+        }).WithMessage((model, phone) => $"Invalid phone number: '{phone}'.");
+    }
+
+    private static readonly Regex BareGhanaMobileMoneyPhone = new("^0[2-9][0-9]{8}$", RegexOptions.Compiled);
+    private static readonly Regex IntlGhanaMobileMoneyPhone = new("^\\+?233[2-9][0-9]{8}$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Normalises a Ghana mobile money number to the bare 10-digit local format
+    /// (e.g. "0241234567"), accepting either that form or +233/233 international
+    /// form. Returns null if the input matches neither — MoMo providers only
+    /// recognise these two shapes, so this is intentionally stricter than
+    /// <see cref="MustBeValidPhoneNumber{T}"/>.
+    /// </summary>
+    public static string? NormaliseGhanaMobileMoneyPhone(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        var trimmed = new string(input.Where(c => !char.IsWhiteSpace(c) && c != '-').ToArray());
+
+        if (BareGhanaMobileMoneyPhone.IsMatch(trimmed)) return trimmed;
+        if (IntlGhanaMobileMoneyPhone.IsMatch(trimmed))
+        {
+            var afterCountryCode = trimmed.StartsWith("+233") ? trimmed[4..] : trimmed[3..];
+            return "0" + afterCountryCode;
+        }
+        return null;
+    }
+
+    public static IRuleBuilderOptions<T, string> MustBeValidGhanaMobileMoneyNumber<T>(this IRuleBuilder<T, string> ruleBuilder)
+    {
+        return ruleBuilder.Must(phone => NormaliseGhanaMobileMoneyPhone(phone) != null)
+            .WithMessage((model, phone) => $"Invalid Ghana mobile money number: '{phone}'.");
+    }
+
     // Validate Currency
     public static IRuleBuilderOptions<T, string> MustBeValidCurrency<T>(this IRuleBuilder<T, string> ruleBuilder)
     {

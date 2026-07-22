@@ -42,6 +42,21 @@ public class RequiredModuleMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_Returns403_WhenQimAiModuleNotInstalled()
+    {
+        var access = new FakeTenantModuleAccessService(shouldAllow: false);
+        var context = CreateHttpContext("/api/platform-intelligence/collections/hr-resources/ask", authenticated: true);
+        var tenantContext = new TenantContext();
+        tenantContext.SetTenant("tenant-1");
+
+        var middleware = new RequiredModuleMiddleware(_ => Task.CompletedTask, ModuleKeys.QimAI);
+        await middleware.InvokeAsync(context, access, tenantContext);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
+        access.CallCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task InvokeAsync_SkipsCheck_ForUnauthenticatedRequests()
     {
         var access = new FakeTenantModuleAccessService(shouldAllow: false);

@@ -432,6 +432,7 @@ public static class SharedServiceCollectionExtensions
 
         // Always register workflow cache service and workflow service for all modules
         services.AddScoped<IWorkflowConfigCacheService, WorkflowConfigCacheService>();
+        services.AddScoped<IWorkflowModuleApprovalGate, WorkflowModuleApprovalGate>();
         services.AddScoped<IWorkflowService, WorkflowService>();
         services.AddScoped<IWorkflowValidationService, WorkflowValidationService>();
         services.AddScoped<IDynamicHtmlGenerator, DynamicHtmlGenerator>();

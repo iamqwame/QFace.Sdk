@@ -9,6 +9,11 @@ public class AIOptions
     /// Default LLM provider to use (OpenAI, Anthropic, GoogleGemini)
     /// </summary>
     public string DefaultLLMProvider { get; set; } = "OpenAI";
+
+    /// <summary>
+    /// Default embedding provider to use (GoogleGemini)
+    /// </summary>
+    public string DefaultEmbeddingProvider { get; set; } = "GoogleGemini";
     
     /// <summary>
     /// OpenAI configuration
@@ -117,6 +122,11 @@ public class GoogleGeminiOptions
     /// Default model to use
     /// </summary>
     public string DefaultModel { get; set; } = "gemini-pro";
+
+    /// <summary>
+    /// Default embedding model to use
+    /// </summary>
+    public string DefaultEmbeddingModel { get; set; } = "text-embedding-004";
     
     /// <summary>
     /// Maximum tokens to generate

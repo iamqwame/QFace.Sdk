@@ -9,6 +9,13 @@ public class ApprovalSignal
     public string StepCode { get; set; } = "";
     public string ApprovedBy { get; set; } = "";
     public string? ApprovedByName { get; set; }
+    /// <summary>
+    /// The approver's CoreHr Employee id — NOT the IAM identity/user id. Every consumer
+    /// (WorkflowPlatformActivity's ActionByEmployeeId/CompletedByEmployeeId) looks this up
+    /// via IWorkflowEmployeeContextService.GetByEmployeeIdAsync, which is keyed by Employee
+    /// id. Populate from ICurrentUserService.GetEmployeeId() (or the already-resolved
+    /// WorkflowApproverValidationContext.Approver.EmployeeId), never GetUserId().
+    /// </summary>
     public string? ApprovedById { get; set; }
     /// <summary>Approver profile picture URL for timeline avatars.</summary>
     public string? ApprovedByImage { get; set; }
