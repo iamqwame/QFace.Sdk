@@ -117,8 +117,14 @@ public class AppSetting : GuidAuditableEntity
 
     public T? GetValue<T>()
     {
-                    if (Value.IsEmpty())
+        if (Value.IsEmpty())
             return default;
+
+        // Create()/UpdateValue() store plain (non-JSON-encoded) text for string settings —
+        // only CreateArray/CreateObject JSON-serialize. Deserializing a bare string like "GHA"
+        // as JSON always throws (not valid JSON), silently returning default via the catch below.
+        if (typeof(T) == typeof(string))
+            return (T)(object)Value;
 
         try
         {

@@ -700,6 +700,18 @@ public static class TenantActivityRequestBuilder
             summary, "calibration", calibrationId, summary, currentUser,
             correlationSuffix: $"calibration-completed:{calibrationId:N}");
 
+    public static RecordTenantActivityRequest ForCalibrationAnalyzed(
+        string tenantId, Guid calibrationId, string summary, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrPerformanceActivityTypes.CalibrationAnalyzed,
+            summary, "calibration", calibrationId, summary, currentUser,
+            correlationSuffix: $"calibration-analyzed:{calibrationId:N}:{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
+
+    public static RecordTenantActivityRequest ForModerationCommitteeEnabled(
+        string tenantId, Guid calibrationId, string summary, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrPerformanceActivityTypes.ModerationCommitteeEnabled,
+            summary, "calibration", calibrationId, summary, currentUser,
+            correlationSuffix: $"moderation-committee-enabled:{calibrationId:N}");
+
     public static RecordTenantActivityRequest ForFeedback360Created(
         string tenantId, Guid feedbackId, string summary, ICurrentUserService currentUser) =>
         Build(tenantId, TenantActivityModules.Hr, HrPerformanceActivityTypes.Feedback360Created,
@@ -859,6 +871,27 @@ public static class TenantActivityRequestBuilder
             $"Performance template \"{name}\" was deleted",
             "performance-template", templateId, name, currentUser,
             correlationSuffix: $"performance-template-deleted:{templateId:N}");
+
+    public static RecordTenantActivityRequest ForPerformanceRatingScaleCreated(
+        string tenantId, Guid ratingScaleId, string name, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrPerformanceActivityTypes.PerformanceRatingScaleCreated,
+            $"Performance rating scale \"{name}\" was created",
+            "performance-rating-scale", ratingScaleId, name, currentUser,
+            correlationSuffix: $"performance-rating-scale-created:{ratingScaleId:N}");
+
+    public static RecordTenantActivityRequest ForPerformanceRatingScaleUpdated(
+        string tenantId, Guid ratingScaleId, string name, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrPerformanceActivityTypes.PerformanceRatingScaleUpdated,
+            $"Performance rating scale \"{name}\" was updated",
+            "performance-rating-scale", ratingScaleId, name, currentUser,
+            correlationSuffix: $"performance-rating-scale-updated:{ratingScaleId:N}:{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
+
+    public static RecordTenantActivityRequest ForPerformanceRatingScaleDeleted(
+        string tenantId, Guid ratingScaleId, string name, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrPerformanceActivityTypes.PerformanceRatingScaleDeleted,
+            $"Performance rating scale \"{name}\" was deleted",
+            "performance-rating-scale", ratingScaleId, name, currentUser,
+            correlationSuffix: $"performance-rating-scale-deleted:{ratingScaleId:N}");
 
     // ── Talent ─────────────────────────────────────────────────────────────
     public static RecordTenantActivityRequest ForTalentReviewCreated(

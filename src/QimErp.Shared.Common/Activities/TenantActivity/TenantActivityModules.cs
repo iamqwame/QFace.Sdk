@@ -115,6 +115,8 @@ public static class HrPerformanceActivityTypes
     public const string CalibrationCreated = "calibration-created";
     public const string CalibrationRatingAdjusted = "calibration-rating-adjusted";
     public const string CalibrationCompleted = "calibration-completed";
+    public const string CalibrationAnalyzed = "calibration-analyzed";
+    public const string ModerationCommitteeEnabled = "moderation-committee-enabled";
     public const string Feedback360Created = "feedback360-created";
     public const string Feedback360ProviderAdded = "feedback360-provider-added";
     public const string Feedback360Completed = "feedback360-completed";
@@ -139,6 +141,9 @@ public static class HrPerformanceActivityTypes
     public const string PerformanceTemplateCreated = "performance-template-created";
     public const string PerformanceTemplateUpdated = "performance-template-updated";
     public const string PerformanceTemplateDeleted = "performance-template-deleted";
+    public const string PerformanceRatingScaleCreated = "performance-rating-scale-created";
+    public const string PerformanceRatingScaleUpdated = "performance-rating-scale-updated";
+    public const string PerformanceRatingScaleDeleted = "performance-rating-scale-deleted";
 }
 
 public static class HrTalentActivityTypes
