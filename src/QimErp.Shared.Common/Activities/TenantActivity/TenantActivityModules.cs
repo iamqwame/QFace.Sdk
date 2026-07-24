@@ -397,6 +397,7 @@ public static class PayrollActivityTypes
     public const string PayrollRunPaymentsProcessed = "payroll-run-payments-processed";
     public const string ClaimApproved = "claim-approved";
     public const string ClaimRejected = "claim-rejected";
+    public const string ClaimReadyForPayment = "claim-ready-for-payment";
     public const string ClaimPaymentProcessed = "claim-payment-processed";
     public const string ClaimProcessed = "claim-processed";
     public const string AdvanceApproved = "advance-approved";

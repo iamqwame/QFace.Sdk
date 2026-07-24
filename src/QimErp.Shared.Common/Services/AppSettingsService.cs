@@ -21,10 +21,14 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     protected abstract DbSet<AppSetting> AppSettings { get; }
 
+    // IMemoryCache is a process-wide singleton shared by every tenant, so the key must include
+    // the tenant id — otherwise tenant A's cached setting value leaks to tenant B's read/write.
+    private string CacheKey(string key) => $"{CacheKeyPrefix}{_context.CurrentTenantId}_{key}";
+
     public async Task<T?> GetSettingAsync<T>(string key, T? defaultValue = default)
     {
-        var cacheKey = $"{CacheKeyPrefix}{key}";
-        
+        var cacheKey = CacheKey(key);
+
         if (_cache.TryGetValue(cacheKey, out T? cachedValue))
         {
             return cachedValue;
@@ -76,7 +80,7 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     public async Task<bool> GetBooleanSettingAsync(string key, bool defaultValue = false)
     {
-        var cacheKey = $"{CacheKeyPrefix}{key}";
+        var cacheKey = CacheKey(key);
         if (_cache.TryGetValue(cacheKey, out bool cachedValue))
         {
             return cachedValue;
@@ -106,7 +110,7 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     public async Task<int> GetIntSettingAsync(string key, int defaultValue = 0)
     {
-        var cacheKey = $"{CacheKeyPrefix}{key}";
+        var cacheKey = CacheKey(key);
         if (_cache.TryGetValue(cacheKey, out int cachedValue))
         {
             return cachedValue;
@@ -136,7 +140,7 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     public async Task<decimal> GetDecimalSettingAsync(string key, decimal defaultValue = 0)
     {
-        var cacheKey = $"{CacheKeyPrefix}{key}";
+        var cacheKey = CacheKey(key);
         if (_cache.TryGetValue(cacheKey, out decimal cachedValue))
         {
             return cachedValue;
@@ -203,7 +207,7 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             }
 
             await _context.SaveChangesAsync();
-            _cache.Remove($"{CacheKeyPrefix}{key}");
+            _cache.Remove(CacheKey(key));
             
             _logger.LogInformation("Setting {Key} updated", key);
         }
@@ -298,7 +302,7 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             // Clear cache for all affected settings
             foreach (var key in settingKeys)
             {
-                _cache.Remove($"{CacheKeyPrefix}{key}");
+                _cache.Remove(CacheKey(key));
             }
 
             _logger.LogInformation("Bulk inserted/updated {Count} settings in category {Category}", settings.Count, category);
@@ -371,7 +375,7 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             {
                 setting.MarkAsDeleted();
                 await _context.SaveChangesAsync();
-                _cache.Remove($"{CacheKeyPrefix}{key}");
+                _cache.Remove(CacheKey(key));
                 
                 _logger.LogInformation("Setting {Key} deleted", key);
             }

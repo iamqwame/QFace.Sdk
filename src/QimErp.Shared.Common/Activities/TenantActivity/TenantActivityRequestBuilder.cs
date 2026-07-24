@@ -2170,6 +2170,12 @@ public static class TenantActivityRequestBuilder
             summary, "claim", claimId, summary, currentUser,
             correlationSuffix: $"claim-rejected:{claimId:N}");
 
+    public static RecordTenantActivityRequest ForClaimReadyForPayment(
+        string tenantId, Guid claimId, string summary, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Payroll, PayrollActivityTypes.ClaimReadyForPayment,
+            summary, "claim", claimId, summary, currentUser,
+            correlationSuffix: $"claim-ready-for-payment:{claimId:N}");
+
     public static RecordTenantActivityRequest ForClaimPaymentProcessed(
         string tenantId, Guid claimId, string summary, ICurrentUserService currentUser) =>
         Build(tenantId, TenantActivityModules.Payroll, PayrollActivityTypes.ClaimPaymentProcessed,

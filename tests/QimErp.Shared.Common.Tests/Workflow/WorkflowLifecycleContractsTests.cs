@@ -2,6 +2,7 @@ using FluentAssertions;
 using QimErp.Shared.Common.Services.Workflow;
 using QimErp.Shared.Common.Services.Workflow.Temporal;
 using QimErp.Shared.Common.Workflow.Enums;
+using QimErp.Shared.Common.Workflow.Extensions;
 using Xunit;
 
 namespace QimErp.Shared.Common.Tests.Workflow;
@@ -67,6 +68,35 @@ public class WorkflowLifecycleContractsTests
 
         context.ResolveApproverSubjectId(entity.Id.ToString(), entity.EntityType)
             .Should().Be(entity.Id.ToString());
+    }
+
+    [Fact]
+    public void ReturnWorkflow_sets_Returned_status_and_comment()
+    {
+        var entity = new TestWorkflowEntity { WorkflowStatus = WorkflowStatus.InProgress };
+
+        entity.ReturnWorkflow("Please add the missing target weights", "manager@test.com", "emp-1", "Manager Mensah");
+
+        entity.WorkflowStatus.Should().Be(WorkflowStatus.Returned);
+        entity.WorkflowRejectionReason.Should().Be("Please add the missing target weights");
+        entity.WorkflowComments.Should().Be("Please add the missing target weights");
+        entity.WorkflowCompletedByEmail.Should().Be("manager@test.com");
+        entity.WorkflowCompletedByEmployeeId.Should().Be("emp-1");
+        entity.WorkflowCompletedByName.Should().Be("Manager Mensah");
+        entity.WorkflowCompletedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task IWorkflowEntityApprovalHandler_OnReturnAsync_defaults_to_no_op_for_existing_handlers()
+    {
+        IWorkflowEntityApprovalHandler handler = new StubHandler("LeaveRequest");
+
+        var act = () => handler.OnReturnAsync(
+            new ApprovalWorkflowInput(),
+            new QimErp.Shared.Common.Workflow.Entities.WorkflowStep(),
+            new ApprovalSignal());
+
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]

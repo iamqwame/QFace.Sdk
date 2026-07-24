@@ -28,6 +28,9 @@ public interface IApprovalWorkflow
     /// <summary>Called by RejectWorkflow endpoint to terminate the workflow with rejection.</summary>
     Task RejectStepAsync(ApprovalSignal signal);
 
+    /// <summary>Called by ReturnWorkflow endpoint to send the request back to the submitter for edits.</summary>
+    Task ReturnStepAsync(ApprovalSignal signal);
+
     /// <summary>UI query — returns the current step code without a DB round-trip.</summary>
     string GetCurrentState();
 }

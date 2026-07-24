@@ -11,6 +11,7 @@ internal sealed class ApprovalWorkflowSignaller(
     // defined on ApprovalWorkflow. If these drift, signals silently go nowhere.
     private const string ApproveSignal  = "ApproveStepAsync";
     private const string RejectSignal   = "RejectStepAsync";
+    private const string ReturnSignal   = "ReturnStepAsync";
     private const string ReassignSignal = "ReassignStepAsync";
 
     public async Task<ApprovalSignalResult> ApproveStepAsync(
@@ -50,6 +51,29 @@ internal sealed class ApprovalWorkflowSignaller(
 
         var result = await signaller.SendSignalAsync(
             workflowId, RejectSignal, signal, cancellationToken);
+
+        return new ApprovalSignalResult
+        {
+            Success      = result.Success,
+            WorkflowGone = result.WorkflowGone,
+            ErrorMessage = result.ErrorMessage
+        };
+    }
+
+    public async Task<ApprovalSignalResult> ReturnStepAsync(
+        string entityType,
+        string entityId,
+        ApprovalSignal signal,
+        CancellationToken cancellationToken = default)
+    {
+        var workflowId = TemporalNaming.WorkflowId("approval", entityType, entityId);
+
+        logger.LogInformation(
+            "[ApprovalWorkflowSignaller] Sending return signal. WorkflowId={WorkflowId}, Step={StepCode}",
+            workflowId, signal.StepCode);
+
+        var result = await signaller.SendSignalAsync(
+            workflowId, ReturnSignal, signal, cancellationToken);
 
         return new ApprovalSignalResult
         {

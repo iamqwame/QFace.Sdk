@@ -31,4 +31,14 @@ public interface IWorkflowEntityApprovalHandler
         ApprovalWorkflowInput input,
         WorkflowStep timedOutStep,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Called when a step is returned for edit rather than rejected outright.
+    /// Default no-op so existing handlers don't need to implement it.
+    /// </summary>
+    Task OnReturnAsync(
+        ApprovalWorkflowInput input,
+        WorkflowStep returnedAtStep,
+        ApprovalSignal signal,
+        CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

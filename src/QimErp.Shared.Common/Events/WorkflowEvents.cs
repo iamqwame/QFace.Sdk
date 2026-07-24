@@ -169,3 +169,34 @@ public class WorkflowRejectionRequestEvent : DomainEvent
     {
     }
 }
+
+public class WorkflowReturnRequestEvent : DomainEvent
+{
+    public Guid EventId { get; } = Guid.NewGuid();
+    public DateTime OccurredAt { get; } = DateTime.UtcNow;
+    public string WorkflowId { get; set; } = "";
+    public string EntityType { get; set; } = "";
+    public string EntityId { get; set; } = "";
+    public string EntityName { get; set; } = "";
+    public string WorkflowCode { get; set; } = "";
+    public string? CurrentState { get; set; }
+    public string? PreviousStep { get; set; }
+    public string ReturnComment { get; set; } = "";
+    public string ReturnedBy { get; set; } = "";
+    public DateTime ReturnedAt { get; set; }
+    public string Module { get; set; } = "";
+    public Dictionary<string, object> EntityData { get; set; } = new();
+
+    public WorkflowReturnRequestEvent()
+    {
+    }
+
+    public WorkflowReturnRequestEvent(
+        string tenantId,
+        string userEmail,
+        string? triggeredBy = null,
+        string? userName = null)
+        : base(tenantId, userEmail, triggeredBy, userName)
+    {
+    }
+}

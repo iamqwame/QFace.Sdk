@@ -49,6 +49,16 @@ public interface INotificationActivity
         WorkflowDefinition definition);
 
     /// <summary>
+    /// Notifies the requester that a step was returned for edit.
+    /// </summary>
+    [Activity]
+    Task SendReturnNotificationAsync(
+        ApprovalWorkflowInput input,
+        WorkflowStep returnedAtStep,
+        ApprovalSignal signal,
+        WorkflowDefinition definition);
+
+    /// <summary>
     /// Notifies escalation recipients when a step times out with no response.
     /// </summary>
     [Activity]

@@ -43,6 +43,17 @@ public interface IApprovalWorkflowSignaller
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Sends a return-for-edit signal for the given step.
+    /// Wakes the running ApprovalWorkflow and routes to the return path — the workflow
+    /// ends with WorkflowStatus.Returned; resubmission by the requester starts a fresh instance.
+    /// </summary>
+    Task<ApprovalSignalResult> ReturnStepAsync(
+        string entityType,
+        string entityId,
+        ApprovalSignal signal,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Sends a reassign signal for the given step, transferring approval responsibility
     /// to <paramref name="newApproverId"/>. The running ApprovalWorkflow may use this to
     /// update its in-memory approver assignment and re-route notifications.

@@ -45,6 +45,10 @@ public interface IWorkflowPlatformActivity
     [Activity]
     Task RecordRejectionAsync(RecordRejectionRequest request);
 
+    /// <summary>Marks the Platform Workflow record as Returned (sent back to the submitter for edits).</summary>
+    [Activity]
+    Task RecordReturnAsync(RecordReturnRequest request);
+
     /// <summary>
     /// Marks the Platform Workflow record as Cancelled (timed out).
     /// </summary>
@@ -68,6 +72,12 @@ public record RecordStepApprovalRequest(
 public record CompleteWorkflowRecordRequest(Guid PlatformRecordId, string TenantId);
 
 public record RecordRejectionRequest(
+    Guid PlatformRecordId,
+    WorkflowStep Step,
+    ApprovalSignal Signal,
+    string TenantId);
+
+public record RecordReturnRequest(
     Guid PlatformRecordId,
     WorkflowStep Step,
     ApprovalSignal Signal,

@@ -14,6 +14,7 @@ public static class PluginKeys
     public const string SmsNotify = "sms-notify";
     public const string ConferenceNotify = "conference-notify";
     public const string WebhookNotify = "webhook-notify";
+    public const string FlexcubePosting = "flexcube-posting";
 
     public static readonly string[] All =
     [
@@ -26,5 +27,6 @@ public static class PluginKeys
         SmsNotify,
         ConferenceNotify,
         WebhookNotify,
+        FlexcubePosting,
     ];
 }

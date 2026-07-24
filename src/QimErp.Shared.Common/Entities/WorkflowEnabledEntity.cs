@@ -121,4 +121,12 @@ public abstract class WorkflowEnabledEntity : AuditableEntity, IWorkflowEnabled
     /// workflow outcome. No-op by default.
     /// </summary>
     public virtual void OnWorkflowRejected(string? reason) { }
+
+    /// <summary>
+    /// Called by <c>WorkflowReturnProcessor</c> once the generic <see cref="WorkflowStatus"/>
+    /// fields are set to Returned. Override on entities that carry their own domain status
+    /// enum (distinct from <see cref="WorkflowStatus"/>) to keep it in sync with the real
+    /// workflow outcome. No-op by default.
+    /// </summary>
+    public virtual void OnWorkflowReturned(string? reason) { }
 }

@@ -438,6 +438,7 @@ public static class SharedServiceCollectionExtensions
         services.AddScoped<IDynamicHtmlGenerator, DynamicHtmlGenerator>();
         services.AddScoped<IWorkflowApprovalProcessor, WorkflowApprovalProcessor>();
         services.AddScoped<IWorkflowRejectionProcessor, WorkflowRejectionProcessor>();
+        services.AddScoped<IWorkflowReturnProcessor, WorkflowReturnProcessor>();
         services.AddScoped<IWorkflowEntityApprovalHandlerRegistry, WorkflowEntityApprovalHandlerRegistry>();
 
 

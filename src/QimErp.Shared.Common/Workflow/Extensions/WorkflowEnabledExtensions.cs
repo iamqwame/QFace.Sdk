@@ -38,6 +38,17 @@ public static class WorkflowEnabledExtensions
         entity.WorkflowCompletedByName = rejectedByName;
         entity.WorkflowComments = reason;
     }
+
+    public static void ReturnWorkflow(this IWorkflowEnabled entity, string reason, string? returnedByEmail = null, string? returnedByEmployeeId = null, string? returnedByName = null)
+    {
+        entity.WorkflowStatus = WorkflowStatus.Returned;
+        entity.WorkflowRejectionReason = reason;
+        entity.WorkflowCompletedAt = DateTime.UtcNow;
+        entity.WorkflowCompletedByEmail = returnedByEmail;
+        entity.WorkflowCompletedByEmployeeId = returnedByEmployeeId;
+        entity.WorkflowCompletedByName = returnedByName;
+        entity.WorkflowComments = reason;
+    }
     
     public static void ApproveWorkflow(this IWorkflowEnabled entity, string approvedByEmail, string? approvedByEmployeeId = null, string? approvedByName = null, string? comments = null)
     {

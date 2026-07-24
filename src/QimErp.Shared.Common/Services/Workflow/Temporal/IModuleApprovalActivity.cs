@@ -25,4 +25,10 @@ public interface IModuleApprovalActivity
 
     [Activity]
     Task TimeoutEntityAsync(ApprovalWorkflowInput input, WorkflowStep timedOutStep);
+
+    [Activity]
+    Task ReturnEntityAsync(
+        ApprovalWorkflowInput input,
+        WorkflowStep returnedAtStep,
+        ApprovalSignal signal);
 }
