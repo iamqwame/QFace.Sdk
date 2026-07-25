@@ -8,7 +8,8 @@ public static class WorkflowInterceptDecisions
     public static bool ShouldInitiateWorkflowOnUpdate(IWorkflowEnabled entity) =>
         entity.WorkflowStatus is WorkflowStatus.NotStarted
             or WorkflowStatus.Rejected
-            or WorkflowStatus.Approved;
+            or WorkflowStatus.Approved
+            or WorkflowStatus.Returned;
 
     public static bool IsUpdateWorkflowBlockedByStatus(IWorkflowEnabled entity) =>
         entity.WorkflowStatus == WorkflowStatus.InProgress;

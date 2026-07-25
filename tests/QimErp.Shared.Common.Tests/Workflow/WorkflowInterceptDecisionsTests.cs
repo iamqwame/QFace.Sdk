@@ -39,6 +39,13 @@ public class WorkflowInterceptDecisionsTests
     }
 
     [Fact]
+    public void U5_ReturnedStatus_AllowsResubmitWorkflow()
+    {
+        var entity = new TestWorkflowEntity { WorkflowStatus = WorkflowStatus.Returned };
+        WorkflowInterceptDecisions.ShouldInitiateWorkflowOnUpdate(entity).Should().BeTrue();
+    }
+
+    [Fact]
     public void C1_CreateEnabledWithCode_StartsWorkflow()
     {
         var config = new EntityWorkflowConfig
