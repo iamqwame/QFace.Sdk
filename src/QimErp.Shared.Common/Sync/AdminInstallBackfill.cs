@@ -19,3 +19,19 @@ public sealed class AdminBackfillCounts
 
     public int Total => JobTitles + JobStatuses + OrganizationalUnits + Stations + Ranks;
 }
+
+/// <summary>A bare string arg has no TenantId property for TenantContextActivityInterceptor to find — wrap it.</summary>
+public sealed class AdminBackfillCountRequest
+{
+    public required string TenantId { get; set; }
+}
+
+/// <summary>A bare string arg has no TenantId property for TenantContextActivityInterceptor to find — wrap it.</summary>
+public sealed class AdminBackfillBatchRequest
+{
+    public required string TenantId { get; set; }
+    public required string EntityType { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public List<string>? SelectedModules { get; set; }
+}

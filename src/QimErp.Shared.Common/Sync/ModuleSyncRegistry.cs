@@ -34,7 +34,8 @@ public static class ModuleSyncRegistry
         new("workflows", ModuleKeys.Workflow, ["InitialSetupWorkflow"], DisableStep: "DisableWorkflowModule"),
         new("performance", ModuleKeys.Performance,
             ["InitialSetupPerformance"],
-            EmployeeBackfillStep: "EnsureEmployeeInPerformance"),
+            EmployeeBackfillStep: "EnsureEmployeeInPerformance",
+            AdminDataBackfillStep: "EnsureAdminDataInPerformance"),
         new("benefits", ModuleKeys.Benefits,
             ["SetupBenefitTenant", "InitialSetupBenefit"],
             EmployeeBackfillStep: "EnsureEmployeeInBenefit",
@@ -239,6 +240,7 @@ public static class ModuleSyncRegistry
         new(SyncType.AdminData, ModuleKeys.Surveys, "qimerp-surveys-admin-sync", "Surveys"),
         new(SyncType.AdminData, ModuleKeys.Leave, "qimerp-leave-admin-sync", "Leave"),
         new(SyncType.AdminData, ModuleKeys.Benefits, "qimerp-benefit-admin-sync", "Benefit"),
+        new(SyncType.AdminData, ModuleKeys.Performance, "qimerp-performance-admin-sync", "Performance"),
         new(SyncType.AdminData, ModuleKeys.Project, "qimerp-operations-project-admin-sync", "Project"),
 
         new(SyncType.GlReference, ModuleKeys.Project, "qimerp-operations-project-gl-sync", "Project"),
