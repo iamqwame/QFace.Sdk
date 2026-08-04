@@ -29,7 +29,12 @@ public class AIOptions
     /// Google Gemini configuration
     /// </summary>
     public GoogleGeminiOptions GoogleGemini { get; set; } = new();
-    
+
+    /// <summary>
+    /// DeepSeek configuration
+    /// </summary>
+    public DeepSeekOptions DeepSeek { get; set; } = new();
+
     /// <summary>
     /// Default forecasting method
     /// </summary>
@@ -101,6 +106,37 @@ public class AnthropicOptions
     /// Maximum tokens to generate
     /// </summary>
     public int MaxTokens { get; set; } = 2000;
+}
+
+/// <summary>
+/// Configuration options for DeepSeek provider (OpenAI-compatible API)
+/// </summary>
+public class DeepSeekOptions
+{
+    /// <summary>
+    /// DeepSeek API key
+    /// </summary>
+    public string ApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// DeepSeek API base URL
+    /// </summary>
+    public string BaseUrl { get; set; } = "https://api.deepseek.com/v1";
+
+    /// <summary>
+    /// Default model to use
+    /// </summary>
+    public string DefaultModel { get; set; } = "deepseek-chat";
+
+    /// <summary>
+    /// Maximum tokens to generate
+    /// </summary>
+    public int MaxTokens { get; set; } = 2000;
+
+    /// <summary>
+    /// Temperature for generation (0.0 to 2.0)
+    /// </summary>
+    public double Temperature { get; set; } = 0.7;
 }
 
 /// <summary>

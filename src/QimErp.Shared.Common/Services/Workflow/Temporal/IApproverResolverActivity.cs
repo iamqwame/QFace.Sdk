@@ -44,7 +44,22 @@ public interface IApproverResolverActivity
         ApprovalWorkflowInput input,
         WorkflowStep step,
         IReadOnlyList<string> recipientTokens);
+
+    /// <summary>
+    /// Resolves a specific Employee by Id into a <see cref="ResolvedApprover"/> — used when a
+    /// step has been manually reassigned to a named person, overriding the step definition's
+    /// normal rule-based resolution. Returns <c>null</c> when no matching Employee exists.
+    /// </summary>
+    [Activity]
+    Task<ResolvedApprover?> ResolveEmployeeByIdAsync(ResolveEmployeeByIdRequest request);
 }
+
+/// <summary>
+/// Argument object for <see cref="IApproverResolverActivity.ResolveEmployeeByIdAsync"/>. The
+/// public <c>TenantId</c> property is required — see <see cref="ResolveInitiatorRequest"/>'s
+/// doc comment for why a bare <c>Guid</c> parameter wouldn't seed tenant context correctly.
+/// </summary>
+public record ResolveEmployeeByIdRequest(Guid EmployeeId, string TenantId);
 
 /// <summary>
 /// Argument object for <see cref="IApproverResolverActivity.ResolveInitiatorByEmailAsync"/>.

@@ -1,9 +1,9 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using QFace.Sdk.AI.Models;
+using QFace.Sdk.AI.Services;
 
 namespace QFace.Sdk.AI.Providers;
 
@@ -12,10 +12,9 @@ namespace QFace.Sdk.AI.Providers;
 /// </summary>
 public class GoogleGeminiProvider : ILLMProvider
 {
-    private readonly GoogleGeminiOptions _options;
+    private readonly IAIOptionsProvider _optionsProvider;
     private readonly ILogger<GoogleGeminiProvider> _logger;
     private readonly HttpClient _httpClient;
-    private bool _initialized;
 
     /// <summary>
     /// Provider name
@@ -25,40 +24,36 @@ public class GoogleGeminiProvider : ILLMProvider
     /// <summary>
     /// Initializes a new instance of GoogleGeminiProvider
     /// </summary>
-    public GoogleGeminiProvider(IOptions<AIOptions> aiOptions, ILogger<GoogleGeminiProvider> logger, HttpClient httpClient)
+    public GoogleGeminiProvider(IAIOptionsProvider optionsProvider, ILogger<GoogleGeminiProvider> logger, HttpClient httpClient)
     {
-        _options = aiOptions.Value.GoogleGemini;
+        _optionsProvider = optionsProvider;
         _logger = logger;
         _httpClient = httpClient;
     }
 
     /// <inheritdoc />
-    public Task<bool> InitializeAsync()
+    public async Task<bool> InitializeAsync()
     {
-        if (string.IsNullOrEmpty(_options.ApiKey))
+        var options = (await _optionsProvider.GetOptionsAsync()).GoogleGemini;
+        if (string.IsNullOrEmpty(options.ApiKey))
         {
             _logger.LogWarning("Google Gemini API key is not configured");
-            return Task.FromResult(false);
+            return false;
         }
 
-        _initialized = true;
-        _logger.LogInformation("Google Gemini provider initialized successfully");
-        return Task.FromResult(true);
+        return true;
     }
 
     /// <inheritdoc />
     public async Task<LLMResponse> GenerateCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
     {
-        if (!_initialized)
-        {
-            await InitializeAsync();
-        }
+        var providerOptions = (await _optionsProvider.GetOptionsAsync(cancellationToken)).GoogleGemini;
 
-        var model = request.Model ?? _options.DefaultModel;
-        var maxTokens = request.MaxTokens ?? _options.MaxTokens;
+        var model = request.Model ?? providerOptions.DefaultModel;
+        var maxTokens = request.MaxTokens ?? providerOptions.MaxTokens;
         var temperature = request.Temperature ?? 0.7;
 
-        var url = $"{_options.BaseUrl}/models/{model}:generateContent?key={_options.ApiKey}";
+        var url = $"{providerOptions.BaseUrl}/models/{model}:generateContent?key={providerOptions.ApiKey}";
 
         var requestBody = new
         {
@@ -106,6 +101,13 @@ public class GoogleGeminiProvider : ILLMProvider
                 }
             };
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Error calling Google Gemini API");
+            throw new InvalidOperationException(
+                $"AI generation is currently unavailable (Gemini API returned {(int?)ex.StatusCode ?? 0}). " +
+                "Contact your administrator to check the configured API key.", ex);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling Google Gemini API");
@@ -116,16 +118,13 @@ public class GoogleGeminiProvider : ILLMProvider
     /// <inheritdoc />
     public async Task<LLMResponse> GenerateChatCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
     {
-        if (!_initialized)
-        {
-            await InitializeAsync();
-        }
+        var providerOptions = (await _optionsProvider.GetOptionsAsync(cancellationToken)).GoogleGemini;
 
-        var model = request.Model ?? _options.DefaultModel;
-        var maxTokens = request.MaxTokens ?? _options.MaxTokens;
+        var model = request.Model ?? providerOptions.DefaultModel;
+        var maxTokens = request.MaxTokens ?? providerOptions.MaxTokens;
         var temperature = request.Temperature ?? 0.7;
 
-        var url = $"{_options.BaseUrl}/models/{model}:generateContent?key={_options.ApiKey}";
+        var url = $"{providerOptions.BaseUrl}/models/{model}:generateContent?key={providerOptions.ApiKey}";
 
         // Build contents from messages or prompt
         var contents = new List<object>();
@@ -205,6 +204,13 @@ public class GoogleGeminiProvider : ILLMProvider
                 }
             };
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Error calling Google Gemini API");
+            throw new InvalidOperationException(
+                $"AI generation is currently unavailable (Gemini API returned {(int?)ex.StatusCode ?? 0}). " +
+                "Contact your administrator to check the configured API key.", ex);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling Google Gemini API");
@@ -213,9 +219,10 @@ public class GoogleGeminiProvider : ILLMProvider
     }
 
     /// <inheritdoc />
-    public Task<bool> IsAvailableAsync()
+    public async Task<bool> IsAvailableAsync()
     {
-        return Task.FromResult(_initialized && !string.IsNullOrEmpty(_options.ApiKey));
+        var options = (await _optionsProvider.GetOptionsAsync()).GoogleGemini;
+        return !string.IsNullOrEmpty(options.ApiKey);
     }
 
     // Internal classes for Gemini API response

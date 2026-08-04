@@ -8,22 +8,22 @@ using QFace.Sdk.AI.Services;
 namespace QFace.Sdk.AI.Providers;
 
 /// <summary>
-/// OpenAI-compatible LLM provider (OpenAI API, Vercel AI Gateway, etc.)
+/// DeepSeek LLM provider — uses the OpenAI-compatible chat completions API
 /// </summary>
-public class OpenAIProvider : ILLMProvider
+public class DeepSeekProvider : ILLMProvider
 {
     private readonly IAIOptionsProvider _optionsProvider;
-    private readonly ILogger<OpenAIProvider> _logger;
+    private readonly ILogger<DeepSeekProvider> _logger;
 
     /// <summary>
     /// Provider name
     /// </summary>
-    public string ProviderName => "OpenAI";
+    public string ProviderName => "DeepSeek";
 
     /// <summary>
-    /// Initializes a new instance of OpenAIProvider
+    /// Initializes a new instance of DeepSeekProvider
     /// </summary>
-    public OpenAIProvider(IAIOptionsProvider optionsProvider, ILogger<OpenAIProvider> logger)
+    public DeepSeekProvider(IAIOptionsProvider optionsProvider, ILogger<DeepSeekProvider> logger)
     {
         _optionsProvider = optionsProvider;
         _logger = logger;
@@ -32,10 +32,10 @@ public class OpenAIProvider : ILLMProvider
     /// <inheritdoc />
     public async Task<bool> InitializeAsync()
     {
-        var options = (await _optionsProvider.GetOptionsAsync()).OpenAI;
+        var options = (await _optionsProvider.GetOptionsAsync()).DeepSeek;
         if (string.IsNullOrEmpty(options.ApiKey))
         {
-            _logger.LogWarning("OpenAI API key is not configured");
+            _logger.LogWarning("DeepSeek API key is not configured");
             return false;
         }
 
@@ -49,16 +49,16 @@ public class OpenAIProvider : ILLMProvider
     /// <inheritdoc />
     public async Task<LLMResponse> GenerateChatCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
     {
-        var providerOptions = (await _optionsProvider.GetOptionsAsync(cancellationToken)).OpenAI;
+        var providerOptions = (await _optionsProvider.GetOptionsAsync(cancellationToken)).DeepSeek;
         if (string.IsNullOrEmpty(providerOptions.ApiKey))
         {
-            throw new InvalidOperationException("OpenAI provider is not initialized");
+            throw new InvalidOperationException("DeepSeek provider is not initialized");
         }
 
         try
         {
             var model = request.Model ?? providerOptions.DefaultModel;
-            var client = CreateOpenAIClient(providerOptions);
+            var client = CreateClient(providerOptions);
             var chatClient = client.GetChatClient(model);
             var messages = BuildChatMessages(request);
             var options = BuildCompletionOptions(request, providerOptions);
@@ -86,14 +86,14 @@ public class OpenAIProvider : ILLMProvider
         }
         catch (ClientResultException ex)
         {
-            _logger.LogError(ex, "Error generating OpenAI chat completion");
+            _logger.LogError(ex, "Error generating DeepSeek chat completion");
             throw new InvalidOperationException(
-                $"AI generation is currently unavailable (OpenAI API returned {ex.Status}). " +
+                $"AI generation is currently unavailable (DeepSeek API returned {ex.Status}). " +
                 "Contact your administrator to check the configured API key.", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating OpenAI chat completion");
+            _logger.LogError(ex, "Error generating DeepSeek chat completion");
             throw;
         }
     }
@@ -101,19 +101,15 @@ public class OpenAIProvider : ILLMProvider
     /// <inheritdoc />
     public async Task<bool> IsAvailableAsync()
     {
-        var options = (await _optionsProvider.GetOptionsAsync()).OpenAI;
+        var options = (await _optionsProvider.GetOptionsAsync()).DeepSeek;
         return !string.IsNullOrEmpty(options.ApiKey);
     }
 
-    private static OpenAIClient CreateOpenAIClient(OpenAIOptions options)
+    private static OpenAIClient CreateClient(DeepSeekOptions options)
     {
         var clientOptions = new OpenAIClientOptions();
-        if (!string.IsNullOrWhiteSpace(options.BaseUrl))
-        {
-            var baseUrl = options.BaseUrl.TrimEnd('/');
-            clientOptions.Endpoint = new Uri(baseUrl + "/");
-        }
-
+        var baseUrl = (string.IsNullOrWhiteSpace(options.BaseUrl) ? "https://api.deepseek.com/v1" : options.BaseUrl).TrimEnd('/');
+        clientOptions.Endpoint = new Uri(baseUrl + "/");
         return new OpenAIClient(new ApiKeyCredential(options.ApiKey), clientOptions);
     }
 
@@ -150,7 +146,7 @@ public class OpenAIProvider : ILLMProvider
         return messages;
     }
 
-    private static ChatCompletionOptions BuildCompletionOptions(LLMRequest request, OpenAIOptions providerOptions)
+    private static ChatCompletionOptions BuildCompletionOptions(LLMRequest request, DeepSeekOptions providerOptions)
     {
         var options = new ChatCompletionOptions();
         var maxTokens = request.MaxTokens ?? providerOptions.MaxTokens;
@@ -178,7 +174,7 @@ public class OpenAIProvider : ILLMProvider
             {
                 var delayMs = attempt * 5000;
                 _logger.LogWarning(
-                    "OpenAI rate limit (429) on attempt {Attempt}/3, retrying in {DelayMs}ms",
+                    "DeepSeek rate limit (429) on attempt {Attempt}/3, retrying in {DelayMs}ms",
                     attempt,
                     delayMs);
                 await Task.Delay(delayMs, cancellationToken);

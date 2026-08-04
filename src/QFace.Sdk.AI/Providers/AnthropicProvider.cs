@@ -1,7 +1,7 @@
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using QFace.Sdk.AI.Models;
+using QFace.Sdk.AI.Services;
 
 namespace QFace.Sdk.AI.Providers;
 
@@ -12,9 +12,8 @@ namespace QFace.Sdk.AI.Providers;
 /// </summary>
 public class AnthropicProvider : ILLMProvider
 {
-    private readonly AnthropicOptions _options;
+    private readonly IAIOptionsProvider _optionsProvider;
     private readonly ILogger<AnthropicProvider> _logger;
-    private bool _initialized;
 
     /// <summary>
     /// Provider name
@@ -24,29 +23,25 @@ public class AnthropicProvider : ILLMProvider
     /// <summary>
     /// Initializes a new instance of AnthropicProvider
     /// </summary>
-    public AnthropicProvider(IOptions<AIOptions> aiOptions, ILogger<AnthropicProvider> logger)
+    public AnthropicProvider(IAIOptionsProvider optionsProvider, ILogger<AnthropicProvider> logger)
     {
-        _options = aiOptions.Value.Anthropic;
+        _optionsProvider = optionsProvider;
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public Task<bool> InitializeAsync()
+    public async Task<bool> InitializeAsync()
     {
-        if (string.IsNullOrEmpty(_options.ApiKey))
+        var options = (await _optionsProvider.GetOptionsAsync()).Anthropic;
+        if (string.IsNullOrEmpty(options.ApiKey))
         {
             _logger.LogWarning("Anthropic API key is not configured");
-            return Task.FromResult(false);
+            return false;
         }
 
-        // TODO: When Microsoft.Extensions.AI.Anthropic package is available, implement:
-        // var client = new AnthropicClient(new Uri(_options.BaseUrl), _options.ApiKey);
-        // _chatClient = client.AsChatClient(_options.DefaultModel);
-        
         _logger.LogWarning("Anthropic provider via Microsoft.Extensions.AI is not yet fully implemented. " +
                           "Microsoft.Extensions.AI.Anthropic package may not be available.");
-        _initialized = true;
-        return Task.FromResult(true);
+        return true;
     }
 
     /// <inheritdoc />
@@ -66,8 +61,9 @@ public class AnthropicProvider : ILLMProvider
     }
 
     /// <inheritdoc />
-    public Task<bool> IsAvailableAsync()
+    public async Task<bool> IsAvailableAsync()
     {
-        return Task.FromResult(_initialized && !string.IsNullOrEmpty(_options.ApiKey));
+        var options = (await _optionsProvider.GetOptionsAsync()).Anthropic;
+        return !string.IsNullOrEmpty(options.ApiKey);
     }
 }

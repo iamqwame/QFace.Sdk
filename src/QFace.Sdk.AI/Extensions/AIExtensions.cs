@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
 namespace QFace.Sdk.AI.Extensions;
 
 /// <summary>
@@ -19,14 +21,19 @@ public static class AIExtensions
     {
         // Register options
         services.Configure<AIOptions>(configuration.GetSection(sectionName));
-        
+
+        // Fallback options provider — overridden by QimErp.Shared.Common's cache-backed
+        // provider when the host also calls AddCoreServices (the normal case).
+        services.TryAddSingleton<IAIOptionsProvider, LocalAIOptionsProvider>();
+
         // Register HttpClient for Google Gemini provider
         services.AddSingleton<HttpClient>();
-        
+
         // Register LLM providers
         services.AddSingleton<ILLMProvider, OpenAIProvider>();
         services.AddSingleton<ILLMProvider, AnthropicProvider>();
         services.AddSingleton<ILLMProvider, GoogleGeminiProvider>();
+        services.AddSingleton<ILLMProvider, DeepSeekProvider>();
         services.AddSingleton<LLMProviderFactory>();
 
         // Register embedding providers

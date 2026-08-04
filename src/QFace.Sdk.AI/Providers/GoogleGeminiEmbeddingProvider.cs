@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using QFace.Sdk.AI.Services;
 
 namespace QFace.Sdk.AI.Providers;
 
@@ -8,52 +9,47 @@ namespace QFace.Sdk.AI.Providers;
 /// </summary>
 public class GoogleGeminiEmbeddingProvider : IEmbeddingProvider
 {
-    private readonly GoogleGeminiOptions _options;
+    private readonly IAIOptionsProvider _optionsProvider;
     private readonly ILogger<GoogleGeminiEmbeddingProvider> _logger;
     private readonly HttpClient _httpClient;
-    private bool _initialized;
 
     public string ProviderName => "GoogleGemini";
 
     public GoogleGeminiEmbeddingProvider(
-        IOptions<AIOptions> aiOptions,
+        IAIOptionsProvider optionsProvider,
         ILogger<GoogleGeminiEmbeddingProvider> logger,
         HttpClient httpClient)
     {
-        _options = aiOptions.Value.GoogleGemini;
+        _optionsProvider = optionsProvider;
         _logger = logger;
         _httpClient = httpClient;
     }
 
-    public Task<bool> InitializeAsync()
+    public async Task<bool> InitializeAsync()
     {
-        if (string.IsNullOrEmpty(_options.ApiKey))
+        var options = (await _optionsProvider.GetOptionsAsync()).GoogleGemini;
+        if (string.IsNullOrEmpty(options.ApiKey))
         {
             _logger.LogWarning("Google Gemini API key is not configured for embeddings");
-            return Task.FromResult(false);
+            return false;
         }
 
-        _initialized = true;
-        _logger.LogInformation("Google Gemini embedding provider initialized successfully");
-        return Task.FromResult(true);
+        return true;
     }
 
     public async Task<EmbeddingResponse> GenerateEmbeddingAsync(
         EmbeddingRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!_initialized)
-        {
-            await InitializeAsync();
-        }
+        var providerOptions = (await _optionsProvider.GetOptionsAsync(cancellationToken)).GoogleGemini;
 
         if (string.IsNullOrWhiteSpace(request.Text))
         {
             throw new ArgumentException("Text is required for embedding generation", nameof(request));
         }
 
-        var model = request.Model ?? _options.DefaultEmbeddingModel;
-        var url = $"{_options.BaseUrl}/models/{model}:embedContent?key={_options.ApiKey}";
+        var model = request.Model ?? providerOptions.DefaultEmbeddingModel;
+        var url = $"{providerOptions.BaseUrl}/models/{model}:embedContent?key={providerOptions.ApiKey}";
 
         var requestBody = new
         {
@@ -93,9 +89,10 @@ public class GoogleGeminiEmbeddingProvider : IEmbeddingProvider
         }
     }
 
-    public Task<bool> IsAvailableAsync()
+    public async Task<bool> IsAvailableAsync()
     {
-        return Task.FromResult(_initialized && !string.IsNullOrEmpty(_options.ApiKey));
+        var options = (await _optionsProvider.GetOptionsAsync()).GoogleGemini;
+        return !string.IsNullOrEmpty(options.ApiKey);
     }
 
     private class GeminiEmbeddingResponse

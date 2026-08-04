@@ -6,7 +6,7 @@ namespace QFace.Sdk.AI.Services;
 public class LLMService : ILLMService
 {
     private readonly LLMProviderFactory _providerFactory;
-    private readonly AIOptions _options;
+    private readonly IAIOptionsProvider _optionsProvider;
     private readonly ILogger<LLMService> _logger;
 
     /// <summary>
@@ -14,33 +14,35 @@ public class LLMService : ILLMService
     /// </summary>
     public LLMService(
         LLMProviderFactory providerFactory,
-        IOptions<AIOptions> options,
+        IAIOptionsProvider optionsProvider,
         ILogger<LLMService> logger)
     {
         _providerFactory = providerFactory;
-        _options = options.Value;
+        _optionsProvider = optionsProvider;
         _logger = logger;
     }
 
     /// <inheritdoc />
     public async Task<LLMResponse> GenerateCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
     {
-        var providerName = request.Provider ?? _options.DefaultLLMProvider;
+        var options = await _optionsProvider.GetOptionsAsync(cancellationToken);
+        var providerName = request.Provider ?? options.DefaultLLMProvider;
         var provider = _providerFactory.GetProvider(providerName);
-        
+
         _logger.LogInformation("Generating completion using {Provider} provider", providerName);
-        
+
         return await provider.GenerateCompletionAsync(request, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<LLMResponse> GenerateChatCompletionAsync(LLMRequest request, CancellationToken cancellationToken = default)
     {
-        var providerName = request.Provider ?? _options.DefaultLLMProvider;
+        var options = await _optionsProvider.GetOptionsAsync(cancellationToken);
+        var providerName = request.Provider ?? options.DefaultLLMProvider;
         var provider = _providerFactory.GetProvider(providerName);
-        
+
         _logger.LogInformation("Generating chat completion using {Provider} provider", providerName);
-        
+
         return await provider.GenerateChatCompletionAsync(request, cancellationToken);
     }
 }

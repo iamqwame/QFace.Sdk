@@ -24,20 +24,23 @@ public static class SharedCacheKeys
     public static string TenantBranding(Guid tenantId)
         => TenantBranding(tenantId.ToString());
 
+    // TTL: 1 year — RequiredModuleMiddleware treats a missing entry as "module not installed", so a short expiry here 403s every gated request platform-wide until IAM happens to rebuild it. Written only by IAM on install/uninstall/onboarding refresh; do not shorten.
     public static string TenantModuleSnapshot(string tenantId)
         => $"{Prefix}{tenantId}:shared:tenant_module_snapshot";
 
     public static string TenantModuleSnapshot(Guid tenantId)
         => TenantModuleSnapshot(tenantId.ToString());
 
-    /// <summary>
-    /// Tenant plugin snapshot — written by IAM on manifest refresh, read by any service
-    /// gating plugin-specific endpoints via <see cref="Services.TenantSetup.ITenantPluginAccessService"/>.
-    /// Key: qface:qimerp:{tenantId}:shared:tenant_plugin_snapshot
-    /// </summary>
+    // Same 1-year TTL reasoning as TenantModuleSnapshot. Read via ITenantPluginAccessService.
     public static string TenantPluginSnapshot(string tenantId)
         => $"{Prefix}{tenantId}:shared:tenant_plugin_snapshot";
 
     public static string TenantPluginSnapshot(Guid tenantId)
         => TenantPluginSnapshot(tenantId.ToString());
+
+    // Written once by IAM at startup (PlatformAIConfigSeedService), re-written on every IAM
+    // restart/redeploy. TTL: 1 year. Read by any service's CachedAIOptionsProvider that has
+    // no local AI:* config of its own.
+    public static string PlatformAIProviderConfig()
+        => $"{Prefix}shared:platform_ai_provider_config";
 }

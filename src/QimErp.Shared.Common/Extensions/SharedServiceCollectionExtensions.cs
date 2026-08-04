@@ -13,12 +13,15 @@ using Microsoft.OpenApi.Models;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using QFace.Sdk.AI.Services;
 using QFace.Sdk.RedisCache.Extensions;
 using QFace.Sdk.RedisCache.Models;
 using QFace.Sdk.Temporal.Interceptors;
 using QimErp.Shared.Common.Behaviours;
 using QimErp.Shared.Common.Database;
 using QimErp.Shared.Common.Middlewares;
+using QimErp.Shared.Common.Services.AI;
+using QimErp.Shared.Common.Services.Knowledge;
 using QimErp.Shared.Common.Services.TenantSetup;
 using QimErp.Shared.Common.Options;
 using QimErp.Shared.Common.Services.Cache;
@@ -95,7 +98,7 @@ public static class SharedServiceCollectionExtensions
     /// Call AddCoreServices/AddAuth before or after to use UserContextService (HTTP-based user) instead.
     /// </remarks>
     public static IServiceCollection AddDbContextWithOutbox<TContext>(
-        this IServiceCollection services, string connectionString, IConfiguration? configuration = null) where TContext : ApplicationDbContext<TContext>
+        this IServiceCollection services, string connectionString, IConfiguration? configuration = null, bool enableVector = false) where TContext : ApplicationDbContext<TContext>
     {
         if (configuration != null)
             services.AddQimErpConfiguration(configuration);
@@ -105,6 +108,14 @@ public static class SharedServiceCollectionExtensions
         services.TryAddScoped<ICurrentUserService, DesignTimeCurrentUserService>();
         services.AddScoped<ITenantContext, TenantContext>();
 
+        NpgsqlDataSource? vectorDataSource = null;
+        if (enableVector)
+        {
+            var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+            dataSourceBuilder.UseVector();
+            vectorDataSource = dataSourceBuilder.Build();
+        }
+
         services
             .AddScoped<AuditEntitySaveChangesInterceptor>()
             .AddDbContext<TContext>((provider, options) =>
@@ -112,7 +123,14 @@ public static class SharedServiceCollectionExtensions
 #pragma warning disable CS0618
             NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
 #pragma warning restore CS0618
-            options.UseNpgsql(connectionString);
+            if (vectorDataSource is not null)
+            {
+                options.UseNpgsql(vectorDataSource, npgsqlOptions => npgsqlOptions.UseVector());
+            }
+            else
+            {
+                options.UseNpgsql(connectionString);
+            }
             options.EnableSensitiveDataLogging(false);
             options.EnableDetailedErrors(false);
             options.ConfigureWarnings(warnings => warnings.Ignore(
@@ -383,6 +401,7 @@ public static class SharedServiceCollectionExtensions
         services.TryAddScoped<ITenantContext, TenantContext>();
         services.TryAddScoped<ITenantModuleAccessService, TenantModuleAccessService>();
         services.TryAddScoped<ITenantPluginAccessService, TenantPluginAccessService>();
+        services.TryAddScoped<ITenantKnowledgeAccessService, TenantKnowledgeAccessService>();
 
         // Register SDK Redis Cache services (reads from "RedisCache" configuration section)
         services.AddRedisCache(configuration);
@@ -406,6 +425,7 @@ public static class SharedServiceCollectionExtensions
         // Register cache services (adapter that uses SDK)
         services.AddScoped<IDistributedCacheService, RedisCacheService>();
         services.AddScoped<ICacheService, RedisCacheService>();
+        services.AddSingleton<IAIOptionsProvider, CachedAIOptionsProvider>();
         services.AddAuth(configuration);
         services.AddCorsConfig(configuration);
         services.RegisterMediatR(isAddWorkflow ? [assembly, workFlowAssembly!] : [assembly]);

@@ -6,16 +6,16 @@ namespace QFace.Sdk.AI.Services;
 public class EmbeddingService : IEmbeddingService
 {
     private readonly EmbeddingProviderFactory _providerFactory;
-    private readonly AIOptions _options;
+    private readonly IAIOptionsProvider _optionsProvider;
     private readonly ILogger<EmbeddingService> _logger;
 
     public EmbeddingService(
         EmbeddingProviderFactory providerFactory,
-        IOptions<AIOptions> options,
+        IAIOptionsProvider optionsProvider,
         ILogger<EmbeddingService> logger)
     {
         _providerFactory = providerFactory;
-        _options = options.Value;
+        _optionsProvider = optionsProvider;
         _logger = logger;
     }
 
@@ -23,7 +23,8 @@ public class EmbeddingService : IEmbeddingService
         EmbeddingRequest request,
         CancellationToken cancellationToken = default)
     {
-        var providerName = request.Provider ?? _options.DefaultEmbeddingProvider;
+        var options = await _optionsProvider.GetOptionsAsync(cancellationToken);
+        var providerName = request.Provider ?? options.DefaultEmbeddingProvider;
         var provider = _providerFactory.GetProvider(providerName);
 
         _logger.LogInformation("Generating embedding using {Provider} provider", providerName);
