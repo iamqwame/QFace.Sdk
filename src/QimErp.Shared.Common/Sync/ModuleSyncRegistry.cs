@@ -84,7 +84,7 @@ public static class ModuleSyncRegistry
 
         // Attendance — catalog module stub so biometric-sync plugin can declare a prerequisite.
         new("attendance", ModuleKeys.Attendance, ["SetupAttendanceTenant"]),
-        new("qim-ai", ModuleKeys.QimAI, ["SetupIntelligenceTenant"]),
+        new("qim-ai", ModuleKeys.QimAI, []),
 
         // Plugins — narrower than a module install: flip on one capability inside an
         // already-installed module, via the module's own idempotent Enable/Disable activity.
@@ -178,7 +178,6 @@ public static class ModuleSyncRegistry
         new("SetupOperationsInventoryTenant", "qimerp-operations-inventory-tenant-setup"),
         new("SetupOperationsProjectTenant", "qimerp-operations-project-tenant-setup"),
         new("SetupAttendanceTenant", "qimerp-corehr-employee-tenant-setup"),
-        new("SetupIntelligenceTenant", "qimerp-platform-intelligence-tenant-setup"),
         new("EnsureEmployeeInPayroll", "qimerp-payroll-tenant-setup"),
         new("EnsureEmployeeInLearning", "qimerp-learning-tenant-setup"),
         new("EnsureEmployeeInPerformance", "qimerp-performance-tenant-setup"),
