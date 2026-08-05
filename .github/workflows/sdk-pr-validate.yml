@@ -1,0 +1,46 @@
+name: PR Validation — QFace.Sdk
+
+on:
+  pull_request:
+    branches: [development, main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore and build packable projects
+        run: |
+          shopt -s nullglob
+          failed=0
+          for project in ./src/*/*.csproj; do
+            project_name=$(basename "$(dirname "$project")")
+            if [[ "$project_name" == "QFace.WebApi.Template" ]]; then
+              continue
+            fi
+            if ! grep -q "<PackageId>" "$project"; then
+              continue
+            fi
+            if grep -q "<IsPackable>false</IsPackable>" "$project"; then
+              continue
+            fi
+            echo "Building $project_name..."
+            dotnet restore "$project" || failed=1
+            dotnet build "$project" -c Release --no-restore || failed=1
+          done
+          exit $failed
