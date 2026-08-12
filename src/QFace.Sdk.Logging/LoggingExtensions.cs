@@ -6,9 +6,6 @@ using Serilog.Sinks.Graylog.Core.Transport;
 
 namespace QFace.Sdk.Logging;
 
-/// <summary>
-/// 
-/// </summary>
 public static class LoggingExtensions
     {
         /// <summary>
@@ -38,7 +35,6 @@ public static class LoggingExtensions
         {
             try
             {
-                // Bind the Logs section from appsettings
                 var opts = new LoggingOptions();
                 configuration.GetSection("Logs").Bind(opts);
 
@@ -47,7 +43,6 @@ public static class LoggingExtensions
                     throw new InvalidOperationException($"Unsupported logging sink: {opts.Using}");
                 }
 
-                // Parse transport type from configuration
                 var transportType = opts.TransportType?.Equals("Http", StringComparison.OrdinalIgnoreCase) == true
                     ? TransportType.Http
                     : TransportType.Udp;
@@ -81,7 +76,6 @@ public static class LoggingExtensions
                     .WriteTo.Console(outputTemplate:
                         "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} (Fallback){NewLine}{Exception}");
 
-                // Log the configuration error to console
                 Console.Error.WriteLine($"Error configuring QFace logging: {ex.Message}");
             }
         }

@@ -1,9 +1,11 @@
 namespace QimErp.Shared.Common.Services.Workflow;
 
 /// <summary>
-/// Ensures HR approval workflows only run when the tenant has the Workflow module installed.
+/// Gates approval-workflow execution on whether the Workflow module is enabled for a
+/// tenant. Implemented by <see cref="WorkflowModuleApprovalGate"/>.
 /// </summary>
 public interface IWorkflowModuleApprovalGate
 {
     Task<bool> IsApprovalModuleEnabledAsync(string? tenantId, CancellationToken cancellationToken = default);
 }
+

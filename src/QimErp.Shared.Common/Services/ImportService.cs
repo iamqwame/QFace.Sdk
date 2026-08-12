@@ -158,13 +158,9 @@ public abstract class ImportService<TContext> : IImportService
 
         import.UpdateBatchSaveProgress(batchesSaved, batchesFailed);
         
-        // Check if all batches are complete
         if (import.BatchesSaved + import.BatchesFailed >= import.BatchesQueued && import.BatchesQueued > 0)
         {
-            // All batches are done, complete the import
-            // Note: We need the final counts from the import response, but since we're tracking batches,
-            // we'll use the current values. The actual completion should be called from ImportProgressService
-            // with the final response data. For now, we just update the status.
+            // Actual completion should be called from ImportProgressService with the final response data.
             _logger.LogInformation("All batches completed for ImportId: {ImportId}. BatchesSaved: {BatchesSaved}, BatchesFailed: {BatchesFailed}",
                 importId, import.BatchesSaved, import.BatchesFailed);
         }

@@ -95,9 +95,6 @@ public abstract class Repository<TEntity, TKey, TDbContext> : IRepository<TEntit
         return await Context.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Creates an expression to check if entity's key equals the provided id.
-    /// </summary>
     private Expression<Func<TEntity, bool>> EntityIdEquals(TKey id)
     {
         var parameter = Expression.Parameter(typeof(TEntity), "e");

@@ -42,8 +42,6 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
     private readonly IReadOnlyDictionary<string, (string Prefix, string Separator, bool IncludeYear, int PaddingWidth)> _defaults;
     private readonly string _moduleName;
 
-    /// <summary>
-    /// </summary>
     /// <param name="moduleName">
     /// Display name of the module this service belongs to (e.g. "Payroll", "Inventory").
     /// Attributed to every entity type in <paramref name="moduleDefaults"/> — this is the only
@@ -67,8 +65,6 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         _moduleName = moduleName;
         _defaults = moduleDefaults ?? new Dictionary<string, (string, string, bool, int)>(StringComparer.OrdinalIgnoreCase);
     }
-
-    // ── Public API ────────────────────────────────────────────────────────────
 
     public async Task<string> GenerateAsync(string tenantId, string entityType, CancellationToken ct = default)
     {
@@ -155,7 +151,6 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         string tenantId, string entityType,
         IEnumerable<string> existingCodes, CancellationToken ct = default)
     {
-        // Extract all numeric values from existing codes, take the max.
         var maxFound = existingCodes
             .Select(code => ExtractNumericSuffix(code))
             .Where(n => n.HasValue)
@@ -189,8 +184,6 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         }
         return configs;
     }
-
-    // ── Internal helpers ──────────────────────────────────────────────────────
 
     private async Task<EntityCodeConfig> GetOrCreateConfigAsync(
         string tenantId, string entityType, CancellationToken ct)
@@ -248,10 +241,6 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         return results[0];
     }
 
-    /// <summary>
-    /// Checks whether the sequence should reset for a new period (year / month).
-    /// Only runs when ResetPeriod ≠ Never.
-    /// </summary>
     private async Task CheckAndApplyResetAsync(EntityCodeConfig config, CancellationToken ct)
     {
         if (config.ResetPeriod == CodeResetPeriod.Never) return;

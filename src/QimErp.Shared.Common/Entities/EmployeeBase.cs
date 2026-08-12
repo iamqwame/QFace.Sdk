@@ -6,7 +6,6 @@ namespace QimErp.Shared.Common.Entities;
 /// </summary>
 public abstract class EmployeeBase : GuidAuditableEntity
 {
-    // Basic Information
     public string Code { get; protected set; } = string.Empty;
     public string FirstName { get; protected set; } = string.Empty;
     public string LastName { get; protected set; } = string.Empty;
@@ -20,7 +19,6 @@ public abstract class EmployeeBase : GuidAuditableEntity
     /// <summary>e.g. "Active", "Probation", "Terminated" — module-specific values, common shape.</summary>
     public string EmploymentStatus { get; protected set; } = "Active";
 
-    // Current Manager/Supervisor relationship
     public Guid? CurrentSupervisorId { get; protected set; }
     public string? CurrentSupervisorName { get; protected set; }
     public string? CurrentSupervisorCode { get; protected set; }
@@ -28,27 +26,22 @@ public abstract class EmployeeBase : GuidAuditableEntity
     public string? CurrentSupervisorEmail { get; protected set; }
     public string? CurrentSupervisorPhone { get; protected set; }
     
-    // Current Organizational Unit (for filtering/grouping)
     public Guid? CurrentOrganizationalUnitId { get; protected set; }
     public string? CurrentOrganizationalUnitName { get; protected set; }
     public string? CurrentOrganizationalUnitCode { get; protected set; }
     
-    // Current Job Title
     public Guid? CurrentJobTitleId { get; protected set; }
     public string? CurrentJobTitleName { get; protected set; }
     public string? CurrentJobTitleCode { get; protected set; }
     
-    // Current Station (Location)
     public Guid? CurrentStationId { get; protected set; }
     public string? CurrentStationName { get; protected set; }
     public string? CurrentStationCode { get; protected set; }
     
-    // Current Job Status
     public Guid? CurrentJobStatusId { get; protected set; }
     public string? CurrentJobStatusName { get; protected set; }
     public string? CurrentJobStatusCode { get; protected set; }
     
-    // Computed Properties
     public bool IsActive => DataStatus == DataState.Active;
 
     public string FullName => string.IsNullOrWhiteSpace(MiddleName)
@@ -80,9 +73,6 @@ public abstract class EmployeeBase : GuidAuditableEntity
         AsActive();
     }
 
-    /// <summary>
-    /// Updates basic employee information (name and email)
-    /// </summary>
     public EmployeeBase UpdateBasicInfo(
         string firstName,
         string lastName,
@@ -96,9 +86,6 @@ public abstract class EmployeeBase : GuidAuditableEntity
         return this;
     }
 
-    /// <summary>
-    /// Updates current supervisor/manager information
-    /// </summary>
     public EmployeeBase UpdateCurrentSupervisor(
         Guid? supervisorId = null,
         string? supervisorName = null,
@@ -116,9 +103,6 @@ public abstract class EmployeeBase : GuidAuditableEntity
         return this;
     }
 
-    /// <summary>
-    /// Updates current organizational unit information
-    /// </summary>
     public EmployeeBase UpdateCurrentOrganizationalUnit(
         Guid? organizationalUnitId = null,
         string? organizationalUnitName = null,
@@ -130,9 +114,6 @@ public abstract class EmployeeBase : GuidAuditableEntity
         return this;
     }
 
-    /// <summary>
-    /// Updates current job title information
-    /// </summary>
     public EmployeeBase UpdateCurrentJobTitle(
         Guid? jobTitleId = null,
         string? jobTitleName = null,
@@ -144,9 +125,6 @@ public abstract class EmployeeBase : GuidAuditableEntity
         return this;
     }
 
-    /// <summary>
-    /// Updates current station information
-    /// </summary>
     public EmployeeBase UpdateCurrentStation(
         Guid? stationId = null,
         string? stationName = null,
@@ -158,9 +136,6 @@ public abstract class EmployeeBase : GuidAuditableEntity
         return this;
     }
 
-    /// <summary>
-    /// Updates current job status information
-    /// </summary>
     public EmployeeBase UpdateCurrentJobStatus(
         Guid? jobStatusId = null,
         string? jobStatusName = null,
@@ -172,45 +147,30 @@ public abstract class EmployeeBase : GuidAuditableEntity
         return this;
     }
 
-    /// <summary>
-    /// Updates profile picture URL
-    /// </summary>
     public EmployeeBase WithProfilePicture(string? profilePictureUrl)
     {
         ProfilePicture = profilePictureUrl;
         return this;
     }
 
-    /// <summary>
-    /// Updates gender ("Male" | "Female" | "Unspecified" | null)
-    /// </summary>
     public EmployeeBase WithGender(string? gender)
     {
         Gender = gender;
         return this;
     }
 
-    /// <summary>
-    /// Updates employment status (e.g. "Active", "Probation", "Terminated")
-    /// </summary>
     public EmployeeBase WithEmploymentStatus(string status)
     {
         EmploymentStatus = status;
         return this;
     }
 
-    /// <summary>
-    /// Activates the employee
-    /// </summary>
     public EmployeeBase Activate()
     {
         AsActive();
         return this;
     }
 
-    /// <summary>
-    /// Deactivates the employee
-    /// </summary>
     public new EmployeeBase Deactivate()
     {
         base.Deactivate();

@@ -37,7 +37,6 @@ public class KafkaConsumerService : IHostedService
                 "Starting consumer service with {ConsumerCount} consumers",
                 _consumerMetadata.Count);
 
-            // Create supervisor actor
             var supervisorProps = Props.Create(() => new Actors.KafkaConsumerSupervisorActor(
                 _serviceProvider.GetRequiredService<ILogger<Actors.KafkaConsumerSupervisorActor>>(),
                 _consumerMetadata,

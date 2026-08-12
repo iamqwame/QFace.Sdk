@@ -19,7 +19,6 @@ public class RedisMqPublisher : IRedisMqPublisher
     {
         try
         {
-            // Ensure we have a reference to the publisher actor
             if (_publisherActorRef == null || _publisherActorRef.IsNobody())
             {
                 lock (_actorLock)
@@ -28,7 +27,6 @@ public class RedisMqPublisher : IRedisMqPublisher
                     {
                         try
                         {
-                            // Try to find existing actor
                             _publisherActorRef = _actorSystem.ActorSelection("/user/redis-publisher")
                                 .ResolveOne(TimeSpan.FromSeconds(1))
                                 .GetAwaiter()
@@ -38,7 +36,6 @@ public class RedisMqPublisher : IRedisMqPublisher
                         }
                         catch
                         {
-                            // Actor doesn't exist - this should not happen as it should be created during initialization
                             _logger.LogError("[Redis] Publisher actor not found. Make sure UseRedisMqInApi/UseRedisMqInConsumer has been called.");
                             return Task.FromResult(false);
                         }
@@ -48,7 +45,6 @@ public class RedisMqPublisher : IRedisMqPublisher
 
             var publishMessage = new PublishMessage(message, channelName);
 
-            // Send message directly to the actor
             _publisherActorRef.Tell(publishMessage);
 
             return Task.FromResult(true);

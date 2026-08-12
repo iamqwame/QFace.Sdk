@@ -32,9 +32,6 @@ public class Money
         return new Money(amount, DefaultCurrency, 1.0m, null);
     }
 
-    /// <summary>
-    /// Sets the currency code for this Money instance.
-    /// </summary>
     public Money In(string currencyCode)
     {
         if (string.IsNullOrWhiteSpace(currencyCode))
@@ -44,9 +41,6 @@ public class Money
         return this;
     }
 
-    /// <summary>
-    /// Sets the exchange rate for converting to base currency.
-    /// </summary>
     public Money WithExchangeRate(decimal exchangeRate)
     {
         if (exchangeRate <= 0)
@@ -60,9 +54,6 @@ public class Money
         return this;
     }
 
-    /// <summary>
-    /// Sets the base currency amount explicitly.
-    /// </summary>
     public Money WithBaseCurrencyAmount(decimal baseCurrencyAmount)
     {
         BaseCurrencyAmount = baseCurrencyAmount;

@@ -43,4 +43,14 @@ public static class SharedCacheKeys
     // no local AI:* config of its own.
     public static string PlatformAIProviderConfig()
         => $"{Prefix}shared:platform_ai_provider_config";
+
+    // Written by IAM's tenant AI-provider settings endpoint (TenantAIProviderSettingsService)
+    // on every save, deleted on reset-to-default. TTL: 1 year (write-through on save means
+    // staleness is a non-issue). Checked by CachedAIOptionsProvider before the local-config
+    // and PlatformAIProviderConfig fallbacks — a tenant override always wins.
+    public static string TenantAIProviderConfig(string tenantId)
+        => $"{Prefix}{tenantId}:shared:tenant_ai_provider_config";
+
+    public static string TenantAIProviderConfig(Guid tenantId)
+        => TenantAIProviderConfig(tenantId.ToString());
 }

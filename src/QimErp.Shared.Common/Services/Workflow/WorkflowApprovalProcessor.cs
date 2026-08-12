@@ -19,13 +19,6 @@ public class WorkflowApprovalProcessor(
     private readonly FrontendSettings _frontendSettings = frontendSettings.Value;
     private readonly SystemOptions _systemOptions = systemOptions.Value;
 
-    /// <summary>
-    /// Processes a workflow approval request event.
-    /// </summary>
-    /// <param name="event"></param>
-    /// <param name="context"></param>
-    /// <param name="cancellationToken"></param>
-    /// <typeparam name="TContext"></typeparam>
     public async Task ProcessApprovalRequestAsync<TContext>(
         WorkflowApprovalRequestEvent @event,
         TContext context,

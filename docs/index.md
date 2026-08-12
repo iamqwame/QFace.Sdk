@@ -12,13 +12,28 @@ A lightweight wrapper around Akka.NET that simplifies creating and managing acto
 
 Provides a unified API for working with various message queues and event brokers. Simplifies publishing, subscribing, and processing messages across different messaging technologies.
 
-### [Data Access SDK](data-access.md)
+### Data Access SDK
 
-A flexible data access layer that supports multiple databases and provides a clean repository pattern implementation with built-in caching and performance optimizations.
+A flexible data access layer supporting multiple databases, a clean repository pattern with built-in caching and performance optimizations. **Coming soon** — no package or dedicated doc exists yet.
 
 ### [AI/ML SDK](ai-sdk.md)
 
 A generic AI/ML SDK library supporting multiple LLM providers (OpenAI, Anthropic, Google Gemini), forecasting algorithms (Trend, Regression, ML, Manual), and skills analysis. Designed to be extensible and provider-agnostic.
+
+## Other libraries
+
+| Library       | Doc                                                                                                | Status    |
+| ------------- | -------------------------------------------------------------------------------------------------- | --------- |
+| Blob Storage  | [blob-storage.md](blob-storage.md)                                                                 | Published |
+| ElasticSearch | [elasticsearch.md](elasticsearch.md)                                                               | Published |
+| Extensions    | [extensions.md](extensions.md)                                                                     | Published |
+| Kafka         | [kafka-streaming.md](kafka-streaming.md)                                                           | Published |
+| Logging       | [logging.md](logging.md)                                                                           | Published |
+| MongoDB       | [mongodb.md](mongodb.md)                                                                           | Published |
+| Redis Cache   | [redis-cache-remove-by-pattern-implementation.md](redis-cache-remove-by-pattern-implementation.md) | Published |
+| SendMessage   | [send-message.md](send-message.md)                                                                 | Published |
+
+> Note: `QimErp.Shared.Common` and `QimErp.Shared.DemoData` also build out of this repo's `src/` but are QimERP platform libraries, not QFace SDK — see the platform docs instead.
 
 ## Getting Started
 

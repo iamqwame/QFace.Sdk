@@ -247,6 +247,34 @@ public static class TenantActivityRequestBuilder
             "bulk-operation", Guid.Empty, operationLabel, currentUser,
             correlationSuffix: $"bulk-operation:{operationLabel.ToLowerInvariant().Replace(' ', '-')}:{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
 
+    public static RecordTenantActivityRequest ForEmployeeBulkImportQueued(
+        string tenantId, string importType, string fileName, string jobId, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrActivityTypes.EmployeeBulkImportQueued,
+            $"Bulk {importType} import started (file: {fileName})",
+            "bulk-operation", Guid.Empty, importType, currentUser,
+            correlationSuffix: $"employee-bulk-import:{jobId}");
+
+    public static RecordTenantActivityRequest ForPayrollBulkImportQueued(
+        string tenantId, string importType, string fileName, string jobId, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Payroll, PayrollActivityTypes.PayrollBulkImportQueued,
+            $"Bulk {importType} import started (file: {fileName})",
+            "bulk-operation", Guid.Empty, importType, currentUser,
+            correlationSuffix: $"payroll-bulk-import:{jobId}");
+
+    public static RecordTenantActivityRequest ForPerformanceLibraryImported(
+        string tenantId, string fileName, string jobId, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrPerformanceActivityTypes.PerformanceLibraryImported,
+            $"Performance library import started (file: {fileName})",
+            "bulk-operation", Guid.Empty, "performance-library", currentUser,
+            correlationSuffix: $"performance-library-import:{jobId}");
+
+    public static RecordTenantActivityRequest ForAppraisalTargetsImported(
+        string tenantId, Guid appraisalPeriodId, int createdCount, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrPerformanceActivityTypes.AppraisalTargetsImported,
+            $"Appraisal target import committed: {createdCount} draft plan{(createdCount == 1 ? "" : "s")} created",
+            "bulk-operation", Guid.Empty, "appraisal-targets", currentUser,
+            correlationSuffix: $"appraisal-targets-imported:{appraisalPeriodId:N}:{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
+
     // ── Employee records (certifications, dependants, documents, etc.) ─────
     public static RecordTenantActivityRequest ForEmployeeCertificationAdded(
         string tenantId, Guid employeeId, string employeeName, string certificationName, ICurrentUserService currentUser) =>
