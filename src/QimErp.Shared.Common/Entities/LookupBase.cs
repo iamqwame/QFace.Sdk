@@ -17,9 +17,6 @@ public abstract class LookupBase : GuidAuditableEntity
     /// </summary>
     public string Name { get; private set; } = string.Empty;
 
-    /// <summary>
-    /// Optional description of the lookup value
-    /// </summary>
     public string? Description { get; private set; }
 
     /// <summary>
@@ -60,9 +57,6 @@ public abstract class LookupBase : GuidAuditableEntity
         AsActive();
     }
 
-    /// <summary>
-    /// Creates a system default lookup value
-    /// </summary>
     protected static T CreateSystemDefault<T>(string code, string name, string lookupType, int displayOrder = 0)
         where T : LookupBase
     {

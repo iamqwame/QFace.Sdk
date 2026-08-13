@@ -25,9 +25,6 @@ public class TenantDatabaseManager : ITenantDatabaseManager
     /// <summary>
     /// Provisions a tenant database
     /// </summary>
-    /// <summary>
-    /// Provisions a tenant database
-    /// </summary>
     public async Task ProvisionTenantDatabaseAsync(Tenant tenant, CancellationToken cancellationToken = default)
     {
         if (tenant == null)
@@ -41,7 +38,6 @@ public class TenantDatabaseManager : ITenantDatabaseManager
             
         try
         {
-            // Handle differently based on tenant type
             if (tenant.TenantType == TenantType.Shared)
             {
                  ProvisionSharedTenantAsync(tenant, cancellationToken);
@@ -62,40 +58,26 @@ public class TenantDatabaseManager : ITenantDatabaseManager
         }
     }
     
-    /// <summary>
-    /// Provisions a dedicated tenant - creates a separate database
-    /// </summary>
     private async Task ProvisionDedicatedTenantAsync(Tenant tenant, CancellationToken cancellationToken)
     {
-        // Get MongoDB client
         var client = GetTenantMongoClient(tenant);
         
-        // Create database
         var database = client.GetDatabase(tenant.DatabaseName);
         
-        // Create collections with tenant info
         await CreateRequiredCollections(database, tenant, cancellationToken);
     }
     
-    /// <summary>
-    /// Provisions a shared tenant - uses the default shared database
-    /// </summary>
     private void ProvisionSharedTenantAsync(Tenant tenant, CancellationToken cancellationToken)
     {
-        // For shared tenants, use the default shared database from configuration
         var sharedDbSection = _configuration.GetSection("DefaultTenantDbData");
         var sharedDbName = sharedDbSection["DatabaseName"] ?? "shared_erp_core";
         
-        // Update tenant with shared database name
         tenant.DatabaseName = sharedDbName;
         
         _logger.LogInformation("Shared tenant {TenantId} provisioned to use database: {DatabaseName}", 
             tenant.Id, sharedDbName);
     }
         
-    /// <summary>
-    /// Deprovisions a tenant database
-    /// </summary>
     public async Task DeprovisionTenantDatabaseAsync(Tenant tenant, CancellationToken cancellationToken = default)
     {
         if (tenant == null)
@@ -109,10 +91,8 @@ public class TenantDatabaseManager : ITenantDatabaseManager
             
         try
         {
-            // Get MongoDB client
             var client = GetTenantMongoClient(tenant);
                 
-            // Drop database (only in development or with explicit confirmation)
             if (IsDropDatabaseAllowed(tenant))
             {
                 await client.DropDatabaseAsync(tenant.DatabaseName, cancellationToken);
@@ -137,12 +117,10 @@ public class TenantDatabaseManager : ITenantDatabaseManager
     
     private async Task CreateRequiredCollections(IMongoDatabase database, Tenant tenant, CancellationToken cancellationToken)
     {
-        // Create system collections that all tenants need
         await database.CreateCollectionAsync("settings", null, cancellationToken);
         await database.CreateCollectionAsync("system_logs", null, cancellationToken);
         await database.CreateCollectionAsync("diagnostics", null, cancellationToken);
         
-        // Create a default document in settings collection
         var settingsCollection = database.GetCollection<object>("settings");
         await settingsCollection.InsertOneAsync(new
         {
@@ -152,7 +130,6 @@ public class TenantDatabaseManager : ITenantDatabaseManager
             version = "1.0.0"
         }, cancellationToken: cancellationToken);
 
-        // For dedicated tenant databases, create all entity collections
         if (tenant.TenantType == TenantType.Dedicated)
         {
             _logger.LogInformation("Creating entity collections for dedicated tenant database: {TenantId}", tenant.Id);
@@ -174,7 +151,6 @@ public class TenantDatabaseManager : ITenantDatabaseManager
                 }
                 catch (MongoCommandException ex) when (ex.Message.Contains("already exists"))
                 {
-                    // Collection already exists, this is fine
                     _logger.LogDebug("Collection '{CollectionName}' already exists", collectionName);
                 }
                 catch (Exception ex)
@@ -190,7 +166,6 @@ public class TenantDatabaseManager : ITenantDatabaseManager
     {
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
     
-        // Find all types with TenantCollectionAttribute
         var documentTypes = assemblies
             .SelectMany(a => 
             {
@@ -216,25 +191,17 @@ public class TenantDatabaseManager : ITenantDatabaseManager
     }
     
     
-    /// <summary>
-    /// Gets a MongoDB client for a tenant
-    /// </summary>
     private IMongoClient GetTenantMongoClient(Tenant tenant)
     {
-        // Use tenant-specific connection string if provided, otherwise use default
         if (!string.IsNullOrEmpty(tenant.ConnectionString))
         {
             var clientSettings = MongoClientSettings.FromConnectionString(tenant.ConnectionString);
             return new MongoClient(clientSettings);
         }
             
-        // Use default client
         return _mongoDbClientFactory.GetClient();
     }
         
-    /// <summary>
-    /// Checks if dropping a database is allowed
-    /// </summary>
     private bool IsDropDatabaseAllowed(Tenant tenant)
     {
         // In a real system, you might want to check environment, have explicit confirmation,

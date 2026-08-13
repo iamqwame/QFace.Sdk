@@ -27,7 +27,7 @@ public class MessageService : IMessageService
             var command = SendMessageCommand.CreateEmailOnly(toEmail, subject, body);
             _actorService.Tell<SendMessageActor>(command);
                 
-            return Task.FromResult(true); // Returning success as the actor takes over
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
@@ -47,7 +47,7 @@ public class MessageService : IMessageService
             var command = SendMessageCommand.CreateEmailWithTemplateOnly(toEmail, subject, template, replacements);
             _actorService.Tell<SendMessageActor>(command);
                 
-            return Task.FromResult(true); // Returning success as the actor takes over
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
@@ -68,7 +68,7 @@ public class MessageService : IMessageService
             var command = SendMessageCommand.CreateSMSOnly(toPhoneNumbers, message);
             _actorService.Tell<SendMessageActor>(command);
                 
-            return Task.FromResult(true); // Returning success as the actor takes over
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
@@ -88,7 +88,7 @@ public class MessageService : IMessageService
             var command = SendMessageCommand.CreateSMSWithTemplateOnly(toPhoneNumbers, template, replacements);
             _actorService.Tell<SendMessageActor>(command);
                 
-            return Task.FromResult(true); // Returning success as the actor takes over
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
@@ -111,7 +111,7 @@ public class MessageService : IMessageService
             var command = SendMessageCommand.CreateBoth(toEmail[0], toPhoneNumbers[0], subject, body);
             _actorService.Tell<SendMessageActor>(command);
                 
-            return Task.FromResult(true); // Returning success as the actor takes over
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
@@ -127,7 +127,7 @@ public class MessageService : IMessageService
         {
             _logger.LogInformation("Processing message command via actor");
             _actorService.Tell<SendMessageActor>(command);
-            return Task.FromResult(true); // Returning success as the actor takes over
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {

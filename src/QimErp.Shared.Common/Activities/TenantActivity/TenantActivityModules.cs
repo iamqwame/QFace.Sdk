@@ -51,6 +51,7 @@ public static class HrActivityTypes
     public const string EmployeeRankChanged = "employee-rank-changed";
     public const string EmployeeSupervisorChanged = "employee-supervisor-changed";
     public const string EmployeeDeleted = "employee-deleted";
+    public const string EmployeeBulkImportQueued = "employee-bulk-import-queued";
 }
 
 public static class HrEmployeeRecordActivityTypes
@@ -143,6 +144,8 @@ public static class HrPerformanceActivityTypes
     public const string PerformanceTemplateDeleted = "performance-template-deleted";
     public const string PerformanceRatingScaleCreated = "performance-rating-scale-created";
     public const string PerformanceRatingScaleUpdated = "performance-rating-scale-updated";
+    public const string PerformanceLibraryImported = "performance-library-imported";
+    public const string AppraisalTargetsImported = "appraisal-targets-imported";
     public const string PerformanceRatingScaleDeleted = "performance-rating-scale-deleted";
 }
 
@@ -412,6 +415,7 @@ public static class PayrollActivityTypes
     public const string OvertimeRejected = "overtime-rejected";
     public const string ProvidentFundWithdrawalApproved = "provident-fund-withdrawal-approved";
     public const string ProvidentFundWithdrawalRejected = "provident-fund-withdrawal-rejected";
+    public const string PayrollBulkImportQueued = "payroll-bulk-import-queued";
     public const string DirectDepositAccountVerified = "direct-deposit-account-verified";
     public const string GradeSalaryStepsUpserted = "grade-salary-steps-upserted";
 

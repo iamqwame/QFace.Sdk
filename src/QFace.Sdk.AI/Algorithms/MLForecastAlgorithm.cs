@@ -13,14 +13,8 @@ public class MLForecastAlgorithm : IForecastAlgorithm
     private readonly AIOptions _options;
     private MLContext? _mlContext;
 
-    /// <summary>
-    /// Algorithm name
-    /// </summary>
     public string AlgorithmName => "ML";
 
-    /// <summary>
-    /// Initializes a new instance of MLForecastAlgorithm
-    /// </summary>
     public MLForecastAlgorithm(IOptions<AIOptions> options, ILogger<MLForecastAlgorithm> logger)
     {
         _options = options.Value;
@@ -46,17 +40,14 @@ public class MLForecastAlgorithm : IForecastAlgorithm
         {
             var sortedData = request.HistoricalData.OrderBy(d => d.Date).ToList();
             
-            // Convert to ML.NET format
             var mlData = sortedData.Select((d, index) => new TimeSeriesDataPoint
             {
                 Time = index,
                 Value = (float)d.Value
             }).ToList();
 
-            // Create data view
             var dataView = _mlContext.Data.LoadFromEnumerable(mlData);
 
-            // Configure forecasting pipeline
             var forecastingPipeline = _mlContext.Forecasting.ForecastBySsa(
                 outputColumnName: "Forecast",
                 inputColumnName: "Value",
@@ -65,16 +56,12 @@ public class MLForecastAlgorithm : IForecastAlgorithm
                 trainSize: mlData.Count,
                 horizon: 1);
 
-            // Train the model
             var forecaster = forecastingPipeline.Fit(dataView);
 
-            // Create forecasting engine
             var forecastingEngine = forecaster.CreateTimeSeriesEngine<TimeSeriesDataPoint, ForecastOutput>(_mlContext);
 
-            // Get the last data point
             var lastPoint = mlData.Last();
 
-            // Forecast
             var forecast = forecastingEngine.Predict();
 
             var forecastedValue = (decimal)forecast.Forecast[0];
@@ -111,18 +98,12 @@ public class MLForecastAlgorithm : IForecastAlgorithm
         }
     }
 
-    /// <summary>
-    /// Data point for ML.NET time series
-    /// </summary>
     private class TimeSeriesDataPoint
     {
         public int Time { get; set; }
         public float Value { get; set; }
     }
 
-    /// <summary>
-    /// Forecast output from ML.NET
-    /// </summary>
     private class ForecastOutput
     {
         [VectorType(1)]
