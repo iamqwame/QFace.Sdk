@@ -384,10 +384,14 @@ public static class SharedServiceCollectionExtensions
 
         var isAddWorkflow = workFlowAssembly != null;
 
-        var carterCatalog = isAddWorkflow ? new DependencyContextAssemblyCatalog(
-            workFlowAssembly,
-            assembly
-        ) : new DependencyContextAssemblyCatalog(assembly);
+        // Explicit-assembly override form: Carter's single-Assembly constructor discovers modules by
+        // walking DependencyContext for libraries that DIRECTLY reference Carter/FluentValidation, which
+        // misses a module's own ICarterModule types when it only depends on Carter transitively (e.g. via
+        // this package). Listing assemblies explicitly bypasses that walk entirely.
+        var carterAssemblies = isAddWorkflow
+            ? new[] { assembly, workFlowAssembly!, typeof(SharedServiceCollectionExtensions).Assembly }
+            : new[] { assembly, typeof(SharedServiceCollectionExtensions).Assembly };
+        var carterCatalog = new DependencyContextAssemblyCatalog(carterAssemblies);
 
 
         services.AddMemoryCache(); // For configuration caching
