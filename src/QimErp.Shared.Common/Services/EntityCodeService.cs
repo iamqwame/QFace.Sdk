@@ -213,10 +213,16 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
     /// <summary>
     /// Atomically increments LastSequence by <paramref name="count"/> and returns the new value.
     /// Uses a raw SQL UPDATE … RETURNING so the increment is a single DB round-trip.
+    /// On non-relational providers (EF InMemory, used by test hosts) raw SQL isn't supported at all,
+    /// so this falls back to a plain tracked-entity increment — safe there only because those hosts
+    /// are single-threaded/non-concurrent, unlike the relational path this is not atomic.
     /// </summary>
     private async Task<long> IncrementSequenceAsync(
         string tenantId, string entityType, int count, CancellationToken ct)
     {
+        if (!_context.Database.IsRelational())
+            return await IncrementSequenceNonAtomicAsync(tenantId, entityType, count, ct);
+
         // PostgreSQL UPDATE … RETURNING gives us the final value atomically.
         // Values are bound as parameters ({0}..{2} → DbParameters) — never interpolated
         // into the SQL text — so tenantId/entityType can never alter the statement.
@@ -239,6 +245,23 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
                 "Ensure the config exists before calling GenerateAsync.");
 
         return results[0];
+    }
+
+    private async Task<long> IncrementSequenceNonAtomicAsync(
+        string tenantId, string entityType, int count, CancellationToken ct)
+    {
+        var config = await _context.Set<EntityCodeConfig>()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(e => e.TenantId == tenantId && e.EntityType == entityType, ct);
+
+        if (config is null)
+            throw new InvalidOperationException(
+                $"EntityCodeConfig row not found for ({tenantId}, {entityType}). " +
+                "Ensure the config exists before calling GenerateAsync.");
+
+        var finalSeq = config.IncrementSequenceBy(count);
+        await _context.SaveChangesAsync(ct);
+        return finalSeq;
     }
 
     private async Task CheckAndApplyResetAsync(EntityCodeConfig config, CancellationToken ct)
