@@ -333,8 +333,9 @@ public class AuditEntitySaveChangesInterceptor(
                     .Entries()
                     .Where(e => e.State is EntityState.Added or EntityState.Modified
                                 && e.Entity is not AuditableEntity)
-                    .Select(e => e.Property("TenantId")?.CurrentValue?.ToString()
-                                 ?? e.Entity.GetType().GetProperty("TenantId")?.GetValue(e.Entity)?.ToString())
+                    .Select(e => e.Metadata.FindProperty("TenantId") is not null
+                        ? e.Property("TenantId").CurrentValue?.ToString()
+                        : e.Entity.GetType().GetProperty("TenantId")?.GetValue(e.Entity)?.ToString())
                     .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
 
                 if (!string.IsNullOrWhiteSpace(nonAuditableTenantId))
