@@ -1,9 +1,12 @@
+using QimErp.Shared.Common.Database.Configurations;
+
 namespace QimErp.Shared.Common.Workflow.Configurations;
 
-public class EntityWorkflowStepConfiguration : IEntityTypeConfiguration<EntityWorkflowStep>
+public class EntityWorkflowStepConfiguration : AuditableEntityConfiguration<EntityWorkflowStep>
 {
-    public void Configure(EntityTypeBuilder<EntityWorkflowStep> builder)
+    public override void Configure(EntityTypeBuilder<EntityWorkflowStep> builder)
     {
+        base.Configure(builder);
         builder.ToTable("EntityWorkflowSteps");
 
         // Configure string properties
@@ -85,10 +88,6 @@ public class EntityWorkflowStepConfiguration : IEntityTypeConfiguration<EntityWo
         builder.HasIndex(e => new { e.WorkflowCode, e.IsActive });
         builder.HasIndex(e => new { e.WorkflowCode, e.EntityType, e.IsActive });
 
-        // Configure DataStatus
-        builder.Property(e => e.DataStatus).HasConversion(new EnumToStringConverter<DataState>());
-        builder.Property(e => e.PreviousDataStatus).HasConversion(new EnumToStringConverter<DataState>());
-        builder.HasIndex(e => e.DataStatus);
         builder.HasIndex(e => new { e.DataStatus, e.IsActive });
     }
 }
