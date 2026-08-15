@@ -124,6 +124,17 @@ public sealed class EntityCodeConfig : GuidAuditableEntity
         LastResetPeriodKey = periodKey;
     }
 
+    /// <summary>
+    /// Non-atomic increment for non-relational providers (see EntityCodeService.IncrementSequenceAsync).
+    /// Callers on a relational provider must use the raw-SQL UPDATE ... RETURNING path instead — this
+    /// has no concurrency protection.
+    /// </summary>
+    public long IncrementSequenceBy(int count)
+    {
+        LastSequence += count;
+        return LastSequence;
+    }
+
     // ── Code formatting ──────────────────────────────────────────────────────
 
     /// <summary>
