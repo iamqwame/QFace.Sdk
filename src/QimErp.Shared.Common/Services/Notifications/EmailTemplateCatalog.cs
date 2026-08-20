@@ -106,8 +106,8 @@ public static class EmailTemplateCatalog
 
     public static readonly EmailTemplateDefinition AccountWelcome = new(
         "account-welcome",
-        ["FirstName", "FullName", "Email", "AvatarUrl", "Department", "Manager", "TempPassword"],
-        ["Link"]);
+        ["FirstName", "FullName", "Email", "AvatarUrl", "Department"],
+        ["Link", "Manager"]);
 
     public static readonly EmailTemplateDefinition PasswordReset = new(
         "password-reset",
