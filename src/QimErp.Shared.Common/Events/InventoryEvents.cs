@@ -77,4 +77,5 @@ public class GoodsReceiptPostedLineData
     public int QuantityReceived { get; set; }
     public decimal UnitPrice { get; set; }
     public string Measurement { get; set; } = string.Empty;
+    public Guid? PurchaseOrderLineId { get; set; }
 }
