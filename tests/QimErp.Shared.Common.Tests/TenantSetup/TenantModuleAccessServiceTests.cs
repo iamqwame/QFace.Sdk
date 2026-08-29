@@ -86,6 +86,59 @@ public class TenantModuleAccessServiceTests
         cache.ReadCount.Should().Be(1);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task IsModuleEnabledAsync_ReturnsFalse_WhenTenantIdIsMissing(string? tenantId)
+    {
+        var service = CreateService(new InMemoryDistributedCacheService());
+
+        var enabled = await service.IsModuleEnabledAsync(tenantId, ModuleKeys.Payroll);
+
+        enabled.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(ModuleKeys.CoreHR)]
+    [InlineData(ModuleKeys.Leave)]
+    public async Task IsModuleEnabledAsync_BaseModelModule_ReturnsFalse_WhenTenantIdIsMissing(string moduleKey)
+    {
+        var service = CreateService(new InMemoryDistributedCacheService());
+
+        var enabled = await service.IsModuleEnabledAsync(null, moduleKey);
+
+        enabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IsModuleEnabledAsync_ReturnsFalse_WhenTenantIdIsMissing_EvenWhenSnapshotExists()
+    {
+        var cache = new InMemoryDistributedCacheService();
+        await cache.SetAsync(
+            SharedCacheKeys.TenantModuleSnapshot(Guid.Parse(TenantId)),
+            new TenantModuleSnapshotEntry(1, [ModuleKeys.CoreHR, ModuleKeys.Leave, ModuleKeys.Payroll]),
+            expiration: null);
+
+        var service = CreateService(cache);
+
+        var enabled = await service.IsModuleEnabledAsync(string.Empty, ModuleKeys.Payroll);
+
+        enabled.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task IsModuleEnabledAsync_ReturnsTrue_WhenNoModuleIsRequired(string moduleKey)
+    {
+        var service = CreateService(new InMemoryDistributedCacheService());
+
+        var enabled = await service.IsModuleEnabledAsync(TenantId, moduleKey);
+
+        enabled.Should().BeTrue();
+    }
+
     private static TenantModuleAccessService CreateService(
         IDistributedCacheService cache,
         IHttpContextAccessor? httpContextAccessor = null) =>

@@ -13,4 +13,6 @@ public enum SyncType
     JournalEntryPosted,
     /// <summary>IAM master tenant reference data → module local copies (currency, FX, calendar, holidays).</summary>
     TenantReference,
+    /// <summary>AR/POS invoice shipped → Inventory stock deduction.</summary>
+    StockIssue,
 }

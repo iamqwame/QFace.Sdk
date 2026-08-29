@@ -34,6 +34,22 @@ public class ModuleSyncRegistryTests
     }
 
     [Fact]
+    public void FilterByInstalled_StockIssue_InventoryOnlyWhenSelected()
+    {
+        var withInventory = ModuleSyncRegistry.FilterByInstalled(
+            SyncType.StockIssue,
+            [ModuleKeys.AccountsReceivable, ModuleKeys.Inventory]);
+        withInventory.Should().ContainSingle(s => s.ModuleKey == ModuleKeys.Inventory);
+        withInventory[0].TaskQueue.Should().Be("qimerp-inventory-stock-issue-sync");
+        withInventory[0].ActivitySuffix.Should().Be("Inventory");
+
+        var withoutInventory = ModuleSyncRegistry.FilterByInstalled(
+            SyncType.StockIssue,
+            [ModuleKeys.AccountsReceivable, ModuleKeys.CoreAccounting]);
+        withoutInventory.Should().BeEmpty();
+    }
+
+    [Fact]
     public void FilterByInstalled_AssignmentChanged_PayrollOnlyWhenSelected()
     {
         var withPayroll = ModuleSyncRegistry.FilterByInstalled(

@@ -28,5 +28,6 @@ public static class ModuleKeys
     public const string Inventory            = "Inventory";
     public const string Project              = "Project";
     public const string Attendance           = "Attendance";
+    public const string POS                  = "POS";
     public const string QimAI                = "QimAI";
 }

@@ -4,9 +4,10 @@ using QimErp.Shared.Common.Services.TenantSetup;
 
 namespace QimErp.Shared.Common.Middlewares;
 
+/// <summary>Passes when ANY of <paramref name="moduleKeys"/> is entitled.</summary>
 public sealed class RequiredModuleMiddleware(
     RequestDelegate next,
-    string moduleKey)
+    params string[] moduleKeys)
 {
     public async Task InvokeAsync(
         HttpContext context,
@@ -22,23 +23,23 @@ public sealed class RequiredModuleMiddleware(
             return;
         }
 
-        var enabled = await moduleAccess.IsModuleEnabledAsync(
-            tenantContext.TenantId,
-            moduleKey,
-            context.RequestAborted);
-
-        if (!enabled)
+        foreach (var moduleKey in moduleKeys)
         {
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await context.Response.WriteAsJsonAsync(new
+            if (await moduleAccess.IsModuleEnabledAsync(tenantContext.TenantId, moduleKey, context.RequestAborted))
             {
-                error = $"Module '{moduleKey}' is not installed for this tenant.",
-                code = "MODULE_NOT_INSTALLED",
-            });
-            return;
+                await next(context);
+                return;
+            }
         }
 
-        await next(context);
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = moduleKeys.Length == 1
+                ? $"Module '{moduleKeys[0]}' is not installed for this tenant."
+                : $"None of the modules '{string.Join(", ", moduleKeys)}' are installed for this tenant.",
+            code = "MODULE_NOT_INSTALLED",
+        });
     }
 
     private static bool IsExemptPath(PathString path)
@@ -56,6 +57,11 @@ public static class RequiredModuleMiddlewareExtensions
 {
     public static IApplicationBuilder UseRequiredModule(this IApplicationBuilder app, string moduleKey)
     {
-        return app.UseMiddleware<RequiredModuleMiddleware>(moduleKey);
+        return app.UseMiddleware<RequiredModuleMiddleware>((object)new[] { moduleKey });
+    }
+
+    public static IApplicationBuilder UseRequiredAnyModule(this IApplicationBuilder app, params string[] moduleKeys)
+    {
+        return app.UseMiddleware<RequiredModuleMiddleware>((object)moduleKeys);
     }
 }

@@ -1,6 +1,13 @@
+using QimErp.Shared.Common.Sync;
+
 namespace QimErp.Shared.Common.TenantSetup;
 
-/// <summary>Filters unknown module tokens, always unions <see cref="BaseModel.IncludedModuleKeys"/>, deduplicates.</summary>
+/// <summary>
+/// Filters unknown module tokens, always unions <see cref="BaseModel.IncludedModuleKeys"/>, deduplicates.
+/// <see cref="Resolve"/> also adds transitive <see cref="ModuleSyncRegistry"/> prerequisites and drives
+/// sync fan-out; <see cref="ResolveExplicit"/> omits them and drives HTTP entitlement, which must stay
+/// billed-modules-only.
+/// </summary>
 public static class BaseModelResolver
 {
     private static readonly HashSet<string> KnownModuleKeys = new(StringComparer.OrdinalIgnoreCase)
@@ -24,9 +31,33 @@ public static class BaseModelResolver
         ModuleKeys.CashManagement,
         ModuleKeys.Inventory,
         ModuleKeys.Project,
+        ModuleKeys.POS,
     };
 
     public static IReadOnlyList<string> Resolve(IReadOnlyList<string>? selectedModules)
+    {
+        var result = CollectExplicit(selectedModules);
+        ExpandPrerequisites(result);
+        return Sorted(result);
+    }
+
+    public static IReadOnlyList<string> ResolveFromCsv(string? selectedModulesCsv)
+        => Resolve(SplitCsv(selectedModulesCsv));
+
+    public static IReadOnlyList<string> ResolveExplicit(IReadOnlyList<string>? selectedModules)
+        => Sorted(CollectExplicit(selectedModules));
+
+    public static IReadOnlyList<string> ResolveExplicitFromCsv(string? selectedModulesCsv)
+        => ResolveExplicit(SplitCsv(selectedModulesCsv));
+
+    /// <summary>Persist explicit module keys only — derived prerequisites are re-expanded on every read.</summary>
+    public static string NormalizeForPersistence(IReadOnlyList<string>? selectedModules)
+        => string.Join(",", Sorted(CollectExplicit(selectedModules)));
+
+    public static string NormalizeForPersistence(string? selectedModulesCsv)
+        => NormalizeForPersistence(SplitCsv(selectedModulesCsv));
+
+    private static HashSet<string> CollectExplicit(IReadOnlyList<string>? selectedModules)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -46,28 +77,35 @@ public static class BaseModelResolver
         foreach (var key in BaseModel.IncludedModuleKeys)
             result.Add(key);
 
-        return result.OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
+        return result;
     }
 
-    public static IReadOnlyList<string> ResolveFromCsv(string? selectedModulesCsv)
+    private static void ExpandPrerequisites(HashSet<string> resolved)
     {
-        if (string.IsNullOrWhiteSpace(selectedModulesCsv))
-            return Resolve([]);
+        var pending = new Queue<string>(resolved);
 
-        var tokens = selectedModulesCsv
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToList();
+        while (pending.Count > 0)
+        {
+            var itemKey = ModuleSyncRegistry.TryResolveItemKey(pending.Dequeue());
+            if (itemKey is null)
+                continue;
 
-        return Resolve(tokens);
+            foreach (var prerequisite in ModuleSyncRegistry.ResolvePrerequisites(itemKey))
+            {
+                if (!KnownModuleKeys.Contains(prerequisite.ModuleKey))
+                    continue;
+
+                if (resolved.Add(prerequisite.ModuleKey))
+                    pending.Enqueue(prerequisite.ModuleKey);
+            }
+        }
     }
 
-    /// <summary>Persist explicit module keys only (base model keys always included).</summary>
-    public static string NormalizeForPersistence(IReadOnlyList<string>? selectedModules)
-        => string.Join(",", Resolve(selectedModules));
+    private static List<string> SplitCsv(string? csv) =>
+        string.IsNullOrWhiteSpace(csv)
+            ? []
+            : csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
-    public static string NormalizeForPersistence(string? selectedModulesCsv)
-        => NormalizeForPersistence(
-            string.IsNullOrWhiteSpace(selectedModulesCsv)
-                ? []
-                : selectedModulesCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList());
+    private static IReadOnlyList<string> Sorted(HashSet<string> keys) =>
+        keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
 }
