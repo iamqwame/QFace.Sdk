@@ -14,4 +14,11 @@ public static class ModuleGuard
         var resolved = BaseModelResolver.ResolveFromCsv(selectedModulesCsv);
         return resolved.Contains(moduleKey, StringComparer.OrdinalIgnoreCase);
     }
+
+    /// <summary>Entitlement check: a registry prerequisite is not a purchased module and never grants access.</summary>
+    public static bool IsExplicitlySelected(IReadOnlyList<string>? selectedModules, string moduleKey)
+    {
+        var resolved = BaseModelResolver.ResolveExplicit(selectedModules ?? []);
+        return resolved.Contains(moduleKey, StringComparer.OrdinalIgnoreCase);
+    }
 }

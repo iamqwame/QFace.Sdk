@@ -16,7 +16,13 @@ public sealed class TenantModuleAccessService(
         string moduleKey,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(tenantId) || string.IsNullOrWhiteSpace(moduleKey))
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+            return false;
+        }
+
+        // An empty moduleKey means "no module required", not "unknown tenant".
+        if (string.IsNullOrWhiteSpace(moduleKey))
         {
             return true;
         }
@@ -32,7 +38,7 @@ public sealed class TenantModuleAccessService(
             return false;
         }
 
-        return ModuleGuard.IsSelected(installed, moduleKey);
+        return ModuleGuard.IsExplicitlySelected(installed, moduleKey);
     }
 
     public async Task<IReadOnlyList<string>?> GetInstalledModuleKeysAsync(

@@ -77,6 +77,7 @@ public static class ModuleSyncRegistry
             RequiresItemKey: "core-accounting",
             PrerequisiteItemKeys: ["core-accounting"]),
         new("inventory", ModuleKeys.Inventory, ["SetupOperationsInventoryTenant"]),
+        new("pos", ModuleKeys.POS, ["SetupPosTenant"], RequiresItemKey: "inventory", PrerequisiteItemKeys: ["inventory"]),
         new("project", ModuleKeys.Project,
             ["SetupOperationsProjectTenant"],
             EmployeeBackfillStep: "EnsureEmployeeInProject",
@@ -176,6 +177,7 @@ public static class ModuleSyncRegistry
         new("SetupBudgetPlanningTenant", "qimerp-accounting-budget-tenant-setup"),
         new("SetupCashManagementTenant", "qimerp-accounting-cash-tenant-setup"),
         new("SetupOperationsInventoryTenant", "qimerp-operations-inventory-tenant-setup"),
+        new("SetupPosTenant", "qimerp-operations-pos-tenant-setup"),
         new("SetupOperationsProjectTenant", "qimerp-operations-project-tenant-setup"),
         new("SetupAttendanceTenant", "qimerp-corehr-employee-tenant-setup"),
         new("EnsureEmployeeInPayroll", "qimerp-payroll-tenant-setup"),
@@ -254,6 +256,8 @@ public static class ModuleSyncRegistry
         new(SyncType.TenantReference, ModuleKeys.Payroll, "qimerp-payroll-tenant-reference-sync", "Payroll"),
         new(SyncType.TenantReference, ModuleKeys.Leave, "qimerp-leave-tenant-reference-sync", "Leave"),
         new(SyncType.TenantReference, ModuleKeys.CoreAccounting, "qimerp-accounting-tenant-reference-sync", "Accounting"),
+
+        new(SyncType.StockIssue, ModuleKeys.Inventory, "qimerp-inventory-stock-issue-sync", "Inventory"),
     ];
 
     private static readonly Dictionary<string, ModuleSyncDefinition> ByItemKey =

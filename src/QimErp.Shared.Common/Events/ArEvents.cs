@@ -65,7 +65,8 @@ public class InvoiceShippedLineData
     public Guid LineId { get; set; }
     public string ProductId { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
-    public int Quantity { get; set; }
+    // A fractional quantity breaks any consumer still deserializing this as int.
+    public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal UnitCost { get; set; }
 }

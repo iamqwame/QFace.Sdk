@@ -8,6 +8,7 @@ public static class ModuleSyncWorkflowQueues
     public const string AssignmentChangedParent = "qimerp-corehr-assignment-changed";
     public const string JournalEntryPostedParent = "qimerp-accounting-journal-entry-posted-sync";
     public const string TenantReferenceSyncParent = "qimerp-iam-tenant-reference-sync";
+    public const string StockIssueSyncParent = "qimerp-accounting-ar-stock-issue-sync";
 
     public static string Suffix(string parentQueueBase, string? currentQueue) =>
         currentQueue?.StartsWith(parentQueueBase, StringComparison.Ordinal) == true
