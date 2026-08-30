@@ -139,3 +139,62 @@ public class SaleOrderReservedLineData
     public string ProductName { get; set; } = string.Empty;
     public int Quantity { get; set; }
 }
+
+/// <summary>
+/// Published when AR creates, updates, or deletes a customer. Inventory consumes via
+/// <see cref="Activities.Inventory.ICustomerSyncWorkflow"/>.
+/// </summary>
+public class CustomerChangedEvent : DomainEvent
+{
+    public Guid CustomerId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Company { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? Type { get; set; }
+    public string? TypeId { get; set; }
+    public string? Group { get; set; }
+    public string? GroupId { get; set; }
+    public List<string> Tags { get; set; } = [];
+    public string Status { get; set; } = "Active";
+    public bool TaxExempt { get; set; }
+    public string? PreferredCommunication { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; }
+
+    /// <summary>Tenant installed modules — set by CustomerSyncWorkflow before fan-out.</summary>
+    public List<string>? SyncSelectedModules { get; set; }
+
+    public CustomerChangedEvent()
+    {
+    }
+
+    public CustomerChangedEvent(
+        Guid customerId,
+        string code,
+        string name,
+        string tenantId,
+        string? userEmail = null,
+        string? triggeredBy = null,
+        string? userName = null)
+        : base(tenantId, userEmail, triggeredBy, userName)
+    {
+        CustomerId = customerId;
+        Code = code;
+        Name = name;
+    }
+
+    public static CustomerChangedEvent Create(
+        Guid customerId,
+        string code,
+        string name,
+        string tenantId,
+        string? userEmail = null,
+        string? triggeredBy = null,
+        string? userName = null)
+    {
+        return new CustomerChangedEvent(customerId, code, name, tenantId, userEmail, triggeredBy, userName);
+    }
+}
