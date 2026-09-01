@@ -67,13 +67,15 @@ public class UserContextService(
         return GetClaim(ClaimTypes.Role);
     }
 
+    // False in a background/AsyncLocal context, where no role claims exist. An empty
+    // GetUserRoles() result then means "roles unknown", never "no restrictions apply".
+    public bool AreRolesKnown => Context.Value == null;
+
     public List<string> GetUserRoles()
     {
-        // Check AsyncLocal first (background actors)
-        if (Context.Value != null)
-            return []; // No roles in background context
-        
-        // Fall back to HTTP context (HTTP requests)
+        if (!AreRolesKnown)
+            return [];
+
         return Claims
             .Where(c => c.Type == ClaimTypes.Role || c.Type == "role" || c.Type == "roles")
             .SelectMany(c => c.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
@@ -405,6 +407,12 @@ public static class CurrentUserServiceExtensions
         // -------------------------
         // Roles
         // -------------------------
+
+        // False when the caller runs outside an HTTP request and role claims cannot be
+        // resolved. Gate on this before reading anything into an empty role list.
+        public static bool AreRolesKnown(this ICurrentUserService u) =>
+            u is not UserContextService concrete || concrete.AreRolesKnown;
+
         public static List<string> GetRoles(this ICurrentUserService u)
         {
             // Prefer concrete (uses Distinct + ToList)

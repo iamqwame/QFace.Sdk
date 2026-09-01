@@ -78,3 +78,62 @@ public class ApBillPostedLineData
     public Guid? TaskId { get; set; }
     public string? TaskNumber { get; set; }
 }
+
+/// <summary>
+/// Published when AP creates, updates, or deletes a vendor. Inventory consumes via
+/// <see cref="Activities.Inventory.IVendorSyncWorkflow"/>.
+/// </summary>
+public class VendorChangedEvent : DomainEvent
+{
+    public Guid VendorId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? Type { get; set; }
+    public string? TypeId { get; set; }
+    public string? Group { get; set; }
+    public string? GroupId { get; set; }
+    public List<string> Tags { get; set; } = [];
+    public string Status { get; set; } = "Active";
+    public bool PaymentBlock { get; set; }
+    public bool PostingBlock { get; set; }
+    public string? TaxDetailsTin { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; }
+
+    /// <summary>Tenant installed modules — set by VendorSyncWorkflow before fan-out.</summary>
+    public List<string>? SyncSelectedModules { get; set; }
+
+    public VendorChangedEvent()
+    {
+    }
+
+    public VendorChangedEvent(
+        Guid vendorId,
+        string code,
+        string name,
+        string tenantId,
+        string? userEmail = null,
+        string? triggeredBy = null,
+        string? userName = null)
+        : base(tenantId, userEmail, triggeredBy, userName)
+    {
+        VendorId = vendorId;
+        Code = code;
+        Name = name;
+    }
+
+    public static VendorChangedEvent Create(
+        Guid vendorId,
+        string code,
+        string name,
+        string tenantId,
+        string? userEmail = null,
+        string? triggeredBy = null,
+        string? userName = null)
+    {
+        return new VendorChangedEvent(vendorId, code, name, tenantId, userEmail, triggeredBy, userName);
+    }
+}

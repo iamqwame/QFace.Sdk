@@ -15,4 +15,8 @@ public enum SyncType
     TenantReference,
     /// <summary>AR/POS invoice shipped → Inventory stock deduction.</summary>
     StockIssue,
+    /// <summary>AR customer create/update/delete → Inventory local customer cache.</summary>
+    Customer,
+    /// <summary>AP vendor create/update/delete → Inventory local vendor cache.</summary>
+    Vendor,
 }
