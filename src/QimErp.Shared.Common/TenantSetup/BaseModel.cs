@@ -9,12 +9,14 @@ public static class BaseModel
     [
         ModuleKeys.CoreHR,
         ModuleKeys.Leave,
+        ModuleKeys.Reporting,
     ];
 
     public static readonly string[] AppStoreItemKeys =
     [
         "core-hr",
         "leave",
+        "reporting",
     ];
 
     /// <summary>Non-billable surfaces always available when authenticated.</summary>
@@ -23,5 +25,6 @@ public static class BaseModel
         "iam",
         "app-store",
         "platform",
+        "reports",
     ];
 }
