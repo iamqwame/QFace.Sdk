@@ -120,6 +120,15 @@ public interface IFileUploadService
     Task UploadContentAsync(string content, string s3Key, string contentType = "text/html", CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Uploads a stream to blob storage without buffering it into memory, suitable for large files.
+    /// </summary>
+    /// <param name="stream">The source stream; read straight through to the storage provider</param>
+    /// <param name="s3Key">The S3 object key</param>
+    /// <param name="contentType">Content type of the uploaded object</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task UploadStreamAsync(Stream stream, string s3Key, string contentType, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lists object keys under the given prefix.
     /// </summary>
     /// <param name="prefix">The S3 prefix (e.g. "templates/emails")</param>

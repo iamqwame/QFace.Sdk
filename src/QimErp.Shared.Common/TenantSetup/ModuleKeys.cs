@@ -30,4 +30,5 @@ public static class ModuleKeys
     public const string Attendance           = "Attendance";
     public const string POS                  = "POS";
     public const string QimAI                = "QimAI";
+    public const string Reporting            = "Reporting";
 }

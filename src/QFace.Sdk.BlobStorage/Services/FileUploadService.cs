@@ -571,6 +571,54 @@ public class FileUploadService : IFileUploadService
     }
 
     /// <inheritdoc />
+    public async Task UploadStreamAsync(Stream stream, string s3Key, string contentType, CancellationToken cancellationToken = default)
+    {
+        if (stream == null)
+            throw new ArgumentException("Stream cannot be null", nameof(stream));
+        if (string.IsNullOrEmpty(s3Key))
+            throw new ArgumentException("S3 key cannot be null or empty", nameof(s3Key));
+
+        try
+        {
+            _logger.LogInformation("Attempting to stream-upload to S3 with key: {S3Key}", s3Key);
+
+            if (IsMinIOOrGeneric())
+            {
+                var putRequest = new PutObjectRequest
+                {
+                    BucketName  = _bucketName,
+                    Key         = s3Key,
+                    InputStream = stream,
+                    ContentType = contentType
+                };
+                await _s3Client.PutObjectAsync(putRequest, cancellationToken);
+            }
+            else
+            {
+                using var transferUtility = new TransferUtility(_s3Client);
+                var uploadRequest = new TransferUtilityUploadRequest
+                {
+                    // Do not wrap in a MemoryStream — TransferUtility multiparts this stream directly.
+                    InputStream = stream,
+                    BucketName  = _bucketName,
+                    Key         = s3Key,
+                    ContentType = contentType,
+                    // Do not set CannedACL — modern S3 buckets have ACLs disabled by default.
+                    // Objects are served via bucket policy or pre-signed URLs instead.
+                };
+                await transferUtility.UploadAsync(uploadRequest, cancellationToken);
+            }
+
+            _logger.LogInformation("Successfully streamed upload to S3 with key: {S3Key}", s3Key);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error streaming upload to {S3Key}: {Message}", s3Key, ex.Message);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<ProfileImageVariants> UploadProfileImageVariantsAsync(
         IFormFile file,
         string folder,

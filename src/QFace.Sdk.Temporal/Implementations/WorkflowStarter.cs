@@ -102,4 +102,43 @@ internal sealed class WorkflowStarter(
             throw;
         }
     }
+
+    public async Task<WorkflowStartResult> SignalWithStartAsync<TWorkflow>(
+        string workflowId,
+        string taskQueue,
+        Expression<Func<TWorkflow, Task>> startExpression,
+        Expression<Func<TWorkflow, Task>> signalExpression,
+        CancellationToken cancellationToken = default)
+    {
+        var resolvedTaskQueue = _opts.WithTaskQueueSuffix(taskQueue);
+
+        // WorkflowIdConflictPolicy.Fail is rejected by the server on signal-with-start.
+        var workflowOptions = new WorkflowOptions(workflowId, resolvedTaskQueue)
+        {
+            IdConflictPolicy = WorkflowIdConflictPolicy.UseExisting
+        };
+        workflowOptions.SignalWithStart(signalExpression);
+
+        try
+        {
+            var handle = await client.StartWorkflowAsync(startExpression, workflowOptions);
+
+            logger.LogDebug(
+                "[WorkflowStarter] Signalled workflow with start. WorkflowId={WorkflowId}, RunId={RunId}, TaskQueue={TaskQueue}",
+                workflowId, handle.ResultRunId, resolvedTaskQueue);
+
+            return new WorkflowStartResult
+            {
+                WorkflowId     = workflowId,
+                RunId          = handle.ResultRunId ?? "",
+                AlreadyRunning = false
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex,
+                "[WorkflowStarter] Failed to signal workflow with start. WorkflowId={WorkflowId}", workflowId);
+            throw;
+        }
+    }
 }

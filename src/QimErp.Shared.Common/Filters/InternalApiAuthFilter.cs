@@ -1,33 +1,37 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Options;
 using QimErp.Shared.Common.Options;
 
 namespace QimErp.Shared.Common.Filters;
 
 /// <summary>
-/// Endpoint filter that validates X-Internal-Api-Key for requests under /internal.
+/// Endpoint filter that validates X-Internal-Api-Key on every endpoint it is attached to.
+/// Fails closed: an unset <see cref="InternalApiOptions.ExpectedApiKey"/> rejects all requests.
 /// Use with MapGroup("/internal").AddEndpointFilter&lt;InternalApiAuthFilter&gt;().
 /// </summary>
-public class InternalApiAuthFilter : IEndpointFilter
+public class InternalApiAuthFilter(IOptions<InternalApiOptions> options) : IEndpointFilter
 {
     private const string HeaderName = "X-Internal-Api-Key";
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        var path = context.HttpContext.Request.Path.Value ?? "";
-        if (!path.StartsWith("/internal", StringComparison.OrdinalIgnoreCase))
-            return await next(context);
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(next);
 
-        var options = context.HttpContext.RequestServices.GetService<IOptions<InternalApiOptions>>();
-        var expectedKey = options?.Value?.ExpectedApiKey;
+        var expectedKey = options.Value.ExpectedApiKey;
         if (string.IsNullOrEmpty(expectedKey))
-            return await next(context);
+            return Results.Unauthorized();
 
         var providedKey = context.HttpContext.Request.Headers[HeaderName].FirstOrDefault();
-        if (string.IsNullOrEmpty(providedKey) || !string.Equals(providedKey, expectedKey, StringComparison.Ordinal))
-        {
+        if (string.IsNullOrEmpty(providedKey) || !FixedTimeEquals(providedKey, expectedKey))
             return Results.Unauthorized();
-        }
 
         return await next(context);
     }
+
+    private static bool FixedTimeEquals(string provided, string expected) =>
+        CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(provided),
+            Encoding.UTF8.GetBytes(expected));
 }
