@@ -1,6 +1,5 @@
 using System.Text;
 using Amazon.S3.Model;
-using Amazon.S3.Transfer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -52,13 +51,6 @@ public class FileUploadService : IFileUploadService
                !provider.Equals("AWS", StringComparison.OrdinalIgnoreCase);
     }
 
-    private bool IsMinIOOrGeneric()
-    {
-        var provider = _options.Provider ?? "";
-        return provider.Equals("MinIO", StringComparison.OrdinalIgnoreCase) ||
-               provider.Equals("Generic", StringComparison.OrdinalIgnoreCase);
-    }
-
     public async Task<FileUploadResponse> UploadFileAsync(IFormFile file, string folder, string fileName = null, bool isPublic = false)
     {
         if (file == null || file.Length == 0)
@@ -82,37 +74,7 @@ public class FileUploadService : IFileUploadService
             await file.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
 
-            if (IsMinIOOrGeneric())
-            {
-                var putRequest = new PutObjectRequest
-                {
-                    BucketName = _bucketName,
-                    Key = s3Key,
-                    InputStream = memoryStream,
-                    ContentType = file.ContentType ?? "application/octet-stream"
-                };
-                if (SupportsCannedAcl())
-                {
-                    putRequest.CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private;
-                }
-                await _s3Client.PutObjectAsync(putRequest);
-            }
-            else
-            {
-                using var transferUtility = new TransferUtility(_s3Client);
-                var uploadRequest = new TransferUtilityUploadRequest
-                {
-                    InputStream = memoryStream,
-                    BucketName = _bucketName,
-                    Key = s3Key,
-                    ContentType = file.ContentType ?? "application/octet-stream"
-                };
-                if (SupportsCannedAcl())
-                {
-                    uploadRequest.CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private;
-                }
-                await transferUtility.UploadAsync(uploadRequest);
-            }
+            await UploadObjectAsync(memoryStream, s3Key, file.ContentType ?? "application/octet-stream", isPublic);
 
             _logger.LogInformation("Successfully uploaded file to S3 with key: {S3Key}", s3Key);
 
@@ -380,37 +342,7 @@ public class FileUploadService : IFileUploadService
 
                 using var memoryStream = new MemoryStream(imageBytes);
 
-                if (IsMinIOOrGeneric())
-                {
-                    var putRequest = new PutObjectRequest
-                    {
-                        BucketName = _bucketName,
-                        Key = s3Key,
-                        InputStream = memoryStream,
-                        ContentType = contentType
-                    };
-                    if (SupportsCannedAcl())
-                    {
-                        putRequest.CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private;
-                    }
-                    await _s3Client.PutObjectAsync(putRequest);
-                }
-                else
-                {
-                    using var transferUtility = new TransferUtility(_s3Client);
-                    var uploadRequest = new TransferUtilityUploadRequest
-                    {
-                        InputStream = memoryStream,
-                        BucketName = _bucketName,
-                        Key = s3Key,
-                        ContentType = contentType
-                    };
-                    if (SupportsCannedAcl())
-                    {
-                        uploadRequest.CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private;
-                    }
-                    await transferUtility.UploadAsync(uploadRequest);
-                }
+                await UploadObjectAsync(memoryStream, s3Key, contentType, isPublic);
 
                 _logger.LogInformation("Successfully uploaded Base64 image to S3 with key: {S3Key}", s3Key);
 
@@ -582,32 +514,11 @@ public class FileUploadService : IFileUploadService
         {
             _logger.LogInformation("Attempting to stream-upload to S3 with key: {S3Key}", s3Key);
 
-            if (IsMinIOOrGeneric())
-            {
-                var putRequest = new PutObjectRequest
-                {
-                    BucketName  = _bucketName,
-                    Key         = s3Key,
-                    InputStream = stream,
-                    ContentType = contentType
-                };
-                await _s3Client.PutObjectAsync(putRequest, cancellationToken);
-            }
-            else
-            {
-                using var transferUtility = new TransferUtility(_s3Client);
-                var uploadRequest = new TransferUtilityUploadRequest
-                {
-                    // Do not wrap in a MemoryStream — TransferUtility multiparts this stream directly.
-                    InputStream = stream,
-                    BucketName  = _bucketName,
-                    Key         = s3Key,
-                    ContentType = contentType,
-                    // Do not set CannedACL — modern S3 buckets have ACLs disabled by default.
-                    // Objects are served via bucket policy or pre-signed URLs instead.
-                };
-                await transferUtility.UploadAsync(uploadRequest, cancellationToken);
-            }
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer, cancellationToken);
+            buffer.Position = 0;
+
+            await UploadObjectAsync(buffer, s3Key, contentType, isPublic: false, cancellationToken);
 
             _logger.LogInformation("Successfully streamed upload to S3 with key: {S3Key}", s3Key);
         }
@@ -687,32 +598,7 @@ public class FileUploadService : IFileUploadService
     {
         using var memoryStream = new MemoryStream(bytes);
 
-        if (IsMinIOOrGeneric())
-        {
-            var putRequest = new PutObjectRequest
-            {
-                BucketName  = _bucketName,
-                Key         = s3Key,
-                InputStream = memoryStream,
-                ContentType = contentType
-            };
-            // MinIO/Generic providers do not support CannedACL
-            await _s3Client.PutObjectAsync(putRequest, cancellationToken);
-        }
-        else
-        {
-            using var transferUtility = new TransferUtility(_s3Client);
-            var uploadRequest = new TransferUtilityUploadRequest
-            {
-                InputStream = memoryStream,
-                BucketName  = _bucketName,
-                Key         = s3Key,
-                ContentType = contentType,
-                // Do not set CannedACL — modern S3 buckets have ACLs disabled by default.
-                // Objects are served via bucket policy or pre-signed URLs instead.
-            };
-            await transferUtility.UploadAsync(uploadRequest, cancellationToken);
-        }
+        await UploadObjectAsync(memoryStream, s3Key, contentType, isPublic: false, cancellationToken);
 
         _logger.LogInformation("Uploaded variant to S3 with key: {S3Key}", s3Key);
 
@@ -720,6 +606,24 @@ public class FileUploadService : IFileUploadService
         // has Block Public Access enabled (the common AWS default).
         var expiryMinutes = _options.UrlExpirationMinutes > 0 ? _options.UrlExpirationMinutes : 43200;
         return (await GetPreSignedUrlAsync(s3Key, expiryMinutes));
+    }
+
+    private async Task UploadObjectAsync(Stream stream, string s3Key, string contentType, bool isPublic, CancellationToken cancellationToken = default)
+    {
+        var putRequest = new PutObjectRequest
+        {
+            BucketName = _bucketName,
+            Key = s3Key,
+            InputStream = stream,
+            ContentType = contentType,
+            // R2 and other S3-compatible stores reject SigV4 streaming uploads.
+            UseChunkEncoding = false
+        };
+        if (SupportsCannedAcl())
+        {
+            putRequest.CannedACL = isPublic ? S3CannedACL.PublicRead : S3CannedACL.Private;
+        }
+        await _s3Client.PutObjectAsync(putRequest, cancellationToken);
     }
 
     /// <inheritdoc />
