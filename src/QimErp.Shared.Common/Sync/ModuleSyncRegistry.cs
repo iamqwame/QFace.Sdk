@@ -19,23 +19,27 @@ public static class ModuleSyncRegistry
 
     private static readonly ModuleSyncDefinition[] Modules =
     [
-        new("core-hr", ModuleKeys.CoreHR, []),
+        new("core-hr", ModuleKeys.CoreHR, [], SampleSeedStep: "SeedSampleCoreHr"),
         new("payroll", ModuleKeys.Payroll,
             ["SetupPayrollTenant", "SetupPayrollTenantConfig"],
             EmployeeBackfillStep: "EnsureEmployeeInPayroll",
-            AdminDataBackfillStep: "EnsureAdminDataInPayroll"),
+            AdminDataBackfillStep: "EnsureAdminDataInPayroll",
+            SampleSeedStep: "SeedSamplePayroll"),
         new("leave", ModuleKeys.Leave, ["SetupLeaveTenant"],
             EmployeeBackfillStep: "EnsureEmployeeInLeave",
-            AdminDataBackfillStep: "EnsureAdminDataInLeave"),
+            AdminDataBackfillStep: "EnsureAdminDataInLeave",
+            SampleSeedStep: "SeedSampleLeave"),
         new("recruitment", ModuleKeys.Recruitment,
             ["SetupRecruitmentTenant", "InitialSetupRecruitment"],
             EmployeeBackfillStep: "EnsureEmployeeInRecruitment",
-            AdminDataBackfillStep: "EnsureAdminDataInRecruitment"),
-        new("workflows", ModuleKeys.Workflow, ["InitialSetupWorkflow"], DisableStep: "DisableWorkflowModule"),
+            AdminDataBackfillStep: "EnsureAdminDataInRecruitment",
+            SampleSeedStep: "SeedSampleRecruitment"),
+        new("workflows", ModuleKeys.Workflow, ["InitialSetupWorkflow"], DisableStep: "DisableWorkflowModule", SampleSeedStep: "SeedSampleWorkflows"),
         new("performance", ModuleKeys.Performance,
             ["InitialSetupPerformance"],
             EmployeeBackfillStep: "EnsureEmployeeInPerformance",
-            AdminDataBackfillStep: "EnsureAdminDataInPerformance"),
+            AdminDataBackfillStep: "EnsureAdminDataInPerformance",
+            SampleSeedStep: "SeedSamplePerformance"),
         new("benefits", ModuleKeys.Benefits,
             ["SetupBenefitTenant", "InitialSetupBenefit"],
             EmployeeBackfillStep: "EnsureEmployeeInBenefit",
@@ -43,11 +47,13 @@ public static class ModuleSyncRegistry
         new("surveys", ModuleKeys.Surveys,
             ["SetupSurveysTenant", "InitialSetupSurveys"],
             EmployeeBackfillStep: "EnsureEmployeeInSurveys",
-            AdminDataBackfillStep: "EnsureAdminDataInSurveys"),
+            AdminDataBackfillStep: "EnsureAdminDataInSurveys",
+            SampleSeedStep: "SeedSampleSurveys"),
         new("employee-engagement", ModuleKeys.EmployeeEngagement,
             ["InitialSetupEmployeeEngagement"],
             EmployeeBackfillStep: "EnsureEmployeeInEmployeeEngagement",
-            AdminDataBackfillStep: "EnsureAdminDataInEmployeeEngagement"),
+            AdminDataBackfillStep: "EnsureAdminDataInEmployeeEngagement",
+            SampleSeedStep: "SeedSampleEmployeeEngagement"),
         new("learning", ModuleKeys.Learning,
             ["InitialSetupLearning"],
             EmployeeBackfillStep: "EnsureEmployeeInLearning"),
@@ -56,7 +62,8 @@ public static class ModuleSyncRegistry
             EmployeeBackfillStep: "EnsureEmployeeInTalent"),
         new("workforce-planning", ModuleKeys.WorkforcePlanning,
             ["InitialSetupWorkforcePlanning"],
-            EmployeeBackfillStep: "EnsureEmployeeInWorkforcePlanning"),
+            EmployeeBackfillStep: "EnsureEmployeeInWorkforcePlanning",
+            SampleSeedStep: "SeedSampleWorkforcePlanning"),
         new("core-accounting", ModuleKeys.CoreAccounting,
             ["SetupAccountingGlTenant"],
             AdminDataBackfillStep: "EnsureAdminDataInAccounting"),
@@ -76,8 +83,8 @@ public static class ModuleSyncRegistry
             ["SetupCashManagementTenant"],
             RequiresItemKey: "core-accounting",
             PrerequisiteItemKeys: ["core-accounting"]),
-        new("inventory", ModuleKeys.Inventory, ["SetupOperationsInventoryTenant"]),
-        new("pos", ModuleKeys.POS, ["SetupPosTenant"], RequiresItemKey: "inventory", PrerequisiteItemKeys: ["inventory"]),
+        new("inventory", ModuleKeys.Inventory, ["SetupOperationsInventoryTenant"], SampleSeedStep: "SeedSampleInventory"),
+        new("pos", ModuleKeys.POS, ["SetupPosTenant"], RequiresItemKey: "inventory", PrerequisiteItemKeys: ["inventory"], SampleSeedStep: "SeedSamplePos"),
         new("project", ModuleKeys.Project,
             ["SetupOperationsProjectTenant"],
             EmployeeBackfillStep: "EnsureEmployeeInProject",
@@ -86,6 +93,9 @@ public static class ModuleSyncRegistry
         // Attendance — catalog module stub so biometric-sync plugin can declare a prerequisite.
         new("attendance", ModuleKeys.Attendance, ["SetupAttendanceTenant"]),
         new("qim-ai", ModuleKeys.QimAI, []),
+        new("reporting", ModuleKeys.Reporting, ["SetupReportingTenant"],
+            EmployeeBackfillStep: "EnsureEmployeeInReporting",
+            AdminDataBackfillStep: "EnsureAdminDataInReporting"),
 
         // Plugins — narrower than a module install: flip on one capability inside an
         // already-installed module, via the module's own idempotent Enable/Disable activity.
@@ -180,6 +190,7 @@ public static class ModuleSyncRegistry
         new("SetupPosTenant", "qimerp-operations-pos-tenant-setup"),
         new("SetupOperationsProjectTenant", "qimerp-operations-project-tenant-setup"),
         new("SetupAttendanceTenant", "qimerp-corehr-employee-tenant-setup"),
+        new("SetupReportingTenant", "qimerp-reporting-tenant-setup"),
         new("EnsureEmployeeInPayroll", "qimerp-payroll-tenant-setup"),
         new("EnsureEmployeeInLearning", "qimerp-learning-tenant-setup"),
         new("EnsureEmployeeInPerformance", "qimerp-performance-tenant-setup"),
@@ -191,6 +202,7 @@ public static class ModuleSyncRegistry
         new("EnsureEmployeeInRecruitment", "qimerp-recruitment-tenant-setup"),
         new("EnsureEmployeeInSurveys", "qimerp-surveys-tenant-setup"),
         new("EnsureEmployeeInProject", "qimerp-operations-project-employee-sync"),
+        new("EnsureEmployeeInReporting", "qimerp-reporting-tenant-setup"),
 
         // Plugin enable/disable — dispatched to the owning module's existing setup queue,
         // no new worker process.
@@ -215,6 +227,17 @@ public static class ModuleSyncRegistry
         new("EnablePluginWebhookNotify", "qimerp-workflow-tenant-setup"),
         new("DisablePluginWebhookNotify", "qimerp-workflow-tenant-setup"),
         new("DisableWorkflowModule", "qimerp-workflow-tenant-setup"),
+        new("SeedSampleCoreHr", "qimerp-corehr-employee-tenant-setup"),
+        new("SeedSamplePayroll", "qimerp-payroll-tenant-setup"),
+        new("SeedSampleLeave", "qimerp-leave-tenant-setup"),
+        new("SeedSampleRecruitment", "qimerp-recruitment-tenant-setup"),
+        new("SeedSamplePerformance", "qimerp-performance-tenant-setup"),
+        new("SeedSampleSurveys", "qimerp-surveys-tenant-setup"),
+        new("SeedSampleEmployeeEngagement", "qimerp-engagement-tenant-setup"),
+        new("SeedSampleWorkforcePlanning", "qimerp-workforceplanning-tenant-setup"),
+        new("SeedSampleWorkflows", "qimerp-workflow-tenant-setup"),
+        new("SeedSampleInventory", "qimerp-operations-inventory-tenant-setup"),
+        new("SeedSamplePos", "qimerp-operations-pos-tenant-setup"),
     ];
 
     private static readonly SyncSubscription[] Subscriptions =
@@ -231,6 +254,7 @@ public static class ModuleSyncRegistry
         new(SyncType.Employee, ModuleKeys.Surveys, "qimerp-surveys-employee-sync", "Surveys"),
         new(SyncType.Employee, null, "qimerp-iam-employee-sync", "IAM", RequiresModuleSelection: false),
         new(SyncType.Employee, ModuleKeys.Project, "qimerp-operations-project-employee-sync", "Project"),
+        new(SyncType.Employee, ModuleKeys.Reporting, "qimerp-reporting-employee-sync", "Reporting"),
         new(SyncType.Employee, null, "qimerp-iam-tenantbilling-employee-sync", "TenantBilling", RequiresModuleSelection: false),
 
         new(SyncType.AdminData, ModuleKeys.CoreHR, "qimerp-corehr-employee-admin-sync", "Employee"),
@@ -243,6 +267,7 @@ public static class ModuleSyncRegistry
         new(SyncType.AdminData, ModuleKeys.Benefits, "qimerp-benefit-admin-sync", "Benefit"),
         new(SyncType.AdminData, ModuleKeys.Performance, "qimerp-performance-admin-sync", "Performance"),
         new(SyncType.AdminData, ModuleKeys.Project, "qimerp-operations-project-admin-sync", "Project"),
+        new(SyncType.AdminData, ModuleKeys.Reporting, "qimerp-reporting-admin-sync", "Reporting"),
 
         new(SyncType.GlReference, ModuleKeys.Project, "qimerp-operations-project-gl-sync", "Project"),
         new(SyncType.GlReference, ModuleKeys.BudgetPlanning, "qimerp-accounting-budget-planning-gl-sync", "BudgetPlanning"),
@@ -258,6 +283,8 @@ public static class ModuleSyncRegistry
         new(SyncType.TenantReference, ModuleKeys.CoreAccounting, "qimerp-accounting-tenant-reference-sync", "Accounting"),
 
         new(SyncType.StockIssue, ModuleKeys.Inventory, "qimerp-inventory-stock-issue-sync", "Inventory"),
+        new(SyncType.Customer, ModuleKeys.Inventory, "qimerp-inventory-customer-sync", "Inventory"),
+        new(SyncType.Vendor, ModuleKeys.Inventory, "qimerp-inventory-vendor-sync", "Inventory"),
     ];
 
     private static readonly Dictionary<string, ModuleSyncDefinition> ByItemKey =
@@ -296,6 +323,9 @@ public static class ModuleSyncRegistry
 
     public static string? ResolveDisableStep(string itemKey) =>
         TryGetModule(itemKey)?.DisableStep;
+
+    public static string? ResolveSampleSeedStep(string itemKey) =>
+        TryGetModule(itemKey)?.SampleSeedStep;
 
     public static bool IsPlugin(string itemKey) =>
         TryGetModule(itemKey)?.IsPlugin ?? false;

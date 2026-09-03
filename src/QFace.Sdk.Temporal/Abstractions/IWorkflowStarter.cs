@@ -9,6 +9,13 @@ public sealed class WorkflowStartResult
 {
     public string WorkflowId  { get; init; } = "";
     public string RunId       { get; init; } = "";
+
+    /// <summary>
+    /// True when <see cref="IWorkflowStarter.StartOrIgnoreAsync{TWorkflow}"/> found the workflow
+    /// already running. Always false for <see cref="IWorkflowStarter.SignalWithStartAsync{TWorkflow}"/> —
+    /// the Temporalio 1.14.1 client discards the SignalWithStartWorkflowExecution response's
+    /// "started" flag, so that call cannot tell a new run from an existing one.
+    /// </summary>
     public bool   AlreadyRunning { get; init; }
 }
 
@@ -45,5 +52,21 @@ public interface IWorkflowStarter
         string workflowId,
         string taskQueue,
         Expression<Func<TWorkflow, Task>> startExpression,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Atomically starts a workflow if it is not already running and delivers a signal to it,
+    /// in a single server call. If it is already running, only the signal is delivered.
+    /// Use when the signal must never be lost — a start followed by a separate signal drops
+    /// the signal when a concurrent caller wins the start race.
+    /// The returned AlreadyRunning is always false; see <see cref="WorkflowStartResult.AlreadyRunning"/>.
+    /// </summary>
+    /// <param name="startExpression">e.g. wf => wf.RunAsync(myInput)</param>
+    /// <param name="signalExpression">e.g. wf => wf.EnqueueAsync(myRequest)</param>
+    Task<WorkflowStartResult> SignalWithStartAsync<TWorkflow>(
+        string workflowId,
+        string taskQueue,
+        Expression<Func<TWorkflow, Task>> startExpression,
+        Expression<Func<TWorkflow, Task>> signalExpression,
         CancellationToken cancellationToken = default);
 }

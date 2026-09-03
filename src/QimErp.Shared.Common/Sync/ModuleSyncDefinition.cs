@@ -12,6 +12,7 @@ public sealed record ModuleSyncDefinition(
     string? EmployeeBackfillStep = null,
     string? AdminDataBackfillStep = null,
     bool IsPlugin = false,
-    string? DisableStep = null);
+    string? DisableStep = null,
+    string? SampleSeedStep = null);
 
 public sealed record SetupStepRoute(string StepName, string TaskQueue);

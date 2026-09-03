@@ -8,7 +8,8 @@ public class InternalApiOptions
     public const string SectionName = "InternalApi";
 
     /// <summary>
-    /// Expected value of X-Internal-Api-Key header. If empty, internal API auth is disabled (not recommended for production).
+    /// Expected value of X-Internal-Api-Key header. Empty rejects every request guarded by
+    /// <c>InternalApiAuthFilter</c>; a service exposing /internal routes must configure it.
     /// </summary>
     public string ExpectedApiKey { get; set; } = string.Empty;
 }

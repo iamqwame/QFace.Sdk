@@ -34,4 +34,5 @@ public class TenantModuleSetupRequest
     public int? EmployeeCount { get; set; }
     public string? Plan { get; set; }
     public string TriggeredBy { get; set; } = "";
+    public bool IncludeSampleData { get; set; }
 }
