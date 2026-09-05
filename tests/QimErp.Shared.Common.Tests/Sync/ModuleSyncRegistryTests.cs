@@ -198,4 +198,18 @@ public class ModuleSyncRegistryTests
     {
         ModuleSyncRegistry.TryResolveItemKey(ModuleKeys.Attendance).Should().Be("attendance");
     }
+
+    [Fact]
+    public void Reporting_IsCatalogued_But_Is_Not_A_Runtime_Subscriber()
+    {
+        ModuleSyncRegistry.TryResolveItemKey(ModuleKeys.Reporting).Should().Be("reporting");
+        ModuleSyncRegistry.ResolveSetupSteps("reporting").Should().BeEmpty();
+        ModuleSyncRegistry.ResolveEmployeeBackfillStep("reporting").Should().BeNull();
+        ModuleSyncRegistry.ResolveAdminDataBackfillStep("reporting").Should().BeNull();
+
+        ModuleSyncRegistry.GetRuntimeSubscribers(SyncType.Employee)
+            .Should().NotContain(s => s.ModuleKey == ModuleKeys.Reporting);
+        ModuleSyncRegistry.GetRuntimeSubscribers(SyncType.AdminData)
+            .Should().NotContain(s => s.ModuleKey == ModuleKeys.Reporting);
+    }
 }

@@ -93,9 +93,7 @@ public static class ModuleSyncRegistry
         // Attendance — catalog module stub so biometric-sync plugin can declare a prerequisite.
         new("attendance", ModuleKeys.Attendance, ["SetupAttendanceTenant"]),
         new("qim-ai", ModuleKeys.QimAI, []),
-        new("reporting", ModuleKeys.Reporting, ["SetupReportingTenant"],
-            EmployeeBackfillStep: "EnsureEmployeeInReporting",
-            AdminDataBackfillStep: "EnsureAdminDataInReporting"),
+        new("reporting", ModuleKeys.Reporting, []),
 
         // Plugins — narrower than a module install: flip on one capability inside an
         // already-installed module, via the module's own idempotent Enable/Disable activity.
@@ -190,7 +188,6 @@ public static class ModuleSyncRegistry
         new("SetupPosTenant", "qimerp-operations-pos-tenant-setup"),
         new("SetupOperationsProjectTenant", "qimerp-operations-project-tenant-setup"),
         new("SetupAttendanceTenant", "qimerp-corehr-employee-tenant-setup"),
-        new("SetupReportingTenant", "qimerp-reporting-tenant-setup"),
         new("EnsureEmployeeInPayroll", "qimerp-payroll-tenant-setup"),
         new("EnsureEmployeeInLearning", "qimerp-learning-tenant-setup"),
         new("EnsureEmployeeInPerformance", "qimerp-performance-tenant-setup"),
@@ -202,7 +199,6 @@ public static class ModuleSyncRegistry
         new("EnsureEmployeeInRecruitment", "qimerp-recruitment-tenant-setup"),
         new("EnsureEmployeeInSurveys", "qimerp-surveys-tenant-setup"),
         new("EnsureEmployeeInProject", "qimerp-operations-project-employee-sync"),
-        new("EnsureEmployeeInReporting", "qimerp-reporting-tenant-setup"),
 
         // Plugin enable/disable — dispatched to the owning module's existing setup queue,
         // no new worker process.
@@ -254,7 +250,6 @@ public static class ModuleSyncRegistry
         new(SyncType.Employee, ModuleKeys.Surveys, "qimerp-surveys-employee-sync", "Surveys"),
         new(SyncType.Employee, null, "qimerp-iam-employee-sync", "IAM", RequiresModuleSelection: false),
         new(SyncType.Employee, ModuleKeys.Project, "qimerp-operations-project-employee-sync", "Project"),
-        new(SyncType.Employee, ModuleKeys.Reporting, "qimerp-reporting-employee-sync", "Reporting"),
         new(SyncType.Employee, null, "qimerp-iam-tenantbilling-employee-sync", "TenantBilling", RequiresModuleSelection: false),
 
         new(SyncType.AdminData, ModuleKeys.CoreHR, "qimerp-corehr-employee-admin-sync", "Employee"),
@@ -267,7 +262,6 @@ public static class ModuleSyncRegistry
         new(SyncType.AdminData, ModuleKeys.Benefits, "qimerp-benefit-admin-sync", "Benefit"),
         new(SyncType.AdminData, ModuleKeys.Performance, "qimerp-performance-admin-sync", "Performance"),
         new(SyncType.AdminData, ModuleKeys.Project, "qimerp-operations-project-admin-sync", "Project"),
-        new(SyncType.AdminData, ModuleKeys.Reporting, "qimerp-reporting-admin-sync", "Reporting"),
 
         new(SyncType.GlReference, ModuleKeys.Project, "qimerp-operations-project-gl-sync", "Project"),
         new(SyncType.GlReference, ModuleKeys.BudgetPlanning, "qimerp-accounting-budget-planning-gl-sync", "BudgetPlanning"),
