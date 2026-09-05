@@ -484,6 +484,7 @@ internal sealed class FakeCurrentUserService(string tenantId) : ICurrentUserServ
     public string? GetOrganizationalUnitId() => null;
     public string? GetOrganizationalUnitName() => null;
     public List<string> GetRoleIds() => [];
+    public IReadOnlyList<string> GetPermissions() => [];
     // No-op in test fake — HTTP context not used in workflow interceptor tests
     public void SetContext(string tenantId, string userEmail, string? userName = null, string? userId = null) { }
     public void ClearContext() { }

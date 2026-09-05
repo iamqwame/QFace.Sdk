@@ -263,7 +263,19 @@ public class UserContextService(
         
         return roleIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
-    
+
+    public IReadOnlyList<string> GetPermissions()
+    {
+        if (Context.Value != null)
+            return [];
+
+        return Claims
+            .Where(c => c.Type is "permissions" or "permission")
+            .SelectMany(c => c.Value.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     public bool IsAuthenticated
     {
         get

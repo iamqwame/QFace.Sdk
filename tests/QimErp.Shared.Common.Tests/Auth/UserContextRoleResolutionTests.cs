@@ -150,5 +150,6 @@ public sealed class UserContextRoleResolutionTests : IDisposable
         public string? GetOrganizationalUnitId() => null;
         public string? GetOrganizationalUnitName() => null;
         public List<string> GetRoleIds() => [];
+        public IReadOnlyList<string> GetPermissions() => [];
     }
 }

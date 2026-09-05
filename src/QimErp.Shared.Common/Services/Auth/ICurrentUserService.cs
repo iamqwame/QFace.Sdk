@@ -38,4 +38,7 @@ public interface ICurrentUserService
     string? GetOrganizationalUnitId();
     string? GetOrganizationalUnitName();
     List<string> GetRoleIds();
+
+    /// <summary>Permission codes carried by the caller's token. Empty — never null — when no permission claim is present.</summary>
+    IReadOnlyList<string> GetPermissions();
 }

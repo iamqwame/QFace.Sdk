@@ -132,6 +132,8 @@ public class ConsumerUserContextService : ICurrentUserService, ITenantContextSet
     public string? GetOrganizationalUnitName() => null;
     public List<string> GetRoleIds() => [];
 
+    public IReadOnlyList<string> GetPermissions() => [];
+
     // ── ITenantContextSetter ──────────────────────────────────────────────────
     void ITenantContextSetter.SetTenantContext(string tenantId, string userEmail, string? userName, string? userId)
         => SetContext(tenantId, userEmail, userName, userId);

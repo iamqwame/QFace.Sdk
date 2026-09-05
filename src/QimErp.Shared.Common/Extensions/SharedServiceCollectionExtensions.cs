@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Carter;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -17,6 +18,7 @@ using QFace.Sdk.AI.Services;
 using QFace.Sdk.RedisCache.Extensions;
 using QFace.Sdk.RedisCache.Models;
 using QFace.Sdk.Temporal.Interceptors;
+using QimErp.Shared.Common.Authorization;
 using QimErp.Shared.Common.Behaviours;
 using QimErp.Shared.Common.Database;
 using QimErp.Shared.Common.Middlewares;
@@ -537,6 +539,11 @@ public static class SharedServiceCollectionExtensions
                     }
                 };
             });
+
+        // Replace, not TryAdd: AddAuthorization above already registered DefaultAuthorizationPolicyProvider,
+        // which PermissionPolicyProvider wraps and delegates every non-permission policy name to.
+        services.Replace(ServiceDescriptor.Singleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>());
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         // ✅ Apply Global Authorization Policy
         // services.AddAuthorization(options =>
