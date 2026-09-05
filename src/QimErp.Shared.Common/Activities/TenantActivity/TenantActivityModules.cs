@@ -202,6 +202,8 @@ public static class HrLearningActivityTypes
     public const string CourseUpdated = "course-updated";
     public const string CourseDeleted = "course-deleted";
     public const string CourseArchived = "course-archived";
+    public const string CourseRestored = "course-restored";
+    public const string CourseDuplicated = "course-duplicated";
 
     // ── Assessments ──────────────────────────────────────────────────────────
     public const string AssessmentQuestionAdded = "assessment-question-added";
@@ -231,6 +233,8 @@ public static class HrLearningActivityTypes
     // ── Progress tracking ────────────────────────────────────────────────────
     public const string CourseContentProgressCompleted = "course-content-progress-completed";
     public const string CourseContentProgressStarted = "course-content-progress-started";
+    public const string LessonCompleted = "lesson-completed";
+    public const string QuizCompleted = "quiz-completed";
 
     // ── Recommendations ──────────────────────────────────────────────────────
     public const string CourseRecommendationAccepted = "course-recommendation-accepted";
