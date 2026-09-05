@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Moq;
 using MsOptions = Microsoft.Extensions.Options.Options;
 using QimErp.Shared.Common.Authorization;
 using QimErp.Shared.Common.Services.Auth;
@@ -39,6 +40,13 @@ public sealed class PermissionAuthorizationTests
         };
 
         return new UserContextService(accessor, NullLogger<UserContextService>.Instance);
+    }
+
+    private static ICurrentUserService UserGranting(params string[] permissions)
+    {
+        var stub = new Mock<ICurrentUserService>();
+        stub.Setup(user => user.GetPermissions()).Returns(permissions);
+        return stub.Object;
     }
 
     private static AuthorizationHandlerContext ContextFor(PermissionRequirement requirement) =>
@@ -103,6 +111,74 @@ public sealed class PermissionAuthorizationTests
         await handler.HandleAsync(context);
 
         context.HasSucceeded.Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "Wildcard satisfies a permission the caller does not hold explicitly")]
+    public async Task Wildcard_satisfies_unheld_permission()
+    {
+        var handler = new PermissionAuthorizationHandler(
+            UserWith(PermissionAuthorizationHandler.WildcardCode), Configuration(enforce: true), NullLogger<PermissionAuthorizationHandler>.Instance);
+        var context = ContextFor(new PermissionRequirement(CourseManage));
+
+        await handler.HandleAsync(context);
+
+        context.HasSucceeded.Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "Wildcard satisfies a multi code any-of requirement")]
+    public async Task Wildcard_satisfies_multi_code_requirement()
+    {
+        var handler = new PermissionAuthorizationHandler(
+            UserWith(PermissionAuthorizationHandler.WildcardCode), Configuration(enforce: true), NullLogger<PermissionAuthorizationHandler>.Instance);
+        var context = ContextFor(new PermissionRequirement($"{CourseView}|{CourseManage}"));
+
+        await handler.HandleAsync(context);
+
+        context.HasSucceeded.Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "Caller without the wildcard and without the code is denied")]
+    public async Task Caller_without_wildcard_or_code_is_denied()
+    {
+        var handler = new PermissionAuthorizationHandler(
+            UserWith(CourseView, "learning.enrollment.view"),
+            Configuration(enforce: true),
+            NullLogger<PermissionAuthorizationHandler>.Instance);
+        var context = ContextFor(new PermissionRequirement(CourseManage));
+
+        await handler.HandleAsync(context);
+
+        context.HasSucceeded.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "Empty permission list is denied while enforcement is on")]
+    public async Task Empty_permission_list_is_denied()
+    {
+        var handler = new PermissionAuthorizationHandler(
+            UserWith(), Configuration(enforce: true), NullLogger<PermissionAuthorizationHandler>.Instance);
+        var context = ContextFor(new PermissionRequirement(CourseManage));
+
+        await handler.HandleAsync(context);
+
+        context.HasSucceeded.Should().BeFalse();
+    }
+
+    [Theory(DisplayName = "Only the exact token * is a wildcard; no globbing, no padding")]
+    [InlineData("learning.*")]
+    [InlineData("learning.course.*")]
+    [InlineData("*.view")]
+    [InlineData("**")]
+    [InlineData(" * ")]
+    [InlineData("*.*")]
+    public async Task Partial_wildcards_are_denied(string granted)
+    {
+        var handler = new PermissionAuthorizationHandler(
+            UserGranting(granted), Configuration(enforce: true), NullLogger<PermissionAuthorizationHandler>.Instance);
+        var context = ContextFor(new PermissionRequirement(CourseManage));
+
+        await handler.HandleAsync(context);
+
+        context.HasSucceeded.Should().BeFalse();
     }
 
     [Fact(DisplayName = "Policy provider materialises perm: policies on demand")]

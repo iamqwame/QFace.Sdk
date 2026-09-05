@@ -9,12 +9,18 @@ public sealed class PermissionAuthorizationHandler(
 {
     public const string EnforcementConfigurationKey = "Security:EnforcePermissions";
 
+    // Only the exact token "*" grants everything. No trimming, no prefix/suffix globbing.
+    public const string WildcardCode = "*";
+
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
         var granted = currentUser.GetPermissions();
-        var satisfied = requirement.Codes.Any(code => granted.Contains(code, StringComparer.OrdinalIgnoreCase));
+
+        var satisfied =
+            granted.Contains(WildcardCode, StringComparer.Ordinal) ||
+            requirement.Codes.Any(code => granted.Contains(code, StringComparer.OrdinalIgnoreCase));
 
         if (satisfied)
         {
