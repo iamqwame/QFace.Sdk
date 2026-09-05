@@ -1943,6 +1943,20 @@ public static class TenantActivityRequestBuilder
             "course", courseId, courseName, currentUser,
             correlationSuffix: $"course-archived:{courseId:N}");
 
+    public static RecordTenantActivityRequest ForCourseRestored(
+        string tenantId, Guid courseId, string courseName, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrLearningActivityTypes.CourseRestored,
+            $"Course \"{courseName}\" was restored from trash",
+            "course", courseId, courseName, currentUser,
+            correlationSuffix: $"course-restored:{courseId:N}:{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
+
+    public static RecordTenantActivityRequest ForCourseDuplicated(
+        string tenantId, Guid newCourseId, string newCourseName, string sourceCourseName, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrLearningActivityTypes.CourseDuplicated,
+            $"Course \"{newCourseName}\" was duplicated from \"{sourceCourseName}\"",
+            "course", newCourseId, newCourseName, currentUser,
+            correlationSuffix: $"course-duplicated:{newCourseId:N}");
+
     // ── Learning: Assessments ────────────────────────────────────────────────
     public static RecordTenantActivityRequest ForAssessmentQuestionAdded(
         string tenantId, Guid questionId, string summary, ICurrentUserService currentUser) =>
@@ -2054,6 +2068,18 @@ public static class TenantActivityRequestBuilder
         Build(tenantId, TenantActivityModules.Hr, HrLearningActivityTypes.CourseContentProgressStarted,
             summary, "course-content-progress", progressId, summary, currentUser,
             correlationSuffix: $"course-content-progress-started:{progressId:N}");
+
+    public static RecordTenantActivityRequest ForLessonCompleted(
+        string tenantId, Guid lessonId, Guid progressId, string summary, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrLearningActivityTypes.LessonCompleted,
+            summary, "lesson", lessonId, summary, currentUser,
+            correlationSuffix: $"lesson-completed:{progressId:N}");
+
+    public static RecordTenantActivityRequest ForQuizCompleted(
+        string tenantId, Guid quizId, Guid attemptId, string summary, ICurrentUserService currentUser) =>
+        Build(tenantId, TenantActivityModules.Hr, HrLearningActivityTypes.QuizCompleted,
+            summary, "quiz", quizId, summary, currentUser,
+            correlationSuffix: $"quiz-completed:{attemptId:N}");
 
     // ── Learning: Recommendations ────────────────────────────────────────────
     public static RecordTenantActivityRequest ForCourseRecommendationAccepted(

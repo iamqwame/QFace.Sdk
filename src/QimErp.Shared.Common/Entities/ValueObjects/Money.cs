@@ -9,6 +9,10 @@ public class Money
     public decimal ExchangeRate { get; set; } = 1.0m;
     public decimal? BaseCurrencyAmount { get; set; }
 
+    // ExchangeRate is the rate actually applied to derive BaseCurrencyAmount; BuyRate/SellRate are the recorded quotes only.
+    public decimal? BuyRate { get; set; }
+    public decimal? SellRate { get; set; }
+
     public Money() { }
 
     private Money(decimal amount, string currencyCode, decimal exchangeRate, decimal? baseCurrencyAmount)
@@ -51,6 +55,37 @@ public class Money
         {
             BaseCurrencyAmount = Amount * ExchangeRate;
         }
+        return this;
+    }
+
+    public Money WithBuyRate(decimal buyRate)
+    {
+        if (buyRate <= 0)
+            throw new ArgumentException("Buy rate must be greater than zero", nameof(buyRate));
+
+        BuyRate = buyRate;
+        return this;
+    }
+
+    public Money WithSellRate(decimal sellRate)
+    {
+        if (sellRate <= 0)
+            throw new ArgumentException("Sell rate must be greater than zero", nameof(sellRate));
+
+        SellRate = sellRate;
+        return this;
+    }
+
+    public Money WithFxRates(decimal buyRate, decimal sellRate)
+    {
+        if (buyRate <= 0)
+            throw new ArgumentException("Buy rate must be greater than zero", nameof(buyRate));
+
+        if (sellRate <= 0)
+            throw new ArgumentException("Sell rate must be greater than zero", nameof(sellRate));
+
+        BuyRate = buyRate;
+        SellRate = sellRate;
         return this;
     }
 

@@ -64,6 +64,7 @@ public sealed class TenantContextActivityInterceptorTests
         public string? GetOrganizationalUnitId() => null;
         public string? GetOrganizationalUnitName() => null;
         public List<string> GetRoleIds() => [];
+        public IReadOnlyList<string> GetPermissions() => [];
     }
 
     private sealed class FakeTenantScopeSetter : ITenantScopeSetter

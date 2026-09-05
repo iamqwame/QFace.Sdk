@@ -48,6 +48,14 @@ public static class EntityTypeBuilderMoneyExtensions
             money.Property(m => m.BaseCurrencyAmount)
                 .HasPrecision(18, 2)
                 .HasColumnName($"{columnNamePrefix}BaseCurrencyAmount");
+
+            money.Property(m => m.BuyRate)
+                .HasPrecision(19, 12)
+                .HasColumnName($"{columnNamePrefix}BuyRate");
+
+            money.Property(m => m.SellRate)
+                .HasPrecision(19, 12)
+                .HasColumnName($"{columnNamePrefix}SellRate");
         });
 #pragma warning restore CS8620
 
@@ -101,6 +109,14 @@ public static class EntityTypeBuilderMoneyExtensions
             money.Property(m => m.BaseCurrencyAmount)
                 .HasPrecision(18, 2)
                 .HasColumnName($"{columnNamePrefix}BaseCurrencyAmount");
+
+            money.Property(m => m.BuyRate)
+                .HasPrecision(19, 12)
+                .HasColumnName($"{columnNamePrefix}BuyRate");
+
+            money.Property(m => m.SellRate)
+                .HasPrecision(19, 12)
+                .HasColumnName($"{columnNamePrefix}SellRate");
         });
 
         return builder;

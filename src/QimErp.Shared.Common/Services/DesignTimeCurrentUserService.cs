@@ -25,6 +25,8 @@ public class DesignTimeCurrentUserService : ICurrentUserService
     public string? GetOrganizationalUnitId() => null;
     public string? GetOrganizationalUnitName() => null;
     public List<string> GetRoleIds() => [];
+
+    public IReadOnlyList<string> GetPermissions() => [];
     // No-op in design-time context — SetContext/ClearContext not applicable.
     public void SetContext(string tenantId, string userEmail, string? userName = null, string? userId = null) { }
     public void ClearContext() { }
