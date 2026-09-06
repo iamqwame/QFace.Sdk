@@ -1,3 +1,4 @@
+using QimErp.Shared.Common.Database.Conventions;
 using QimErp.Shared.Common.Extensions;
 using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Workflow.Configurations;
@@ -7,7 +8,7 @@ namespace QimErp.Shared.Common.Database;
 public abstract class ApplicationDbContext<TContext>(
     DbContextOptions<TContext> options,
     ITenantContext tenantContext)
-    : DbContext(options), IWorkflowAwareContext, ITenantQueryFilterContext
+    : DbContext(options), IWorkflowAwareContext, IScopedQueryFilterContext
     where TContext : DbContext
 {
     protected readonly ITenantContext _tenantContext = tenantContext;
@@ -37,17 +38,32 @@ public abstract class ApplicationDbContext<TContext>(
         }
     }
 
+    /// <summary>
+    /// Company read scope for the EF global query filter. Read from the static
+    /// <see cref="CompanyContext.CurrentScope"/> on every access for the same reason
+    /// <see cref="CurrentTenantId"/> is an instance member of the DbContext, and so the existing
+    /// two-argument constructor keeps compiling for every module and hand-built test context.
+    /// </summary>
+    public bool CompanyFilterActive => CompanyContext.CurrentScope.FilterActive;
+
+    public string[] AllowedCompanyIds => CompanyContext.CurrentScope.AllowedCompanyIds;
+
     public DbSet<AppSetting> AppSettings { get; set; }
     public DbSet<Import> Imports { get; set; }
     public DbSet<EntityWorkflowStep> EntityWorkflowSteps { get; set; }
     public DbSet<EntityCodeConfig> EntityCodeConfigs { get; set; }
     public DbSet<TenantPluginFlag> TenantPluginFlags { get; set; }
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+
+        configurationBuilder.Conventions.Add(_ => new TenantCompanyQueryFilterConvention(this));
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        modelBuilder.ApplyGlobalFilters(this);
 
         modelBuilder.ApplyConfiguration(new AppSettingConfiguration());
         modelBuilder.ApplyConfiguration(new ImportConfiguration());

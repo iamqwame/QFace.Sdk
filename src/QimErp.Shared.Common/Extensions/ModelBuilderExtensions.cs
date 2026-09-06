@@ -45,11 +45,20 @@ public static class ModelBuilderExtensions
     /// </summary>
     public const string NoTenantSentinel = " ::no-tenant::";
 
+    /// <summary>
+    /// Superseded by <c>TenantCompanyQueryFilterConvention</c>, which runs at model finalizing and so
+    /// also reaches entity types that have no <c>DbSet&lt;&gt;</c>. Calling this remains safe: the
+    /// convention ANDs the company clause onto whatever filter it finds.
+    /// </summary>
+    [Obsolete("Filters are applied by TenantCompanyQueryFilterConvention; this call is redundant.")]
     public static void ApplyGlobalFilters(this ModelBuilder modelBuilder, ITenantQueryFilterContext context)
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (!typeof(AuditableEntity).IsAssignableFrom(entityType.ClrType))
+                continue;
+
+            if (entityType.IsOwned() || entityType.BaseType is not null || entityType.FindPrimaryKey() is null)
                 continue;
 
             typeof(ModelBuilderExtensions)
