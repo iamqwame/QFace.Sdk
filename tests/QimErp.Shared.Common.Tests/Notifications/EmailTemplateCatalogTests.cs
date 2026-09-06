@@ -17,9 +17,9 @@ public class EmailTemplateCatalogTests
     }
 
     [Fact]
-    public void Catalog_ShouldContainAllTwentyTemplates()
+    public void Catalog_ShouldContainAllExpectedTemplates()
     {
-        EmailTemplateCatalog.All.Should().HaveCount(20);
+        EmailTemplateCatalog.All.Should().HaveCount(23);
     }
 
     [Fact]

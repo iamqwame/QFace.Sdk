@@ -26,14 +26,15 @@ public abstract class EmployeeBaseConfiguration<TEmployee> : AuditableEntityConf
         builder.Property(e => e.LastName)
             .IsRequired();
 
-        // Indexes — per-tenant composite uniqueness (Code and Email are unique within a tenant, not globally)
-        builder.HasIndex(e => new { e.TenantId, e.Code })
+        builder.HasIndex(e => new { e.TenantId, e.CompanyId, e.Code })
             .IsUnique();
 
         builder.HasIndex(e => new { e.TenantId, e.Email })
             .IsUnique()
             .HasFilter("\"Email\" IS NOT NULL");
-        
+
+        builder.HasIndex(e => new { e.TenantId, e.CompanyId, e.IsVisibleAcrossCompanies });
+
         builder.HasIndex(e => e.CurrentSupervisorId);
         
         builder.HasIndex(e => e.CurrentOrganizationalUnitId);

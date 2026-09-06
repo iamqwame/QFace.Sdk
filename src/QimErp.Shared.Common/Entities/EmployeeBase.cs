@@ -19,6 +19,9 @@ public abstract class EmployeeBase : GuidAuditableEntity
     /// <summary>e.g. "Active", "Probation", "Terminated" — module-specific values, common shape.</summary>
     public string EmploymentStatus { get; protected set; } = "Active";
 
+    /// <summary>An employee always has a home CompanyId; this flag only widens who can read it.</summary>
+    public bool IsVisibleAcrossCompanies { get; private set; }
+
     public Guid? CurrentSupervisorId { get; protected set; }
     public string? CurrentSupervisorName { get; protected set; }
     public string? CurrentSupervisorCode { get; protected set; }
@@ -162,6 +165,12 @@ public abstract class EmployeeBase : GuidAuditableEntity
     public EmployeeBase WithEmploymentStatus(string status)
     {
         EmploymentStatus = status;
+        return this;
+    }
+
+    public EmployeeBase WithVisibilityAcrossCompanies(bool isVisibleAcrossCompanies)
+    {
+        IsVisibleAcrossCompanies = isVisibleAcrossCompanies;
         return this;
     }
 

@@ -83,27 +83,32 @@ public enum S3Provider
     /// Amazon Web Services S3
     /// </summary>
     AWS,
-    
+
+    /// <summary>
+    /// Cloudflare R2 Object Storage (S3-compatible)
+    /// </summary>
+    CloudflareR2,
+
     /// <summary>
     /// Digital Ocean Spaces
     /// </summary>
     DigitalOcean,
-    
+
     /// <summary>
     /// Backblaze B2 Cloud Storage
     /// </summary>
     Backblaze,
-    
+
     /// <summary>
     /// Wasabi Cloud Storage
     /// </summary>
     Wasabi,
-    
+
     /// <summary>
     /// MinIO Object Storage
     /// </summary>
     MinIO,
-    
+
     /// <summary>
     /// Generic S3-compatible storage
     /// </summary>

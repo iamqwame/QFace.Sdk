@@ -43,7 +43,7 @@ public sealed class CreateAppSettingHandler<TResponse>(
 
         try
         {
-            if (await appSettingsService.SettingExistsAsync(request.SettingKey))
+            if (await appSettingsService.SettingExistsForCurrentCompanyAsync(request.SettingKey))
             {
                 return Result.WithFailure<AppSettingResponse>(
                     new Error("CreateAppSetting.AlreadyExists", "Setting with this key already exists."));
@@ -64,6 +64,11 @@ public sealed class CreateAppSettingHandler<TResponse>(
             }
 
             return Result.WithSuccess(created.ToResponse());
+        }
+        catch (AppSettingScopeViolationException ex)
+        {
+            logger.LogDebug("CreateAppSetting rejected: {Message}", ex.Message);
+            return Result.WithFailure<AppSettingResponse>(new Error("CreateAppSetting.ScopeViolation", ex.Message));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

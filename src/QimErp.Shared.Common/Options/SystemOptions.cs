@@ -20,4 +20,18 @@ public class SystemOptions
     /// When true, Temporal NotificationActivity owns step emails; legacy processor skips duplicate sends.
     /// </summary>
     public bool TemporalOwnsWorkflowNotifications { get; set; } = true;
+
+    public CompanyOptions Company { get; set; } = new();
+}
+
+/// <summary>
+/// Bind from "System:Company". Env: System__Company__ForceInactive.
+/// </summary>
+public class CompanyOptions
+{
+    /// <summary>
+    /// Config-level kill switch. When true every request resolves to <c>CompanyScope.Inactive</c>
+    /// regardless of JWT claims or headers.
+    /// </summary>
+    public bool ForceInactive { get; set; }
 }

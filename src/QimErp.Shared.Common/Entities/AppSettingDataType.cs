@@ -10,6 +10,13 @@ public enum AppSettingDataType
     Decimal
 }
 
+public enum AppSettingScope
+{
+    // First member is what an empty/absent stored value converts to — it must be the permissive one.
+    CompanyOverridable,
+    TenantOnly
+}
+
 public class AppSettingValidationRules
 {
     public int? MinLength { get; set; }

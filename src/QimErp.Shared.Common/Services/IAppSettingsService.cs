@@ -24,5 +24,9 @@ public interface IAppSettingsService
     Task<List<AppSetting>> GetAllSettingsAsync(string? category = null);
     Task<AppSetting?> GetSettingEntityAsync(string key);
     Task DeleteSettingAsync(string key);
+    /// <summary>Resolves with the tenant-default fallback — true when a value is readable, not when a row is owned.</summary>
     Task<bool> SettingExistsAsync(string key);
+
+    /// <summary>Exact match on the current company's write target. Use this before creating an override.</summary>
+    Task<bool> SettingExistsForCurrentCompanyAsync(string key);
 } 

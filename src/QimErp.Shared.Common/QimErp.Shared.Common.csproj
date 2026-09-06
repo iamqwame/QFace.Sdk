@@ -7,7 +7,7 @@
         
         <!-- NuGet Package Metadata -->
         <PackageId>QimErp.Shared.Common</PackageId>
-        <Version>3.7.32</Version>
+        <Version>3.8.2</Version>
         <Authors>IAmQwame</Authors>
         <Company>QimErp</Company>
         <Description>Shared common library for QimErp microservices ERP system. Contains common entities, contracts, services, and utilities used across all QimErp modules.</Description>
@@ -35,7 +35,7 @@
     
     <!-- API & Documentation -->
     <ItemGroup>
-        <PackageReference Include="QFace.Sdk.BlobStorage" Version="1.0.10" />
+        <PackageReference Include="QFace.Sdk.BlobStorage" Version="1.0.13" />
         <PackageReference Include="QFace.Sdk.Logging" Version="1.0.5" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />

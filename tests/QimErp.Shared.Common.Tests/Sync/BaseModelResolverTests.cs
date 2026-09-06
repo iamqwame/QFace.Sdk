@@ -23,8 +23,9 @@ public class BaseModelResolverTests
 
         resolved.Should().Contain(ModuleKeys.CoreHR);
         resolved.Should().Contain(ModuleKeys.Leave);
+        resolved.Should().Contain(ModuleKeys.Reporting);
         resolved.Should().NotContain("BaseModules");
-        resolved.Should().HaveCount(2);
+        resolved.Should().HaveCount(3);
     }
 
     [Fact]
@@ -172,7 +173,7 @@ public class BaseModelResolverTests
     {
         var resolved = BaseModelResolver.ResolveExplicitFromCsv("BaseModules,POS");
 
-        resolved.Should().BeEquivalentTo([ModuleKeys.CoreHR, ModuleKeys.Leave, ModuleKeys.POS]);
+        resolved.Should().BeEquivalentTo([ModuleKeys.CoreHR, ModuleKeys.Leave, ModuleKeys.Reporting, ModuleKeys.POS]);
     }
 
     [Fact]
@@ -222,5 +223,6 @@ public class BaseModelResolverTests
         ModuleKeys.Inventory,
         ModuleKeys.Project,
         ModuleKeys.POS,
+        ModuleKeys.Reporting,
     ];
 }

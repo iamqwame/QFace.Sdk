@@ -24,14 +24,14 @@ public class FileUploadService : IFileUploadService
     {
         _s3Client = s3Client;
         _options = options.Value;
-        _bucketName = _options.Bucket?.Name ?? 
+        _bucketName = _options.Bucket?.Name ??
                       throw new ArgumentException("Bucket Name configuration is missing");
-                
+
         // Get region from options
         _region = _options.Region ?? "nyc3";
-            
+
         // Base domain for CDN without region prefix
-        _cdnBaseDomain = _options.Bucket?.CdnBaseDomain ?? 
+        _cdnBaseDomain = _options.Bucket?.CdnBaseDomain ??
                          "cdn.digitaloceanspaces.com";
         _logger = logger;
         _imageResizeService = imageResizeService;
@@ -45,9 +45,11 @@ public class FileUploadService : IFileUploadService
     {
         var provider = _options.Provider ?? "";
         // AWS S3 buckets created after April 2023 have ACLs disabled by default.
-        // DigitalOcean, Wasabi, Backblaze support ACLs; MinIO/Generic/AWS do not.
+        // DigitalOcean, Wasabi, Backblaze support ACLs; MinIO/Generic/AWS/R2 do not.
         return !provider.Equals("MinIO", StringComparison.OrdinalIgnoreCase) &&
                !provider.Equals("Generic", StringComparison.OrdinalIgnoreCase) &&
+               !provider.Equals("CloudflareR2", StringComparison.OrdinalIgnoreCase) &&
+               !provider.Equals("Cloudflare", StringComparison.OrdinalIgnoreCase) &&
                !provider.Equals("AWS", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -81,12 +83,12 @@ public class FileUploadService : IFileUploadService
 
             var s3KeyUrl = GetCdnUrl(s3Key);
             var singUrl = await GetPreSignedUrlAsync(
-                s3KeyUrl,60
+                s3KeyUrl, 60
                 );
             // Return the CDN URL instead of just the S3 key
             return new FileUploadResponse
             {
-                SaveUrl =s3KeyUrl,
+                SaveUrl = s3KeyUrl,
                 Url = singUrl,
             };
         }
@@ -96,7 +98,7 @@ public class FileUploadService : IFileUploadService
                 ex.StatusCode, ex.Message, ex.ErrorCode, ex.ResponseBody ?? "(none)");
             throw new Exception($"Error uploading file to S3: {ex.Message}", ex);
         }
-        
+
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error uploading file to S3: {Message}", ex.Message);
@@ -115,7 +117,7 @@ public class FileUploadService : IFileUploadService
         {
             // Extract the S3 key from the CDN URL if needed
             string s3Key = ExtractS3KeyFromUrl(fileUrl);
-                
+
             var deleteObjectRequest = new DeleteObjectRequest
             {
                 BucketName = _bucketName,
@@ -209,23 +211,7 @@ public class FileUploadService : IFileUploadService
     /// </summary>
     /// <param name="s3Key">The S3 object key</param>
     /// <returns>Full CDN URL for the object</returns>
-    public string GetCdnUrl(string s3Key)
-    {
-        if (string.IsNullOrEmpty(s3Key))
-        {
-            throw new ArgumentException("S3 key cannot be null or empty", nameof(s3Key));
-        }
-
-        // If a CDN base domain is configured use it: https://bucket.region.cdnDomain/key
-        if (!string.IsNullOrWhiteSpace(_cdnBaseDomain))
-            return $"https://{_bucketName}.{_region}.{_cdnBaseDomain}/{s3Key}";
-
-        // Native AWS S3: https://bucket.s3.region.amazonaws.com/key
-        if (!string.IsNullOrWhiteSpace(_region))
-            return $"https://{_bucketName}.s3.{_region}.amazonaws.com/{s3Key}";
-
-        return $"https://{_bucketName}.s3.amazonaws.com/{s3Key}";
-    }
+    public string GetCdnUrl(string s3Key) => BlobCdnUrl.FromKey(_options, s3Key);
 
     /// <summary>
     /// Extracts the S3 key from a CDN URL
@@ -249,10 +235,10 @@ public class FileUploadService : IFileUploadService
         {
             // Parse the URL
             var uri = new Uri(url);
-                
+
             // Get the path part without the leading slash
             var path = uri.AbsolutePath.TrimStart('/');
-                
+
             // For Digital Ocean CDN, we just need the path
             // No need to check for bucket name in the path for DO CDN
             return path;
@@ -263,143 +249,143 @@ public class FileUploadService : IFileUploadService
             throw new ArgumentException($"Invalid URL format: {url}", nameof(url), ex);
         }
     }
-    
-     /// <summary>
-        /// Uploads a Base64 encoded image to blob storage
-        /// </summary>
-        /// <param name="base64Image">The Base64 encoded image string (with or without data URI prefix)</param>
-        /// <param name="folder">Optional folder path within the storage</param>
-        /// <param name="fileName">Optional file name (if not provided, a unique name will be generated)</param>
-        /// <param name="contentType">The content type of the image (e.g., "image/jpeg", "image/png")</param>
-        /// <returns>URL of the uploaded file</returns>
-        public async Task<FileUploadResponse> UploadBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null, bool isPublic = false)
-        {
-            if (string.IsNullOrEmpty(base64Image))
-            {
-                throw new ArgumentException("Base64 image string is empty or null", nameof(base64Image));
-            }
 
-            try
+    /// <summary>
+    /// Uploads a Base64 encoded image to blob storage
+    /// </summary>
+    /// <param name="base64Image">The Base64 encoded image string (with or without data URI prefix)</param>
+    /// <param name="folder">Optional folder path within the storage</param>
+    /// <param name="fileName">Optional file name (if not provided, a unique name will be generated)</param>
+    /// <param name="contentType">The content type of the image (e.g., "image/jpeg", "image/png")</param>
+    /// <returns>URL of the uploaded file</returns>
+    public async Task<FileUploadResponse> UploadBase64ImageAsync(string base64Image, string folder, string fileName = null, string contentType = null, bool isPublic = false)
+    {
+        if (string.IsNullOrEmpty(base64Image))
+        {
+            throw new ArgumentException("Base64 image string is empty or null", nameof(base64Image));
+        }
+
+        try
+        {
+            // Remove data URI prefix if present (e.g., "data:image/jpeg;base64,")
+            string base64Data = base64Image;
+            string extractedContentType = null;
+
+            if (base64Image.Contains(","))
             {
-                // Remove data URI prefix if present (e.g., "data:image/jpeg;base64,")
-                string base64Data = base64Image;
-                string extractedContentType = null;
-                
-                if (base64Image.Contains(","))
+                var parts = base64Image.Split(',');
+                if (parts.Length > 1)
                 {
-                    var parts = base64Image.Split(',');
-                    if (parts.Length > 1)
+                    base64Data = parts[1];
+
+                    // Try to extract content type from the data URI
+                    if (parts[0].Contains("data:") && parts[0].Contains(";base64"))
                     {
-                        base64Data = parts[1];
-                        
-                        // Try to extract content type from the data URI
-                        if (parts[0].Contains("data:") && parts[0].Contains(";base64"))
-                        {
-                            extractedContentType = parts[0].Substring(5, parts[0].IndexOf(";") - 5);
-                            _logger.LogInformation("Extracted content type from data URI: {ContentType}", extractedContentType);
-                        }
+                        extractedContentType = parts[0].Substring(5, parts[0].IndexOf(";") - 5);
+                        _logger.LogInformation("Extracted content type from data URI: {ContentType}", extractedContentType);
                     }
                 }
-                
-                // Use extracted content type if explicit one is not provided
-                if (string.IsNullOrEmpty(contentType) && !string.IsNullOrEmpty(extractedContentType))
-                {
-                    contentType = extractedContentType;
-                }
-                
-                // Default to image/jpeg if content type is still not determined
-                if (string.IsNullOrEmpty(contentType))
-                {
-                    contentType = "image/jpeg";
-                    _logger.LogInformation("No content type provided, defaulting to: {ContentType}", contentType);
-                }
-                
-                // Get file extension from content type
-                string extension = DetermineFileExtension(contentType);
-                
-                // Generate unique file name if not provided
-                fileName = string.IsNullOrEmpty(fileName) 
-                    ? $"{Guid.NewGuid()}{extension}" 
-                    : $"{fileName}{extension}";
-
-                // Combine folder and filename for the full S3 key
-                var s3Key = string.IsNullOrEmpty(folder) ? fileName : $"{folder.TrimEnd('/')}/{fileName}";
-
-                _logger.LogInformation("Attempting to upload Base64 image to S3 with key: {S3Key}", s3Key);
-
-                // Convert Base64 to byte array
-                byte[] imageBytes;
-                try
-                {
-                    imageBytes = Convert.FromBase64String(base64Data);
-                    _logger.LogInformation("Successfully converted Base64 string to byte array, size: {Size} bytes", imageBytes.Length);
-                }
-                catch (FormatException ex)
-                {
-                    _logger.LogError(ex, "Invalid Base64 string format");
-                    throw new ArgumentException("Invalid Base64 string format", nameof(base64Image), ex);
-                }
-
-                using var memoryStream = new MemoryStream(imageBytes);
-
-                await UploadObjectAsync(memoryStream, s3Key, contentType, isPublic);
-
-                _logger.LogInformation("Successfully uploaded Base64 image to S3 with key: {S3Key}", s3Key);
-
-                var s3KeyUrl = GetCdnUrl(s3Key);
-                var signedUrl = await GetPreSignedUrlAsync(s3KeyUrl, 60);
-                
-                // Return the CDN URL and signed URL
-                return new FileUploadResponse
-                {
-                    SaveUrl = s3KeyUrl,
-                    Url = signedUrl,
-                };
             }
-            catch (AmazonS3Exception ex)
+
+            // Use extracted content type if explicit one is not provided
+            if (string.IsNullOrEmpty(contentType) && !string.IsNullOrEmpty(extractedContentType))
             {
-                _logger.LogError(ex, "AWS S3 Error uploading Base64 image to S3. StatusCode: {StatusCode}, Message: {Message}, ErrorCode: {ErrorCode}, ResponseBody: {ResponseBody}",
-                    ex.StatusCode, ex.Message, ex.ErrorCode, ex.ResponseBody ?? "(none)");
-                throw new Exception($"Error uploading Base64 image to S3: {ex.Message}", ex);
+                contentType = extractedContentType;
             }
-            catch (Exception ex)
+
+            // Default to image/jpeg if content type is still not determined
+            if (string.IsNullOrEmpty(contentType))
             {
-                _logger.LogError(ex, "Unexpected error uploading Base64 image to S3: {Message}", ex.Message);
-                throw;
+                contentType = "image/jpeg";
+                _logger.LogInformation("No content type provided, defaulting to: {ContentType}", contentType);
             }
+
+            // Get file extension from content type
+            string extension = DetermineFileExtension(contentType);
+
+            // Generate unique file name if not provided
+            fileName = string.IsNullOrEmpty(fileName)
+                ? $"{Guid.NewGuid()}{extension}"
+                : $"{fileName}{extension}";
+
+            // Combine folder and filename for the full S3 key
+            var s3Key = string.IsNullOrEmpty(folder) ? fileName : $"{folder.TrimEnd('/')}/{fileName}";
+
+            _logger.LogInformation("Attempting to upload Base64 image to S3 with key: {S3Key}", s3Key);
+
+            // Convert Base64 to byte array
+            byte[] imageBytes;
+            try
+            {
+                imageBytes = Convert.FromBase64String(base64Data);
+                _logger.LogInformation("Successfully converted Base64 string to byte array, size: {Size} bytes", imageBytes.Length);
+            }
+            catch (FormatException ex)
+            {
+                _logger.LogError(ex, "Invalid Base64 string format");
+                throw new ArgumentException("Invalid Base64 string format", nameof(base64Image), ex);
+            }
+
+            using var memoryStream = new MemoryStream(imageBytes);
+
+            await UploadObjectAsync(memoryStream, s3Key, contentType, isPublic);
+
+            _logger.LogInformation("Successfully uploaded Base64 image to S3 with key: {S3Key}", s3Key);
+
+            var s3KeyUrl = GetCdnUrl(s3Key);
+            var signedUrl = await GetPreSignedUrlAsync(s3KeyUrl, 60);
+
+            // Return the CDN URL and signed URL
+            return new FileUploadResponse
+            {
+                SaveUrl = s3KeyUrl,
+                Url = signedUrl,
+            };
         }
-
-        /// <summary>
-        /// Determines the file extension based on content type
-        /// </summary>
-        private string DetermineFileExtension(string contentType)
+        catch (AmazonS3Exception ex)
         {
-            string extension = ".jpg"; // Default
-            switch (contentType.ToLower())
-            {
-                case "image/png":
-                    extension = ".png";
-                    break;
-                case "image/gif":
-                    extension = ".gif";
-                    break;
-                case "image/bmp":
-                    extension = ".bmp";
-                    break;
-                case "image/webp":
-                    extension = ".webp";
-                    break;
-                case "image/svg+xml":
-                    extension = ".svg";
-                    break;
-                case "image/jpeg":
-                case "image/jpg":
-                    extension = ".jpg";
-                    break;
-            }
-            _logger.LogInformation("Determined file extension for content type {ContentType}: {Extension}", contentType, extension);
-            return extension;
+            _logger.LogError(ex, "AWS S3 Error uploading Base64 image to S3. StatusCode: {StatusCode}, Message: {Message}, ErrorCode: {ErrorCode}, ResponseBody: {ResponseBody}",
+                ex.StatusCode, ex.Message, ex.ErrorCode, ex.ResponseBody ?? "(none)");
+            throw new Exception($"Error uploading Base64 image to S3: {ex.Message}", ex);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error uploading Base64 image to S3: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Determines the file extension based on content type
+    /// </summary>
+    private string DetermineFileExtension(string contentType)
+    {
+        string extension = ".jpg"; // Default
+        switch (contentType.ToLower())
+        {
+            case "image/png":
+                extension = ".png";
+                break;
+            case "image/gif":
+                extension = ".gif";
+                break;
+            case "image/bmp":
+                extension = ".bmp";
+                break;
+            case "image/webp":
+                extension = ".webp";
+                break;
+            case "image/svg+xml":
+                extension = ".svg";
+                break;
+            case "image/jpeg":
+            case "image/jpg":
+                extension = ".jpg";
+                break;
+        }
+        _logger.LogInformation("Determined file extension for content type {ContentType}: {Extension}", contentType, extension);
+        return extension;
+    }
 
     /// <summary>
     /// Uploads a file to blob storage as a public file (accessible directly via CDN URL)
@@ -583,10 +569,10 @@ public class FileUploadService : IFileUploadService
 
         return new ProfileImageVariants
         {
-            Thumb    = dict.GetValueOrDefault("thumb"),
-            Sm       = dict.GetValueOrDefault("sm"),
-            Md       = dict.GetValueOrDefault("md"),
-            Lg       = dict.GetValueOrDefault("lg"),
+            Thumb = dict.GetValueOrDefault("thumb"),
+            Sm = dict.GetValueOrDefault("sm"),
+            Md = dict.GetValueOrDefault("md"),
+            Lg = dict.GetValueOrDefault("lg"),
             Original = originalUrl,
         };
     }
@@ -641,9 +627,9 @@ public class FileUploadService : IFileUploadService
         do
         {
             response = await _s3Client.ListObjectsV2Async(request, cancellationToken);
-            
+
             keys.AddRange(response.S3Objects.Select(o => o.Key));
-            
+
             request.ContinuationToken = response.NextContinuationToken;
         } while (response.IsTruncated);
 

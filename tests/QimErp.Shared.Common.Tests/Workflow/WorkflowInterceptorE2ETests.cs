@@ -9,6 +9,7 @@ using QimErp.Shared.Common.Interceptors;
 using QimErp.Shared.Common.Options;
 using QimErp.Shared.Common.Services.Auth;
 using QimErp.Shared.Common.Services.MultiTenancy;
+using QimErp.Shared.Common.Services.TenantSetup;
 using QimErp.Shared.Common.Services.Workflow;
 using QimErp.Shared.Common.Workflow;
 using QimErp.Shared.Common.Workflow.Entities;
@@ -421,6 +422,7 @@ internal sealed class InterceptorE2EHarness : IAsyncDisposable
         services.AddSingleton<IWorkflowDefinitionProvider>(sp => sp.GetRequiredService<FakeWorkflowDefinitionProvider>());
         services.AddSingleton(Bridge);
         services.AddSingleton<IWorkflowTriggerBridge>(sp => sp.GetRequiredService<RecordingWorkflowTriggerBridge>());
+        services.AddSingleton<ITenantModuleAccessService>(new FakeTenantModuleAccessService());
         services.AddSingleton<IWorkflowService, WorkflowService>();
         services.Configure<SystemOptions>(options =>
         {
@@ -576,4 +578,18 @@ internal sealed class RecordingWorkflowTriggerBridge : IWorkflowTriggerBridge
         Messages.Add(message);
         return Task.FromResult(true);
     }
+}
+
+internal sealed class FakeTenantModuleAccessService(bool isModuleEnabled = true) : ITenantModuleAccessService
+{
+    public Task<bool> IsModuleEnabledAsync(
+        string? tenantId,
+        string moduleKey,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(isModuleEnabled);
+
+    public Task<IReadOnlyList<string>?> GetInstalledModuleKeysAsync(
+        string? tenantId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<string>?>([]);
 }

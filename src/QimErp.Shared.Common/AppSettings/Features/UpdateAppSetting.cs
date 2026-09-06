@@ -70,6 +70,11 @@ public sealed class UpdateAppSettingHandler<TResponse>(
 
             return Result.WithSuccess(updated.ToResponse());
         }
+        catch (AppSettingScopeViolationException ex)
+        {
+            logger.LogDebug("UpdateAppSetting rejected: {Message}", ex.Message);
+            return Result.WithFailure<AppSettingResponse>(new Error("UpdateAppSetting.ScopeViolation", ex.Message));
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Error processing UpdateAppSetting: {Request}", JsonSerializer.Serialize(request));

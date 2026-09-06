@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}"
 EndProject
@@ -96,6 +96,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QimErp.Shared.DemoData", "src\QimErp.Shared.DemoData\QimErp.Shared.DemoData.csproj", "{29019F59-1249-4F3C-AEBF-6C471C5033DC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QimErp.Shared.DemoData.Tests", "tests\QimErp.Shared.DemoData.Tests\QimErp.Shared.DemoData.Tests.csproj", "{7C015BB0-F38C-4FD9-BD43-516B86B03571}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.BlobStorage.Tests", "tests\QFace.Sdk.BlobStorage.Tests\QFace.Sdk.BlobStorage.Tests.csproj", "{23FBEDA6-F607-49DF-919A-50871BC9FC20}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -247,6 +249,18 @@ Global
 		{7C015BB0-F38C-4FD9-BD43-516B86B03571}.Release|x64.Build.0 = Release|Any CPU
 		{7C015BB0-F38C-4FD9-BD43-516B86B03571}.Release|x86.ActiveCfg = Release|Any CPU
 		{7C015BB0-F38C-4FD9-BD43-516B86B03571}.Release|x86.Build.0 = Release|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Debug|x64.Build.0 = Debug|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Debug|x86.Build.0 = Debug|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Release|x64.ActiveCfg = Release|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Release|x64.Build.0 = Release|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Release|x86.ActiveCfg = Release|Any CPU
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -288,5 +302,6 @@ Global
 		{D1A2B3C4-E5F6-7890-ABCD-EF1234567890} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
 		{29019F59-1249-4F3C-AEBF-6C471C5033DC} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
 		{7C015BB0-F38C-4FD9-BD43-516B86B03571} = {69C5394F-80E3-40E0-9037-836A716C3E9A}
+		{23FBEDA6-F607-49DF-919A-50871BC9FC20} = {69C5394F-80E3-40E0-9037-836A716C3E9A}
 	EndGlobalSection
 EndGlobal

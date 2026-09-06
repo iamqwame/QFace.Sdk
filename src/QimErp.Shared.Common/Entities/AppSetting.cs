@@ -8,6 +8,7 @@ public class AppSetting : GuidAuditableEntity
     public string Category { get; private set; } = string.Empty;
     public string? CategoryDescription { get; private set; }
     public AppSettingDataType DataType { get; private set; }
+    public AppSettingScope Scope { get; private set; } = AppSettingScope.CompanyOverridable;
     public AppSettingValidationRules ValidationRules { get; private set; }
 
     private AppSetting()
@@ -112,6 +113,12 @@ public class AppSetting : GuidAuditableEntity
     public AppSetting WithValidationRules(AppSettingValidationRules validationRules)
     {
         ValidationRules = validationRules ?? AppSettingValidationRules.Create();
+        return this;
+    }
+
+    public AppSetting WithScope(AppSettingScope scope)
+    {
+        Scope = scope;
         return this;
     }
 

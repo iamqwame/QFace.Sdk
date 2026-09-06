@@ -30,6 +30,18 @@ public interface ITenantScopeSetter
 }
 
 /// <summary>
+/// Minimal interface that sets the ambient <c>ICompanyContext</c> used by EF Core company query
+/// filters and by the company stamp in the audit interceptor.
+/// Defined here so QFace.Sdk.Temporal has no dependency on QimErp.Shared.Common.
+/// Implemented by <c>CompanyContext</c> in QimErp.Shared.Common.
+/// </summary>
+public interface ICompanyScopeSetter
+{
+    void SetCompanyScope(string? activeCompanyId, IReadOnlyCollection<string>? allowedCompanyIds, bool filterActive);
+    void ClearCompanyScope();
+}
+
+/// <summary>
 /// Temporal worker interceptor that automatically seeds <see cref="ICurrentUserService"/>
 /// with the TenantId (and optional UserId) from every activity's input payload before
 /// the activity body executes.
@@ -76,12 +88,14 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
             // Access it safely — we only need it for the activity type name in log messages.
             var activityType = TryGetActivityType();
 
-            var userSvc     = TryResolveService();
-            var tenantScope = TryResolveTenantScope();
-            var tenantId    = ExtractProperty(input.Args, "TenantId");
-            var userId      = ExtractProperty(input.Args, "UserId") ?? "temporal-system";
-            var userEmail   = ExtractProperty(input.Args, "UserEmail") ?? "temporal@system";
-            var userName    = ExtractProperty(input.Args, "UserName") ?? "Temporal Worker";
+            var userSvc      = TryResolveService();
+            var tenantScope  = TryResolveTenantScope();
+            var companyScope = TryResolveCompanyScope();
+            var tenantId     = ExtractProperty(input.Args, "TenantId");
+            var companyId    = ExtractTopLevelProperty(input.Args, "CompanyId");
+            var userId       = ExtractProperty(input.Args, "UserId") ?? "temporal-system";
+            var userEmail    = ExtractProperty(input.Args, "UserEmail") ?? "temporal@system";
+            var userName     = ExtractProperty(input.Args, "UserName") ?? "Temporal Worker";
 
             var logger = TryGetLogger();
 
@@ -89,7 +103,7 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
             // downstream logs (including ones emitted deep inside the activity body) stay
             // correlated to the workflow's distributed trace instead of going dark at the
             // Temporal boundary.
-            using var scope = logger?.BeginScope(BuildScopeItems(tenantId, activityType));
+            using var scope = logger?.BeginScope(BuildScopeItems(tenantId, companyId, activityType));
 
             if (userSvc is null)
             {
@@ -101,36 +115,48 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
                 // query filters (HasQueryFilter) return the correct tenant's rows.
             }
 
-            if (string.IsNullOrWhiteSpace(tenantId))
-            {
-                logger?.LogWarning(
-                    "No TenantId found on input for activity {ActivityType}. " +
-                    "DB saves will throw at the interceptor level if context is not seeded elsewhere.",
-                    activityType);
-                return await base.ExecuteActivityAsync(input);
-            }
+            // Absent CompanyId reproduces the pre-multi-company behaviour: no company filter,
+            // rows stamped tenant-shared.
+            if (string.IsNullOrWhiteSpace(companyId))
+                companyScope?.SetCompanyScope(null, null, filterActive: false);
+            else
+                companyScope?.SetCompanyScope(companyId, [companyId], filterActive: true);
 
-            userSvc?.SetTenantContext(tenantId, userEmail, userName, userId);
-            // Seed ITenantContext so EF global query filters (HasQueryFilter) see the correct
-            // tenant and do not return cross-tenant rows or fail the filter check.
-            tenantScope?.SetTenantScope(tenantId);
-            logger?.LogDebug("Set ambient TenantId={TenantId} for activity {ActivityType}", tenantId, activityType);
             try
             {
+                if (string.IsNullOrWhiteSpace(tenantId))
+                {
+                    logger?.LogWarning(
+                        "No TenantId found on input for activity {ActivityType}. " +
+                        "DB saves will throw at the interceptor level if context is not seeded elsewhere.",
+                        activityType);
+                    return await base.ExecuteActivityAsync(input);
+                }
+
+                userSvc?.SetTenantContext(tenantId, userEmail, userName, userId);
+                // Seed ITenantContext so EF global query filters (HasQueryFilter) see the correct
+                // tenant and do not return cross-tenant rows or fail the filter check.
+                tenantScope?.SetTenantScope(tenantId);
+                logger?.LogDebug("Set ambient TenantId={TenantId} CompanyId={CompanyId} for activity {ActivityType}",
+                    tenantId, companyId, activityType);
+
                 return await base.ExecuteActivityAsync(input);
             }
             finally
             {
                 userSvc?.ClearTenantContext();
                 tenantScope?.ClearTenantScope();
+                companyScope?.ClearCompanyScope();
             }
         }
 
-        private static List<KeyValuePair<string, object>> BuildScopeItems(string? tenantId, string activityType)
+        private static List<KeyValuePair<string, object>> BuildScopeItems(string? tenantId, string? companyId, string activityType)
         {
-            var items = new List<KeyValuePair<string, object>>(3) { new("ActivityType", activityType) };
+            var items = new List<KeyValuePair<string, object>>(4) { new("ActivityType", activityType) };
             if (!string.IsNullOrWhiteSpace(tenantId))
                 items.Add(new("TenantId", tenantId));
+            if (!string.IsNullOrWhiteSpace(companyId))
+                items.Add(new("CompanyId", companyId));
             var traceId = Activity.Current?.TraceId.ToString();
             if (!string.IsNullOrWhiteSpace(traceId))
                 items.Add(new("TraceId", traceId));
@@ -172,6 +198,16 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
             catch { return null; }
         }
 
+        private ICompanyScopeSetter? TryResolveCompanyScope()
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                return scope.ServiceProvider.GetService<ICompanyScopeSetter>();
+            }
+            catch { return null; }
+        }
+
         private ILogger? TryGetLogger()
         {
             try
@@ -209,6 +245,24 @@ public sealed class TenantContextActivityInterceptor(IServiceScopeFactory scopeF
                         break;
                     }
                 }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Extracts a named property from the top level of an activity argument only.
+        /// Never probes a collection's first element: a bulk batch is single-tenant by construction
+        /// but NOT single-company, so probing would stamp a whole cross-company batch with one
+        /// company's id.
+        /// </summary>
+        private static string? ExtractTopLevelProperty(object?[] args, string propertyName)
+        {
+            foreach (var arg in args)
+            {
+                if (arg is null) continue;
+
+                var direct = ExtractFromInstance(arg, propertyName);
+                if (direct is not null) return direct;
             }
             return null;
         }
