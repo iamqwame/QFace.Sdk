@@ -1,3 +1,4 @@
+using QimErp.Shared.Common.Extensions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -15,7 +16,7 @@ public sealed class AppSettingScopeDefaultTests
         tenantContext.SetTenant("tenant-a");
 
         var options = new DbContextOptionsBuilder<ConventionTestDbContext>()
-            .UseNpgsql("Host=localhost;Database=app_setting_scope_tests;Username=none;Password=none")
+            .UseQimErpNpgsql("Host=localhost;Database=app_setting_scope_tests;Username=none;Password=none")
             .Options;
 
         return new ConventionTestDbContext(options, tenantContext);

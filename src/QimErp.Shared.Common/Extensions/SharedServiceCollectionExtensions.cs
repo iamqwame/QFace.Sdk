@@ -74,7 +74,7 @@ public static class SharedServiceCollectionExtensions
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
             dataSourceBuilder.EnableDynamicJson();
             var dataSource = dataSourceBuilder.Build();
-            options.UseNpgsql(dataSource);
+            options.UseQimErpNpgsql(dataSource);
         });
     }
 
@@ -128,11 +128,11 @@ public static class SharedServiceCollectionExtensions
 #pragma warning restore CS0618
             if (vectorDataSource is not null)
             {
-                options.UseNpgsql(vectorDataSource, npgsqlOptions => npgsqlOptions.UseVector());
+                options.UseQimErpNpgsql(vectorDataSource, npgsqlOptions => npgsqlOptions.UseVector());
             }
             else
             {
-                options.UseNpgsql(connectionString);
+                options.UseQimErpNpgsql(connectionString);
             }
             options.EnableSensitiveDataLogging(false);
             options.EnableDetailedErrors(false);
@@ -183,7 +183,7 @@ public static class SharedServiceCollectionExtensions
     #pragma warning disable CS0618
             NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
 #pragma warning restore CS0618
-                options.UseNpgsql(connectionString);
+                options.UseQimErpNpgsql(connectionString);
                 options.EnableSensitiveDataLogging(false);
                 options.EnableDetailedErrors(false);
                 options.ConfigureWarnings(warnings => warnings.Ignore(

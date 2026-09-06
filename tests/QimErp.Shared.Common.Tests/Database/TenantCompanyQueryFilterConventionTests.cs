@@ -1,3 +1,4 @@
+using QimErp.Shared.Common.Extensions;
 using System.Linq.Expressions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -27,7 +28,7 @@ public sealed class TenantCompanyQueryFilterConventionTests : IDisposable
         tenantContext.SetTenant(tenantId);
 
         var options = new DbContextOptionsBuilder<ConventionTestDbContext>()
-            .UseNpgsql("Host=localhost;Database=convention_tests;Username=none;Password=none")
+            .UseQimErpNpgsql("Host=localhost;Database=convention_tests;Username=none;Password=none")
             .Options;
 
         return new ConventionTestDbContext(options, tenantContext);

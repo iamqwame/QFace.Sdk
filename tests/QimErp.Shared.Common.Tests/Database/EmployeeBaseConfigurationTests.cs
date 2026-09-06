@@ -1,3 +1,4 @@
+using QimErp.Shared.Common.Extensions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using QimErp.Shared.Common.Entities;
@@ -14,7 +15,7 @@ public sealed class EmployeeBaseConfigurationTests
         tenantContext.SetTenant("tenant-a");
 
         var options = new DbContextOptionsBuilder<ConventionTestDbContext>()
-            .UseNpgsql("Host=localhost;Database=convention_tests;Username=none;Password=none")
+            .UseQimErpNpgsql("Host=localhost;Database=convention_tests;Username=none;Password=none")
             .Options;
 
         return new ConventionTestDbContext(options, tenantContext);
