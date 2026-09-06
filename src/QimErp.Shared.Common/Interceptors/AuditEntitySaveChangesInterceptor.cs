@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Runtime.CompilerServices;
 using System.Transactions;
+using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Services.Workflow;
 
 namespace QimErp.Shared.Common.Interceptors;
@@ -30,25 +31,7 @@ public class AuditEntitySaveChangesInterceptor(
         {
             logger.LogDebug("Starting pre-save processing for context: {Context}", context.GetType().Name);
 
-            // Set TenantId on entities early, before workflow processing
-            SetTenantIdOnEntities(context);
-
-            // Bulk-seed fast path: skip workflow processing and event capture.
-            // Audit metadata still applied so seeded rows have CreatedBy/At, but no events fire.
-            if (BulkSeedScope.IsSuppressed)
-            {
-                AddAuditMetadata(context);
-                ClearPendingDomainEvents(context);
-                logger.LogDebug("BulkSeedScope active — skipped workflow processing and event capture for {Context}",
-                    context.GetType().Name);
-                return await base.SavingChangesAsync(eventData, result, cancellationToken);
-            }
-
-            var workflowEvents = new List<IDomainEvent>();
-            await ProcessWorkflowEntitiesAsync(workflowEvents, cancellationToken, context);
-            await CaptureWorkflowEventsAsync(workflowEvents, context, cancellationToken);
-            _contextEvents.AddOrUpdate(context, workflowEvents);
-            AddAuditMetadata(context);
+            await RunPreSaveAsync(context, cancellationToken);
 
             logger.LogDebug("Successfully completed pre-save processing for context: {Context}", context.GetType().Name);
             return await base.SavingChangesAsync(eventData, result, cancellationToken);
@@ -121,20 +104,7 @@ public class AuditEntitySaveChangesInterceptor(
         {
             logger.LogDebug("Starting pre-save processing for context: {Context} (sync)", context.GetType().Name);
 
-            if (BulkSeedScope.IsSuppressed)
-            {
-                AddAuditMetadata(context);
-                ClearPendingDomainEvents(context);
-                logger.LogDebug("BulkSeedScope active — skipped workflow processing and event capture for {Context} (sync)",
-                    context.GetType().Name);
-                return base.SavingChanges(eventData, result);
-            }
-
-            var workflowEvents = new List<IDomainEvent>();
-            ProcessWorkflowEntitiesAsync(workflowEvents, CancellationToken.None, context).GetAwaiter().GetResult();
-            CaptureWorkflowEventsAsync(workflowEvents, context, CancellationToken.None).GetAwaiter().GetResult();
-            _contextEvents.AddOrUpdate(context, workflowEvents);
-            AddAuditMetadata(context);
+            RunPreSaveAsync(context, CancellationToken.None).GetAwaiter().GetResult();
 
             logger.LogDebug("Successfully completed pre-save processing for context: {Context} (sync)", context.GetType().Name);
             return base.SavingChanges(eventData, result);
@@ -281,6 +251,31 @@ public class AuditEntitySaveChangesInterceptor(
 
         return Task.CompletedTask;
     }
+
+    private async Task RunPreSaveAsync(DbContext context, CancellationToken cancellationToken)
+    {
+        SetTenantIdOnEntities(context);
+        SetCompanyIdOnEntities(context);
+        GuardCrossCompanyWrites(context);
+
+        // Bulk-seed fast path: skip workflow processing and event capture.
+        // Audit metadata still applied so seeded rows have CreatedBy/At, but no events fire.
+        if (BulkSeedScope.IsSuppressed)
+        {
+            AddAuditMetadata(context);
+            ClearPendingDomainEvents(context);
+            logger.LogDebug("BulkSeedScope active — skipped workflow processing and event capture for {Context}",
+                context.GetType().Name);
+            return;
+        }
+
+        var workflowEvents = new List<IDomainEvent>();
+        await ProcessWorkflowEntitiesAsync(workflowEvents, cancellationToken, context);
+        await CaptureWorkflowEventsAsync(workflowEvents, context, cancellationToken);
+        _contextEvents.AddOrUpdate(context, workflowEvents);
+        AddAuditMetadata(context);
+    }
+
     private void SetTenantIdOnEntities(DbContext context)
     {
         // Collect only the AuditableEntity rows that actually need TenantId stamped.
@@ -366,6 +361,160 @@ public class AuditEntitySaveChangesInterceptor(
             logger.LogDebug("Set TenantId={TenantId} on {EntityType} {EntityId}",
                 tenantId, entry.Entity.GetType().Name,
                 entry.Entity.GetType().GetProperty("Id")?.GetValue(entry.Entity));
+        }
+    }
+
+    private void SetCompanyIdOnEntities(DbContext context)
+    {
+        // "" is tenant-shared, not unset — an edit must never convert a shared row to company-owned.
+        var entriesToStamp = context.ChangeTracker.Entries<AuditableEntity>()
+            .Where(e => e.State is EntityState.Added
+                        && string.IsNullOrWhiteSpace(e.Entity.CompanyId)
+                        && !e.Entity.IsGlobal
+                        && e.Entity is not ITenantWideEntity)
+            .ToList();
+
+        if (entriesToStamp.Count == 0)
+        {
+            return;
+        }
+
+        var scope = CompanyContext.CurrentScope;
+
+        // Flag off must never throw: every row is tenant-shared, exactly as before multi-company.
+        if (!scope.MultiCompanyEnabled)
+        {
+            StampCompanyId(entriesToStamp, string.Empty);
+            return;
+        }
+
+        var companyId = scope.ActiveCompanyId;
+
+        if (string.IsNullOrEmpty(companyId) && scope.FilterActive)
+        {
+            var realCompanyIds = scope.RealCompanyIds.ToArray();
+            if (realCompanyIds.Length == 1)
+            {
+                companyId = realCompanyIds[0];
+                logger.LogDebug("CompanyId resolved from the single company in scope: {CompanyId}", companyId);
+            }
+        }
+
+        if (string.IsNullOrEmpty(companyId))
+        {
+            companyId = context.ChangeTracker
+                .Entries<AuditableEntity>()
+                .Where(e => e.State is EntityState.Added or EntityState.Modified
+                            && !string.IsNullOrWhiteSpace(e.Entity.CompanyId))
+                .Select(e => e.Entity.CompanyId)
+                .FirstOrDefault();
+
+            if (!string.IsNullOrEmpty(companyId))
+            {
+                logger.LogDebug(
+                    "CompanyId resolved from explicitly-stamped sibling entity in batch: {CompanyId}",
+                    companyId);
+            }
+        }
+
+        if (string.IsNullOrEmpty(companyId) && CompanyStampScope.TryGetOverride(out var overrideCompanyId))
+        {
+            StampCompanyId(entriesToStamp, overrideCompanyId);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(companyId))
+        {
+            if (BulkSeedScope.IsSuppressed)
+            {
+                logger.LogWarning(
+                    "BulkSeedScope active with no company write target — stamping {EntityCount} row(s) as tenant-shared. " +
+                    "Wrap the seeder in CompanyStampScope.Enter(companyId) or CompanyStampScope.EnterShared() to make this explicit.",
+                    entriesToStamp.Count);
+                StampCompanyId(entriesToStamp, string.Empty);
+                return;
+            }
+
+            var entityTypeNames = entriesToStamp
+                .Select(e => e.Entity.GetType().Name)
+                .Distinct(StringComparer.Ordinal)
+                .Take(5)
+                .ToList();
+
+            throw new InvalidOperationException(
+                $"SaveChanges aborted: no company write target for {string.Join(", ", entityTypeNames)}. " +
+                $"{scope.RealCompanyIds.Count()} company/companies are in scope and none was selected as active. " +
+                "Fix by one of: send the X-Company-Id header on the request; " +
+                "call entity.WithCompanyId(id) before saving; " +
+                "call entity.AsTenantShared() if the record really is tenant-wide; " +
+                "or in Temporal/background code put a CompanyId property on the activity request " +
+                "or wrap the save in CompanyStampScope.Enter(companyId).");
+        }
+
+        StampCompanyId(entriesToStamp, companyId);
+    }
+
+    private void StampCompanyId(List<EntityEntry<AuditableEntity>> entries, string companyId)
+    {
+        foreach (var entry in entries)
+        {
+            entry.Entity.CompanyId = companyId;
+            logger.LogDebug("Set CompanyId={CompanyId} on {EntityType}", companyId, entry.Entity.GetType().Name);
+        }
+    }
+
+    /// <remarks>
+    /// <c>IgnoreQueryFilters()</c> + <c>AsNoTracking()</c> + <c>Update()</c> degrades this to a
+    /// <c>CurrentValue</c> check, because EF holds no database snapshot to compare against.
+    /// Tenant-shared rows (original <c>CompanyId == ""</c>) stay writable by anyone in the tenant.
+    /// </remarks>
+    private void GuardCrossCompanyWrites(DbContext context)
+    {
+        var scope = CompanyContext.CurrentScope;
+
+        if (!scope.FilterActive || BulkSeedScope.IsSuppressed)
+        {
+            return;
+        }
+
+        var entries = context.ChangeTracker.Entries<AuditableEntity>()
+            .Where(e => e.State is EntityState.Modified or EntityState.Deleted && !e.Entity.IsGlobal)
+            .ToList();
+
+        foreach (var entry in entries)
+        {
+            if (entry.Metadata.FindProperty(nameof(AuditableEntity.CompanyId)) is null)
+                continue;
+
+            var property = entry.Property(nameof(AuditableEntity.CompanyId));
+
+            // OriginalValue, not CurrentValue: a handler that loads a row with IgnoreQueryFilters()
+            // and then re-stamps CompanyId passes a CurrentValue check untouched.
+            var originalCompanyId = property.OriginalValue as string ?? string.Empty;
+            var currentCompanyId = property.CurrentValue as string ?? string.Empty;
+
+            if (originalCompanyId.Length == 0)
+                continue;
+
+            if (!scope.AllowedCompanyIds.Contains(originalCompanyId, StringComparer.Ordinal))
+            {
+                throw new CrossCompanyWriteException(
+                    $"SaveChanges aborted: {entry.Entity.GetType().Name} belongs to a company outside the current company scope. " +
+                    $"State: {entry.State}.");
+            }
+
+            if (string.Equals(originalCompanyId, currentCompanyId, StringComparison.Ordinal))
+                continue;
+
+            if (!scope.AllowedCompanyIds.Contains(currentCompanyId, StringComparer.Ordinal))
+            {
+                throw new CrossCompanyWriteException(
+                    $"SaveChanges aborted: {entry.Entity.GetType().Name} would be moved to a company outside the current company scope.");
+            }
+
+            logger.LogWarning(
+                "Cross-company move: {EntityType} moved from company {FromCompanyId} to {ToCompanyId} by user {UserId}",
+                entry.Entity.GetType().Name, originalCompanyId, currentCompanyId, userContextService?.GetUserId());
         }
     }
 
