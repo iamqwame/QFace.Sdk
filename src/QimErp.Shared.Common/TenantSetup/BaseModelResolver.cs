@@ -32,6 +32,7 @@ public static class BaseModelResolver
         ModuleKeys.Inventory,
         ModuleKeys.Project,
         ModuleKeys.POS,
+        ModuleKeys.Reporting,
     };
 
     public static IReadOnlyList<string> Resolve(IReadOnlyList<string>? selectedModules)
