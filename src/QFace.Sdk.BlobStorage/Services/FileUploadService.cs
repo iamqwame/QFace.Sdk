@@ -211,24 +211,7 @@ public class FileUploadService : IFileUploadService
     /// </summary>
     /// <param name="s3Key">The S3 object key</param>
     /// <returns>Full CDN URL for the object</returns>
-    public string GetCdnUrl(string s3Key)
-    {
-        if (string.IsNullOrEmpty(s3Key))
-        {
-            throw new ArgumentException("S3 key cannot be null or empty", nameof(s3Key));
-        }
-
-        // Custom public CDN domain (e.g. a Cloudflare custom domain on the bucket).
-        if (!string.IsNullOrWhiteSpace(_cdnBaseDomain))
-            return $"https://{_bucketName}.{_region}.{_cdnBaseDomain}/{s3Key}";
-
-        // Cloudflare R2 and other S3-compatible endpoints: path-style against the account endpoint.
-        if (!string.IsNullOrWhiteSpace(_options.ServiceURL))
-            return $"{_options.ServiceURL.TrimEnd('/')}/{_bucketName}/{s3Key}";
-
-        throw new InvalidOperationException(
-            "Blob storage ServiceURL or Bucket:CdnBaseDomain must be configured to build a public URL.");
-    }
+    public string GetCdnUrl(string s3Key) => BlobCdnUrl.FromKey(_options, s3Key);
 
     /// <summary>
     /// Extracts the S3 key from a CDN URL
