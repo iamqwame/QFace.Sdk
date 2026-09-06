@@ -20,6 +20,9 @@ public sealed class TenantCompanyQueryFilterConvention(IScopedQueryFilterContext
     private static readonly MethodInfo CompanyClauseBuilder =
         typeof(TenantCompanyQueryFilterConvention).GetMethod(nameof(BuildCompanyClause), BindingFlags.NonPublic | BindingFlags.Static)!;
 
+    private static readonly MethodInfo EmployeeFilterBuilder =
+        typeof(TenantCompanyQueryFilterConvention).GetMethod(nameof(BuildEmployeeFilter), BindingFlags.NonPublic | BindingFlags.Static)!;
+
     public void ProcessModelFinalizing(
         IConventionModelBuilder modelBuilder,
         IConventionContext<IConventionModelBuilder> conventionContext)
@@ -37,13 +40,16 @@ public sealed class TenantCompanyQueryFilterConvention(IScopedQueryFilterContext
 
             if (existing is null)
             {
-                var builder = tenantWide ? TenantFilterBuilder : FullFilterBuilder;
+                var builder = tenantWide
+                    ? TenantFilterBuilder
+                    : typeof(EmployeeBase).IsAssignableFrom(entityType.ClrType)
+                        ? EmployeeFilterBuilder
+                        : FullFilterBuilder;
                 SetFilter(entityType, (LambdaExpression)builder.MakeGenericMethod(entityType.ClrType).Invoke(null, [context])!);
                 continue;
             }
 
-            // A configuration that already reads CompanyId owns its own company scoping (EmployeeBase's
-            // IsVisibleAcrossCompanies OR). Overwriting or ANDing here would break it.
+            // A filter that already references CompanyId owns its own company scoping — do not AND the generic clause on.
             if (tenantWide || ReferencesCompanyId(existing))
                 continue;
 
@@ -85,6 +91,19 @@ public sealed class TenantCompanyQueryFilterConvention(IScopedQueryFilterContext
             e.DataStatus != DataState.Deleted
             && (e.IsGlobal || e.TenantId == ctx.CurrentTenantId)
             && (ctx.CompanyFilterActive == false || ctx.AllowedCompanyIds.Contains(e.CompanyId));
+
+        return filter;
+    }
+
+    private static LambdaExpression BuildEmployeeFilter<TEntity>(IScopedQueryFilterContext ctx)
+        where TEntity : EmployeeBase
+    {
+        Expression<Func<TEntity, bool>> filter = e =>
+            e.DataStatus != DataState.Deleted
+            && (e.IsGlobal || e.TenantId == ctx.CurrentTenantId)
+            && (ctx.CompanyFilterActive == false
+                || e.IsVisibleAcrossCompanies
+                || ctx.AllowedCompanyIds.Contains(e.CompanyId));
 
         return filter;
     }

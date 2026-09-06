@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QimErp.Shared.Common.Database;
+using QimErp.Shared.Common.Database.Configurations;
 using QimErp.Shared.Common.Entities;
 using QimErp.Shared.Common.Extensions;
 using QimErp.Shared.Common.Services.MultiTenancy;
@@ -39,6 +40,18 @@ public class TenantWideThing : BaseAuditableEntity<Guid>, ITenantWideEntity
     public string Name { get; set; } = string.Empty;
 }
 
+public sealed class TestEmployee : EmployeeBase
+{
+    public TestEmployee() { }
+
+    public TestEmployee(string code, string firstName, string lastName, string? email = null)
+        : base(CreateId(), code, firstName, lastName, email: email)
+    {
+    }
+}
+
+public sealed class TestEmployeeConfiguration : EmployeeBaseConfiguration<TestEmployee>;
+
 /// <summary>Reachable only through its configuration — no DbSet. The EmployeeProvisioningStatus case.</summary>
 public class ConfigurationOnlyThing : BaseAuditableEntity<Guid>
 {
@@ -64,6 +77,7 @@ public sealed class ConventionTestDbContext(
     public DbSet<CustomFilteredThing> CustomFilteredThings => Set<CustomFilteredThing>();
     public DbSet<SelfScopedThing> SelfScopedThings => Set<SelfScopedThing>();
     public DbSet<TenantWideThing> TenantWideThings => Set<TenantWideThing>();
+    public DbSet<TestEmployee> Employees => Set<TestEmployee>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -87,5 +101,6 @@ public sealed class ConventionTestDbContext(
                 || scoped.AllowedCompanyIds.Contains(e.CompanyId)));
 
         modelBuilder.ApplyConfiguration(new ConfigurationOnlyThingConfiguration());
+        modelBuilder.ApplyConfiguration(new TestEmployeeConfiguration());
     }
 }

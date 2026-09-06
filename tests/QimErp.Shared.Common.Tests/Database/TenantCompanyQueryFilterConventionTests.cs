@@ -180,6 +180,51 @@ public sealed class TenantCompanyQueryFilterConventionTests : IDisposable
         SqlBody(allCompanies).Should().Be(SqlBody(twoCompanies), "All Companies must not change the plan");
     }
 
+    [Fact]
+    public void Employee_filter_sql_uses_one_array_parameter_and_a_shape_stable_plan()
+    {
+        using var context = CreateContext();
+
+        _companyContext.SetScope(CompanyScope.ForCompanies(["company-a", "company-b"], "company-a"));
+        var twoCompanies = context.Employees.OrderBy(e => e.Code).ToQueryString();
+
+        _companyContext.SetScope(CompanyScope.ForCompanies(
+            ["c1", "c2", "c3", "c4", "c5"], "c1"));
+        var fiveCompanies = context.Employees.OrderBy(e => e.Code).ToQueryString();
+
+        _output.WriteLine("--- employees, two companies ---");
+        _output.WriteLine(twoCompanies);
+
+        CountOccurrences(twoCompanies, "= ANY (").Should().Be(1);
+        twoCompanies.Should().Contain("= ANY (@__ef_filter__AllowedCompanyIds");
+        twoCompanies.Should().Contain("@__ef_filter__CurrentTenantId");
+
+        var whereClause = twoCompanies[twoCompanies.IndexOf("WHERE", StringComparison.Ordinal)..];
+        whereClause.Should().Contain("\"IsVisibleAcrossCompanies\"",
+            "the employee filter's cross-company visibility OR-branch must be present in the WHERE clause, " +
+            "not just the generic company clause (the column also appears in the SELECT list, so it is not " +
+            "enough to check the whole query string)");
+        whereClause.IndexOf("\"IsVisibleAcrossCompanies\"", StringComparison.Ordinal)
+            .Should().BeLessThan(whereClause.IndexOf("= ANY (", StringComparison.Ordinal),
+                "IsVisibleAcrossCompanies must sit in the same OR-group as the company array clause");
+
+        SqlBody(fiveCompanies).Should().Be(SqlBody(twoCompanies), "company count must not change the plan");
+    }
+
+    [Fact]
+    public void Employee_query_filter_references_visibility_flag_and_tenant_once()
+    {
+        using var context = CreateContext();
+
+        var filter = context.Model.FindEntityType(typeof(TestEmployee))!.GetQueryFilter()!;
+        var body = filter.Body.ToString();
+        _output.WriteLine(body);
+
+        body.Should().Contain("IsVisibleAcrossCompanies");
+        body.Should().Contain("CurrentTenantId");
+        CountOccurrences(body, "AllowedCompanyIds").Should().Be(1);
+    }
+
     private static string SqlBody(string queryString)
     {
         var lines = queryString.Split('\n').Where(l => !l.TrimStart().StartsWith('-'));

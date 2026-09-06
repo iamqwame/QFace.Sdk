@@ -257,6 +257,7 @@ public class AuditEntitySaveChangesInterceptor(
         SetTenantIdOnEntities(context);
         SetCompanyIdOnEntities(context);
         GuardCrossCompanyWrites(context);
+        GuardModifiedEmployeesRetainHomeCompany(context);
 
         // Bulk-seed fast path: skip workflow processing and event capture.
         // Audit metadata still applied so seeded rows have CreatedBy/At, but no events fire.
@@ -419,6 +420,11 @@ public class AuditEntitySaveChangesInterceptor(
 
         if (string.IsNullOrEmpty(companyId) && CompanyStampScope.TryGetOverride(out var overrideCompanyId))
         {
+            if (string.IsNullOrEmpty(overrideCompanyId))
+            {
+                GuardEmployeesHaveHomeCompany(entriesToStamp);
+            }
+
             StampCompanyId(entriesToStamp, overrideCompanyId);
             return;
         }
@@ -427,6 +433,8 @@ public class AuditEntitySaveChangesInterceptor(
         {
             if (BulkSeedScope.IsSuppressed)
             {
+                GuardEmployeesHaveHomeCompany(entriesToStamp);
+
                 logger.LogWarning(
                     "BulkSeedScope active with no company write target — stamping {EntityCount} row(s) as tenant-shared. " +
                     "Wrap the seeder in CompanyStampScope.Enter(companyId) or CompanyStampScope.EnterShared() to make this explicit.",
@@ -434,6 +442,8 @@ public class AuditEntitySaveChangesInterceptor(
                 StampCompanyId(entriesToStamp, string.Empty);
                 return;
             }
+
+            GuardEmployeesHaveHomeCompany(entriesToStamp);
 
             var entityTypeNames = entriesToStamp
                 .Select(e => e.Entity.GetType().Name)
@@ -461,6 +471,54 @@ public class AuditEntitySaveChangesInterceptor(
             entry.Entity.CompanyId = companyId;
             logger.LogDebug("Set CompanyId={CompanyId} on {EntityType}", companyId, entry.Entity.GetType().Name);
         }
+    }
+
+    private static void GuardEmployeesHaveHomeCompany(List<EntityEntry<AuditableEntity>> entries)
+    {
+        var employeeTypes = entries
+            .Where(e => e.Entity is EmployeeBase)
+            .Select(e => e.Entity.GetType().Name)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (employeeTypes.Count == 0)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"SaveChanges aborted: {string.Join(", ", employeeTypes)} would be saved with no home company. " +
+            "An employee always belongs to exactly one company: call employee.WithCompanyId(id), or wrap the save " +
+            "in CompanyStampScope.Enter(companyId). Tenant-wide HR staff are expressed by calling " +
+            "employee.WithVisibilityAcrossCompanies(true) on top of a home company — never by leaving the company empty.");
+    }
+
+    /// <remarks>
+    /// Deliberately ignores <c>scope.FilterActive</c> and <c>BulkSeedScope.IsSuppressed</c> — those
+    /// are exactly the windows where <see cref="GuardCrossCompanyWrites"/> does not catch an
+    /// employee being blanked out.
+    /// </remarks>
+    private static void GuardModifiedEmployeesRetainHomeCompany(DbContext context)
+    {
+        var scope = CompanyContext.CurrentScope;
+
+        if (!scope.MultiCompanyEnabled)
+        {
+            return;
+        }
+
+        var blankedEmployees = context.ChangeTracker.Entries<AuditableEntity>()
+            .Where(e => e.State == EntityState.Modified && e.Entity is EmployeeBase)
+            .Where(e =>
+            {
+                var property = e.Property(nameof(AuditableEntity.CompanyId));
+                var originalCompanyId = property.OriginalValue as string ?? string.Empty;
+                var currentCompanyId = property.CurrentValue as string ?? string.Empty;
+                return !string.IsNullOrWhiteSpace(originalCompanyId) && string.IsNullOrWhiteSpace(currentCompanyId);
+            })
+            .ToList();
+
+        GuardEmployeesHaveHomeCompany(blankedEmployees);
     }
 
     /// <remarks>

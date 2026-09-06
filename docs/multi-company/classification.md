@@ -257,3 +257,25 @@ The `CompanyId` column MUST be created as `NOT NULL DEFAULT ''`.
 A nullable column makes the query filter's `AllowedCompanyIds.Contains(e.CompanyId)` evaluate to
 NULL rather than true or false for every legacy row, so those rows disappear from every query the
 moment the company filter goes active.
+
+## Downstream blockers found during SDK implementation
+
+These are NOT fixed in the SDK and must be handled when each module adopts the new version.
+
+1. **Employee sync carries no company — highest priority.** `EmployeeChangedEvent` and the
+   employee-sync Temporal activities have no `CompanyId`, so `TenantContextActivityInterceptor`
+   seeds `FilterActive: false` and synced employee rows are written with no company. Until that
+   event contract gains `CompanyId`, company scoping is a no-op for every synced employee row.
+   Spans CoreHr, Payroll, HROperations, Operations and the Temporal event schemas.
+
+2. **`GetByCodeAsync(code)` can now resolve the wrong company's employee.** Employee code
+   uniqueness widened from `{TenantId, Code}` to `{TenantId, CompanyId, Code}`, so any lookup by
+   code that does not also constrain company is ambiguous. Known sites: `QimErp.Payroll`
+   `EmployeeRepository`, two import processors, and CoreHr WorkforcePlanning/Learning.
+
+3. **Detached `Update()` with blank original and current `CompanyId` slips every guard.**
+   Pre-existing shape, not introduced by this work — EF has no snapshot for a detached entity.
+   Belongs on the security backlog, not this program.
+
+4. **Every consuming solution needs its own migration** once the SDK version is packed and
+   adopted. `QFace.Sdk` ships as a library and generates none.
