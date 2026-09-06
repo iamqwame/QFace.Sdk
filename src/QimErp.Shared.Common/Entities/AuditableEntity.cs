@@ -36,6 +36,12 @@ public abstract class AuditableEntity
     // Tenant Information
     public string TenantId { get; set; } = string.Empty;
 
+    /// <summary>
+    /// "" means tenant-shared (readable from every company); never null. Distinct from
+    /// <c>Tenant.Company</c> / the <c>companyName</c> claim, which name the tenant itself.
+    /// </summary>
+    public string CompanyId { get; set; } = string.Empty;
+
     // Created Information
     public string CreatedByUserId { get; private set; } = string.Empty;
     public string CreatedByEmail { get; private set; } = string.Empty;
@@ -157,6 +163,18 @@ public abstract class AuditableEntity
     public AuditableEntity WithReferenceNumber(string referenceNumber)
     {
         ReferenceNumber = referenceNumber;
+        return this;
+    }
+
+    public AuditableEntity WithCompanyId(string? companyId)
+    {
+        CompanyId = companyId ?? string.Empty;
+        return this;
+    }
+
+    public AuditableEntity AsTenantShared()
+    {
+        CompanyId = string.Empty;
         return this;
     }
 

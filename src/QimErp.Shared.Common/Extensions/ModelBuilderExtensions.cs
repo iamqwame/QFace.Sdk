@@ -15,6 +15,26 @@ public interface ITenantQueryFilterContext
     string CurrentTenantId { get; }
 }
 
+/// <summary>
+/// Implemented by the DbContext, not a service — same funcletization reason documented on
+/// <see cref="ITenantQueryFilterContext"/>. <see cref="AllowedCompanyIds"/> always contains
+/// <c>""</c> when <see cref="CompanyFilterActive"/>, folded in at the context layer so the
+/// predicate stays a single <c>= ANY(...)</c> instead of an OR the planner cannot index.
+/// </summary>
+public interface ICompanyQueryFilterContext
+{
+    bool CompanyFilterActive { get; }
+    string[] AllowedCompanyIds { get; }
+}
+
+/// <summary>
+/// Exists so the 17 Accounting configurations that already take <see cref="ITenantQueryFilterContext"/>
+/// can gain company scoping by changing one word, with no call-site churn.
+/// </summary>
+public interface IScopedQueryFilterContext : ITenantQueryFilterContext, ICompanyQueryFilterContext
+{
+}
+
 public static class ModelBuilderExtensions
 {
     /// <summary>
