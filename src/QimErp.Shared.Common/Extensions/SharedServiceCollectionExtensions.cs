@@ -109,6 +109,7 @@ public static class SharedServiceCollectionExtensions
 
         services.TryAddScoped<ICurrentUserService, DesignTimeCurrentUserService>();
         services.AddScoped<ITenantContext, TenantContext>();
+        services.AddScoped<ICompanyContext, CompanyContext>();
 
         NpgsqlDataSource? vectorDataSource = null;
         if (enableVector)
@@ -166,6 +167,11 @@ public static class SharedServiceCollectionExtensions
         // EF global query filters receive the correct TenantId during background activity execution.
         services.AddSingleton<ITenantScopeSetter>(
             sp => sp.GetRequiredService<TenantContext>());
+        // Singleton is correct here only because CompanyContext has no instance state — the scope
+        // lives in a static AsyncLocal, so concurrent activities stay isolated.
+        services.AddSingleton<CompanyContext>();
+        services.AddSingleton<ICompanyContext>(sp => sp.GetRequiredService<CompanyContext>());
+        services.AddSingleton<ICompanyScopeSetter>(sp => sp.GetRequiredService<CompanyContext>());
         services.AddSingleton<ConsumerUserContextService>();
         services.AddSingleton<ICurrentUserService>(sp => sp.GetRequiredService<ConsumerUserContextService>());
         services.AddSingleton<ITenantContextSetter>(sp => sp.GetRequiredService<ConsumerUserContextService>());
@@ -369,6 +375,7 @@ public static class SharedServiceCollectionExtensions
 
         app.UseAuthentication();
         app.UseTenantContext();
+        app.UseCompanyContext();
         app.UseAuthorization();
         app.UseUserLoggingScope();
 
@@ -404,6 +411,7 @@ public static class SharedServiceCollectionExtensions
         // Register ITenantContext (required by UseTenantContext middleware in UseAppSecurity)
         // Use TryAddScoped to avoid duplicate registration if already registered by AddDbContextWithOutbox
         services.TryAddScoped<ITenantContext, TenantContext>();
+        services.TryAddScoped<ICompanyContext, CompanyContext>();
         services.TryAddScoped<ITenantModuleAccessService, TenantModuleAccessService>();
         services.TryAddScoped<ITenantPluginAccessService, TenantPluginAccessService>();
         services.TryAddScoped<ITenantKnowledgeAccessService, TenantKnowledgeAccessService>();
@@ -578,6 +586,9 @@ public static class SharedServiceCollectionExtensions
         services.TryAddScoped<ITenantContext, TenantContext>();
         services.AddScoped<QFace.Sdk.Temporal.Interceptors.ITenantScopeSetter>(
             sp => (QFace.Sdk.Temporal.Interceptors.ITenantScopeSetter)sp.GetRequiredService<ITenantContext>());
+        services.TryAddScoped<ICompanyContext, CompanyContext>();
+        services.AddScoped<QFace.Sdk.Temporal.Interceptors.ICompanyScopeSetter>(
+            sp => (QFace.Sdk.Temporal.Interceptors.ICompanyScopeSetter)sp.GetRequiredService<ICompanyContext>());
 
         services.TryAddScoped<ITenantActivityRecorder, TenantActivityRecorder>();
 

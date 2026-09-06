@@ -1,3 +1,5 @@
+using QFace.Sdk.Temporal.Interceptors;
+
 namespace QimErp.Shared.Common.Services.MultiTenancy;
 
 public sealed record CompanyScope
@@ -26,10 +28,18 @@ public sealed record CompanyScope
             .OrderBy(id => id, StringComparer.Ordinal)
             .ToArray();
 
+        // ActiveCompanyId is the write target and originates from the X-Company-Id header.
+        // An id outside the allowed set must never become one.
+        var normalizedActive = CompanyIdNormalizer.NormalizeOrNull(active);
+        if (normalizedActive is not null && !allowed.Contains(normalizedActive, StringComparer.Ordinal))
+        {
+            normalizedActive = null;
+        }
+
         return new CompanyScope
         {
             AllowedCompanyIds = allowed,
-            ActiveCompanyId = CompanyIdNormalizer.NormalizeOrNull(active),
+            ActiveCompanyId = normalizedActive,
             FilterActive = true,
             MultiCompanyEnabled = true
         };
@@ -58,7 +68,12 @@ public interface ICompanyContext
     void Clear();
 }
 
-public class CompanyContext : ICompanyContext
+/// <summary>
+/// Implements both <see cref="ICompanyContext"/> (read scope + write target) and
+/// <see cref="ICompanyScopeSetter"/> (used by <see cref="TenantContextActivityInterceptor"/>
+/// to seed the ambient company scope for Temporal activity executions).
+/// </summary>
+public class CompanyContext : ICompanyContext, ICompanyScopeSetter
 {
     // static AsyncLocal is what makes a singleton registration correct — the type has no instance state.
     private static readonly AsyncLocal<CompanyScope?> _scope = new();
@@ -80,6 +95,28 @@ public class CompanyContext : ICompanyContext
     {
         _scope.Value = null;
     }
+
+    // ── ICompanyScopeSetter ───────────────────────────────────────────────────
+    void ICompanyScopeSetter.SetCompanyScope(string? activeCompanyId, IReadOnlyCollection<string>? allowedCompanyIds, bool filterActive)
+    {
+        if (filterActive)
+        {
+            SetScope(CompanyScope.ForCompanies(allowedCompanyIds ?? [], activeCompanyId));
+            return;
+        }
+
+        // Nothing supplied must stay Inactive, not AllCompanies: AllCompanies turns multi-company
+        // on, and the stamp then throws instead of stamping "" for callers that carry no company.
+        if (allowedCompanyIds is null && string.IsNullOrWhiteSpace(activeCompanyId))
+        {
+            SetScope(CompanyScope.Inactive);
+            return;
+        }
+
+        SetScope(CompanyScope.AllCompanies(activeCompanyId));
+    }
+
+    void ICompanyScopeSetter.ClearCompanyScope() => Clear();
 }
 
 public class DesignTimeCompanyContext : ICompanyContext
