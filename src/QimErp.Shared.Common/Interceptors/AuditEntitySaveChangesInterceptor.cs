@@ -478,7 +478,7 @@ public class AuditEntitySaveChangesInterceptor(
         }
 
         var entries = context.ChangeTracker.Entries<AuditableEntity>()
-            .Where(e => e.State is EntityState.Modified or EntityState.Deleted && !e.Entity.IsGlobal)
+            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .ToList();
 
         foreach (var entry in entries)
@@ -486,36 +486,77 @@ public class AuditEntitySaveChangesInterceptor(
             if (entry.Metadata.FindProperty(nameof(AuditableEntity.CompanyId)) is null)
                 continue;
 
+            var entityTypeName = entry.Entity.GetType().Name;
+
+            // OriginalValue, not CurrentValue: EnableGlobal() is public, so flipping it on a
+            // Modified row would otherwise skip the guard and publish the row cross-tenant.
+            var wasGlobal = WasGlobal(entry);
+
+            if (entry.State == EntityState.Modified && !wasGlobal && entry.Entity.IsGlobal)
+            {
+                throw new CrossCompanyWriteException(
+                    $"SaveChanges aborted: {entityTypeName} would be promoted to a global row, making it readable " +
+                    "by every tenant. Promoting an existing tenant row to global is not an ordinary write.");
+            }
+
+            if (wasGlobal)
+                continue;
+
             var property = entry.Property(nameof(AuditableEntity.CompanyId));
 
             // OriginalValue, not CurrentValue: a handler that loads a row with IgnoreQueryFilters()
             // and then re-stamps CompanyId passes a CurrentValue check untouched.
-            var originalCompanyId = property.OriginalValue as string ?? string.Empty;
+            var originalCompanyId = entry.State == EntityState.Added
+                ? string.Empty
+                : property.OriginalValue as string ?? string.Empty;
             var currentCompanyId = property.CurrentValue as string ?? string.Empty;
 
-            if (originalCompanyId.Length == 0)
-                continue;
-
-            if (!scope.AllowedCompanyIds.Contains(originalCompanyId, StringComparer.Ordinal))
+            if (entry.State is EntityState.Added or EntityState.Modified
+                && currentCompanyId.Length > 0
+                && !scope.AllowedCompanyIds.Contains(currentCompanyId, StringComparer.Ordinal))
             {
                 throw new CrossCompanyWriteException(
-                    $"SaveChanges aborted: {entry.Entity.GetType().Name} belongs to a company outside the current company scope. " +
+                    $"SaveChanges aborted: {entityTypeName} would be written to a company outside the current company scope. " +
                     $"State: {entry.State}.");
             }
 
-            if (string.Equals(originalCompanyId, currentCompanyId, StringComparison.Ordinal))
-                continue;
-
-            if (!scope.AllowedCompanyIds.Contains(currentCompanyId, StringComparer.Ordinal))
+            if (originalCompanyId.Length > 0
+                && !scope.AllowedCompanyIds.Contains(originalCompanyId, StringComparer.Ordinal))
             {
                 throw new CrossCompanyWriteException(
-                    $"SaveChanges aborted: {entry.Entity.GetType().Name} would be moved to a company outside the current company scope.");
+                    $"SaveChanges aborted: {entityTypeName} belongs to a company outside the current company scope. " +
+                    $"State: {entry.State}.");
             }
 
-            logger.LogWarning(
-                "Cross-company move: {EntityType} moved from company {FromCompanyId} to {ToCompanyId} by user {UserId}",
-                entry.Entity.GetType().Name, originalCompanyId, currentCompanyId, userContextService?.GetUserId());
+            if (entry.State == EntityState.Modified
+                && originalCompanyId.Length > 0
+                && currentCompanyId.Length == 0)
+            {
+                throw new CrossCompanyWriteException(
+                    $"SaveChanges aborted: {entityTypeName} would be widened from company-owned to tenant-shared, " +
+                    "making it readable by every company in the tenant. Create tenant-shared rows deliberately with " +
+                    "AsTenantShared() or CompanyStampScope.EnterShared() instead of widening an existing row.");
+            }
+
+            if (originalCompanyId.Length > 0
+                && !string.Equals(originalCompanyId, currentCompanyId, StringComparison.Ordinal))
+            {
+                logger.LogWarning(
+                    "Cross-company move: {EntityType} moved from company {FromCompanyId} to {ToCompanyId} by user {UserId}",
+                    entityTypeName, originalCompanyId, currentCompanyId, userContextService?.GetUserId());
+            }
         }
+    }
+
+    private static bool WasGlobal(EntityEntry<AuditableEntity> entry)
+    {
+        if (entry.State == EntityState.Added
+            || entry.Metadata.FindProperty(nameof(AuditableEntity.IsGlobal)) is null)
+        {
+            return entry.Entity.IsGlobal;
+        }
+
+        return entry.Property(nameof(AuditableEntity.IsGlobal)).OriginalValue is true;
     }
 
     private void AddAuditMetadata(DbContext context)

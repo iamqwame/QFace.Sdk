@@ -17,6 +17,7 @@ public sealed class CompanyStampInterceptorTests : IDisposable
     private const string Tenant = "019e31ec-comp-0000-0000-000000000001";
     private const string CompanyA = "company-a";
     private const string CompanyB = "company-b";
+    private const string CompanyC = "company-c";
 
     private sealed class TenantWideRow : GuidAuditableEntity, ITenantWideEntity
     {
@@ -61,7 +62,7 @@ public sealed class CompanyStampInterceptorTests : IDisposable
         public CompanyDbContext Db { get; }
         public CapturingLogger Log { get; } = new();
 
-        public Harness()
+        public Harness(bool withTenant = true)
         {
             var services = new ServiceCollection();
             services.AddHttpContextAccessor();
@@ -75,8 +76,15 @@ public sealed class CompanyStampInterceptorTests : IDisposable
             var sp = _scope.ServiceProvider;
 
             var userService = sp.GetRequiredService<UserContextService>();
-            userService.SetContext(Tenant, "tester@qimerp.com");
-            sp.GetRequiredService<ITenantContext>().SetTenant(Tenant);
+            if (withTenant)
+            {
+                userService.SetContext(Tenant, "tester@qimerp.com");
+                sp.GetRequiredService<ITenantContext>().SetTenant(Tenant);
+            }
+            else
+            {
+                userService.ClearContext();
+            }
 
             var interceptor = new AuditEntitySaveChangesInterceptor(userService, Log, sp);
 
@@ -365,5 +373,197 @@ public sealed class CompanyStampInterceptorTests : IDisposable
 
         shared.CompanyId.Should().BeEmpty();
         added.CompanyId.Should().Be(CompanyA);
+    }
+
+    // ── Write-side authorization guard ────────────────────────────────────────
+
+    [Fact(DisplayName = "An added row stamped with an out-of-scope company is rejected")]
+    public async Task Added_WithOutOfScopeCompany_Throws()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyA));
+
+        var row = EntityCodeConfig.Create(string.Empty, "Invoice");
+        row.WithCompanyId(CompanyC);
+        harness.Db.Configs.Add(row);
+
+        var act = async () => await harness.Db.SaveChangesAsync();
+
+        var thrown = await act.Should().ThrowAsync<CrossCompanyWriteException>();
+        thrown.Which.Message.Should().Contain("outside the current company scope");
+    }
+
+    [Fact(DisplayName = "An out-of-scope sibling company is not propagated across the batch")]
+    public async Task Added_SiblingInference_CannotEscapeScope()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], active: null));
+
+        var sibling = EntityCodeConfig.Create(string.Empty, "Invoice");
+        sibling.WithCompanyId(CompanyC);
+        harness.Db.Configs.Add(sibling);
+        harness.Db.Configs.Add(EntityCodeConfig.Create(string.Empty, "Receipt"));
+
+        var act = async () => await harness.Db.SaveChangesAsync();
+
+        await act.Should().ThrowAsync<CrossCompanyWriteException>();
+    }
+
+    [Fact(DisplayName = "A tenant-shared row cannot be moved into an out-of-scope company")]
+    public async Task Modified_SharedRow_MovedOutOfScope_Throws()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.AllCompanies(active: null));
+
+        var row = EntityCodeConfig.Create(string.Empty, "Invoice");
+        harness.Db.Configs.Add(row);
+        using (CompanyStampScope.EnterShared())
+        {
+            await harness.Db.SaveChangesAsync();
+        }
+
+        row.CompanyId.Should().BeEmpty();
+
+        SetScope(CompanyScope.ForCompanies([CompanyA], CompanyA));
+        row.CompanyId = CompanyC;
+
+        var act = async () => await harness.Db.SaveChangesAsync();
+
+        await act.Should().ThrowAsync<CrossCompanyWriteException>();
+    }
+
+    [Fact(DisplayName = "Promoting a modified row to global is rejected")]
+    public async Task Modified_PromotedToGlobal_Throws()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyA));
+
+        var row = EntityCodeConfig.Create(string.Empty, "Invoice");
+        harness.Db.Configs.Add(row);
+        await harness.Db.SaveChangesAsync();
+        row.CompanyId.Should().Be(CompanyA);
+
+        row.EnableGlobal();
+
+        var act = async () => await harness.Db.SaveChangesAsync();
+
+        var thrown = await act.Should().ThrowAsync<CrossCompanyWriteException>();
+        thrown.Which.Message.Should().Contain("global");
+    }
+
+    [Fact(DisplayName = "EnableGlobal on an out-of-scope row does not bypass the guard")]
+    public async Task Modified_GlobalFlag_DoesNotBypassOutOfScopeGuard()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyB));
+
+        var row = EntityCodeConfig.Create(string.Empty, "Invoice");
+        harness.Db.Configs.Add(row);
+        await harness.Db.SaveChangesAsync();
+        row.CompanyId.Should().Be(CompanyB);
+
+        SetScope(CompanyScope.ForCompanies([CompanyA], CompanyA));
+        row.EnableGlobal();
+
+        var act = async () => await harness.Db.SaveChangesAsync();
+
+        await act.Should().ThrowAsync<CrossCompanyWriteException>();
+    }
+
+    [Fact(DisplayName = "A row that was already global stays outside the company guard")]
+    public async Task Modified_AlreadyGlobalRow_IsSkipped()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyA));
+
+        var row = EntityCodeConfig.Create(Tenant, "Invoice");
+        row.EnableGlobal();
+        harness.Db.Configs.Add(row);
+        await harness.Db.SaveChangesAsync();
+
+        SetScope(CompanyScope.ForCompanies([CompanyC], CompanyC));
+        harness.Db.Entry(row).State = EntityState.Modified;
+
+        var act = async () => await harness.Db.SaveChangesAsync();
+
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact(DisplayName = "Widening a company-owned row to tenant-shared is rejected")]
+    public async Task Modified_WidenedToTenantShared_Throws()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyA));
+
+        var row = EntityCodeConfig.Create(string.Empty, "Invoice");
+        harness.Db.Configs.Add(row);
+        await harness.Db.SaveChangesAsync();
+        row.CompanyId.Should().Be(CompanyA);
+
+        row.AsTenantShared();
+
+        var act = async () => await harness.Db.SaveChangesAsync();
+
+        var thrown = await act.Should().ThrowAsync<CrossCompanyWriteException>();
+        thrown.Which.Message.Should().Contain("AsTenantShared")
+            .And.Contain("CompanyStampScope.EnterShared");
+    }
+
+    [Fact(DisplayName = "ForCompanies drops an active company outside the allowed set")]
+    public void ForCompanies_DropsActiveOutsideAllowedSet()
+    {
+        var scope = CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyC);
+
+        scope.ActiveCompanyId.Should().BeNull();
+        scope.AllowedCompanyIds.Should().BeEquivalentTo([string.Empty, CompanyA, CompanyB]);
+    }
+
+    [Fact(DisplayName = "An active company outside the allowed set is never used as the write target")]
+    public async Task ActiveCompanyOutsideAllowedSet_IsNotStamped()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyC));
+
+        harness.Db.Configs.Add(EntityCodeConfig.Create(string.Empty, "Invoice"));
+
+        var act = async () => await harness.Db.SaveChangesAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact(DisplayName = "A tenant-shared row edited under a multi-company scope with no active company is untouched")]
+    public async Task Modified_TenantSharedRow_UnderMultiCompanyScope_NoActive()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.AllCompanies(active: null));
+
+        var row = EntityCodeConfig.Create(string.Empty, "Invoice");
+        harness.Db.Configs.Add(row);
+        using (CompanyStampScope.EnterShared())
+        {
+            await harness.Db.SaveChangesAsync();
+        }
+
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], active: null));
+        harness.Db.Entry(row).State = EntityState.Modified;
+
+        var act = async () => await harness.Db.SaveChangesAsync();
+
+        await act.Should().NotThrowAsync();
+        row.CompanyId.Should().BeEmpty();
+    }
+
+    [Fact(DisplayName = "Synchronous SaveChanges throws when no TenantId can be resolved")]
+    public void SyncSaveChanges_WithoutTenant_Throws()
+    {
+        using var harness = new Harness(withTenant: false);
+        SetScope(CompanyScope.Inactive);
+
+        harness.Db.Configs.Add(EntityCodeConfig.Create(string.Empty, "Invoice"));
+
+        var act = () => harness.Db.SaveChanges();
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*TenantId is missing*");
     }
 }

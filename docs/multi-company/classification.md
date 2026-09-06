@@ -249,3 +249,11 @@ violate the new constraint.
 |---|---|---|
 | `Permissions` | TenantId, RoleId, PermissionId | WIDEN |
 
+
+## Downstream migration constraint
+
+The `CompanyId` column MUST be created as `NOT NULL DEFAULT ''`.
+
+A nullable column makes the query filter's `AllowedCompanyIds.Contains(e.CompanyId)` evaluate to
+NULL rather than true or false for every legacy row, so those rows disappear from every query the
+moment the company filter goes active.
