@@ -42,6 +42,11 @@ public sealed class UpsertStructuredAppSettingsBulkHandler<TResponse>(
             logger.LogInformation("Successfully upserted bulk structured settings for {ResponseType}", typeof(TResponse).Name);
             return Result.WithSuccess(response);
         }
+        catch (AppSettingScopeViolationException ex)
+        {
+            logger.LogDebug("UpsertStructuredAppSettingsBulk rejected: {Message}", ex.Message);
+            return Result.WithFailure<TResponse>(new Error("UpsertStructuredAppSettingsBulk.ScopeViolation", ex.Message));
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Error processing UpsertStructuredAppSettingsBulk for {ResponseType}", typeof(TResponse).Name);

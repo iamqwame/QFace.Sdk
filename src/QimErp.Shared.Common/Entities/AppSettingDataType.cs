@@ -10,6 +10,12 @@ public enum AppSettingDataType
     Decimal
 }
 
+public enum AppSettingScope
+{
+    TenantOnly,
+    CompanyOverridable
+}
+
 public class AppSettingValidationRules
 {
     public int? MinLength { get; set; }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using QimErp.Shared.Common.Database;
+using QimErp.Shared.Common.Services.MultiTenancy;
 
 namespace QimErp.Shared.Common.Services;
 
@@ -21,9 +22,22 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     protected abstract DbSet<AppSetting> AppSettings { get; }
 
-    // IMemoryCache is a process-wide singleton shared by every tenant, so the key must include
-    // the tenant id — otherwise tenant A's cached setting value leaks to tenant B's read/write.
-    private string CacheKey(string key) => $"{CacheKeyPrefix}{_context.CurrentTenantId}_{key}";
+    private static string EffectiveCompanyId => CompanyContext.CurrentScope.EffectiveCompanyId;
+
+    // IMemoryCache is a process-wide singleton shared by every tenant and company, so the key must
+    // include both ids — otherwise one company's cached value is served to another's read/write.
+    private string CacheKey(string key) => $"{CacheKeyPrefix}{_context.CurrentTenantId}_{EffectiveCompanyId}_{key}";
+
+    private string CacheKey(string key, string companyId) => $"{CacheKeyPrefix}{_context.CurrentTenantId}_{companyId}_{key}";
+
+    private IQueryable<AppSetting> Candidates(string companyId) =>
+        AppSettings.Where(s => s.CompanyId == string.Empty || s.CompanyId == companyId);
+
+    // Resolve against EffectiveCompanyId, never the ambient read scope: AllowedCompanyIds admits every
+    // company the caller can see, so the global filter alone would return an arbitrary company's row.
+    private static AppSetting? Resolve(IEnumerable<AppSetting> rows, string companyId) =>
+        rows.FirstOrDefault(s => s.CompanyId == companyId && companyId.Length > 0)
+        ?? rows.FirstOrDefault(s => s.CompanyId.Length == 0);
 
     public async Task<T?> GetSettingAsync<T>(string key, T? defaultValue = default)
     {
@@ -43,8 +57,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 return defaultValue;
             }
 
-            var setting = await AppSettings
-                .FirstOrDefaultAsync(s => s.Key == key);
+            var companyId = EffectiveCompanyId;
+            var setting = Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId);
 
             if (setting == null)
             {
@@ -53,7 +67,7 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
             var value = setting.GetValue<T>();
             _cache.Set(cacheKey, value, TimeSpan.FromMinutes(CacheExpirationMinutes));
-            
+
             return value ?? defaultValue;
         }
         catch (Exception ex)
@@ -94,8 +108,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 return defaultValue;
             }
 
-            var setting = await AppSettings
-                .FirstOrDefaultAsync(s => s.Key == key);
+            var companyId = EffectiveCompanyId;
+            var setting = Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId);
 
             var value = setting?.GetBooleanValue() ?? defaultValue;
             _cache.Set(cacheKey, value, TimeSpan.FromMinutes(CacheExpirationMinutes));
@@ -124,8 +138,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 return defaultValue;
             }
 
-            var setting = await AppSettings
-                .FirstOrDefaultAsync(s => s.Key == key);
+            var companyId = EffectiveCompanyId;
+            var setting = Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId);
 
             var value = setting?.GetIntValue() ?? defaultValue;
             _cache.Set(cacheKey, value, TimeSpan.FromMinutes(CacheExpirationMinutes));
@@ -154,8 +168,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 return defaultValue;
             }
 
-            var setting = await AppSettings
-                .FirstOrDefaultAsync(s => s.Key == key);
+            var companyId = EffectiveCompanyId;
+            var setting = Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId);
 
             var value = setting?.GetDecimalValue() ?? defaultValue;
             _cache.Set(cacheKey, value, TimeSpan.FromMinutes(CacheExpirationMinutes));
@@ -170,6 +184,16 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     public async Task SetSettingAsync<T>(string key, T value, string category, string description)
     {
+        var companyId = EffectiveCompanyId;
+
+        if (companyId.Length > 0)
+        {
+            var authoritative = Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId: string.Empty);
+            if (authoritative?.Scope == AppSettingScope.TenantOnly)
+                throw new AppSettingScopeViolationException(
+                    $"Setting '{key}' is tenant-only and cannot be overridden per company.");
+        }
+
         try
         {
             // Ensure database is ready
@@ -180,7 +204,7 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             }
 
             var existingSetting = await AppSettings
-                .FirstOrDefaultAsync(s => s.Key == key);
+                .FirstOrDefaultAsync(s => s.Key == key && s.CompanyId == companyId);
 
             if (existingSetting != null)
             {
@@ -190,6 +214,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                     existingSetting.UpdateArrayValue(arrayValue);
                 else
                     existingSetting.UpdateObjectValue(value!);
+
+                await _context.SaveChangesAsync();
             }
             else
             {
@@ -204,11 +230,27 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 newSetting.WithDescription(description);
 
                 await AppSettings.AddAsync(newSetting);
+
+                if (companyId.Length > 0)
+                {
+                    newSetting.WithCompanyId(companyId);
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    using (CompanyStampScope.EnterShared())
+                        await _context.SaveChangesAsync();
+                }
             }
 
-            await _context.SaveChangesAsync();
             _cache.Remove(CacheKey(key));
-            
+
+            if (companyId.Length == 0 && CompanyContext.CurrentScope.MultiCompanyEnabled)
+            {
+                foreach (var allowedCompanyId in CompanyContext.CurrentScope.AllowedCompanyIds)
+                    _cache.Remove(CacheKey(key, allowedCompanyId));
+            }
+
             _logger.LogInformation("Setting {Key} updated", key);
         }
         catch (Exception ex)
@@ -243,6 +285,28 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
         if (settings == null || settings.Count == 0)
             return;
 
+        var companyId = EffectiveCompanyId;
+        var settingKeys = settings.Keys.ToList();
+
+        if (companyId.Length > 0)
+        {
+            var candidateRows = await Candidates(companyId)
+                .Where(s => settingKeys.Contains(s.Key))
+                .ToListAsync();
+
+            var violatingKeys = candidateRows
+                .GroupBy(s => s.Key)
+                .Where(g => Resolve(g, companyId: string.Empty)?.Scope == AppSettingScope.TenantOnly)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (violatingKeys.Count > 0)
+            {
+                throw new AppSettingScopeViolationException(
+                    $"Setting(s) '{string.Join(", ", violatingKeys)}' are tenant-only and cannot be overridden per company.");
+            }
+        }
+
         try
         {
             // Ensure database is ready
@@ -253,9 +317,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             }
 
             // ✅ Performance Fix 1: Use proper SQL translation with ToList() and create lookup dictionary
-            var settingKeys = settings.Keys.ToList();
             var existingSettingsDict = (await AppSettings
-                    .Where(s => settingKeys.Contains(s.Key))
+                    .Where(s => settingKeys.Contains(s.Key) && s.CompanyId == companyId)
                     .ToListAsync())
                 .ToDictionary(s => s.Key, s => s);
 
@@ -273,7 +336,7 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                         existingSetting.UpdateObjectValue(dictValue);
                     else
                         existingSetting.UpdateObjectValue(value);
-                    
+
                     if (!string.IsNullOrEmpty(description))
                         existingSetting.WithDescription(description);
                 }
@@ -293,16 +356,36 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                     if (!string.IsNullOrEmpty(description))
                         newSetting.WithDescription(description);
 
+                    if (companyId.Length > 0)
+                        newSetting.WithCompanyId(companyId);
+
                     await AppSettings.AddAsync(newSetting);
                 }
             }
 
-            await _context.SaveChangesAsync();
+            if (companyId.Length > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                using (CompanyStampScope.EnterShared())
+                    await _context.SaveChangesAsync();
+            }
 
             // Clear cache for all affected settings
             foreach (var key in settingKeys)
             {
                 _cache.Remove(CacheKey(key));
+            }
+
+            if (companyId.Length == 0 && CompanyContext.CurrentScope.MultiCompanyEnabled)
+            {
+                foreach (var allowedCompanyId in CompanyContext.CurrentScope.AllowedCompanyIds)
+                {
+                    foreach (var key in settingKeys)
+                        _cache.Remove(CacheKey(key, allowedCompanyId));
+                }
             }
 
             _logger.LogInformation("Bulk inserted/updated {Count} settings in category {Category}", settings.Count, category);
@@ -324,12 +407,21 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 return new List<AppSetting>();
             }
 
-            var query = AppSettings.AsQueryable();
-            
+            var companyId = EffectiveCompanyId;
+            var query = Candidates(companyId);
+
             if (!category.IsEmpty())
                 query = query.Where(s => s.Category == category);
 
-            return await query.OrderBy(s => s.Category).ThenBy(s => s.Key).ToListAsync();
+            var rows = await query.ToListAsync();
+
+            return rows
+                .GroupBy(s => s.Key)
+                .Select(g => Resolve(g, companyId))
+                .Where(s => s is not null)
+                .Select(s => s!)
+                .OrderBy(s => s.Category).ThenBy(s => s.Key)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -348,8 +440,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 return null;
             }
 
-            return await AppSettings
-                .FirstOrDefaultAsync(s => s.Key == key);
+            var companyId = EffectiveCompanyId;
+            return Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId);
         }
         catch (Exception ex)
         {
@@ -368,15 +460,21 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 return;
             }
 
-            var setting = await AppSettings
-                .FirstOrDefaultAsync(s => s.Key == key);
+            var companyId = EffectiveCompanyId;
+            var setting = Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId);
 
             if (setting != null)
             {
                 setting.MarkAsDeleted();
                 await _context.SaveChangesAsync();
                 _cache.Remove(CacheKey(key));
-                
+
+                if (companyId.Length == 0 && CompanyContext.CurrentScope.MultiCompanyEnabled)
+                {
+                    foreach (var allowedCompanyId in CompanyContext.CurrentScope.AllowedCompanyIds)
+                        _cache.Remove(CacheKey(key, allowedCompanyId));
+                }
+
                 _logger.LogInformation("Setting {Key} deleted", key);
             }
         }
@@ -396,8 +494,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 return false;
             }
 
-            return await AppSettings
-                .AnyAsync(s => s.Key == key);
+            var companyId = EffectiveCompanyId;
+            return Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId) is not null;
         }
         catch (Exception ex)
         {
@@ -405,4 +503,4 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             return false;
         }
     }
-} 
+}

@@ -23,9 +23,8 @@ public class EntityCodeConfigConfiguration : AuditableEntityConfiguration<Entity
             .IsRequired()
             .HasConversion(new EnumToStringConverter<CodeResetPeriod>());
 
-        // One config per tenant + entity type (no subsidiaries in v1)
-        builder.HasIndex(e => new { e.TenantId, e.EntityType })
+        builder.HasIndex(e => new { e.TenantId, e.CompanyId, e.EntityType })
             .IsUnique()
-            .HasDatabaseName("IX_EntityCodeConfigs_TenantId_EntityType");
+            .HasDatabaseName("IX_EntityCodeConfigs_TenantId_CompanyId_EntityType");
     }
 }

@@ -8,7 +8,7 @@ namespace QimErp.Shared.Common.Entities;
 /// idempotent Enable/Disable Temporal activity, dispatched from IAM.Core's App Store install
 /// and uninstall workflows.
 /// </summary>
-public sealed class TenantPluginFlag : GuidAuditableEntity
+public sealed class TenantPluginFlag : GuidAuditableEntity, ITenantWideEntity
 {
     public string PluginKey { get; private set; } = string.Empty;
     public bool Enabled { get; private set; }

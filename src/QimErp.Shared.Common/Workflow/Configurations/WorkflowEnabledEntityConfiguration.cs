@@ -13,8 +13,9 @@ public abstract class WorkflowEnabledEntityConfiguration<TEntity> : IEntityTypeC
 
         builder.HasIndex(e => e.DataStatus); // For filtering by status
         builder.HasIndex(e => e.Created); // For sorting by creation date
-        builder.HasIndex(e => e.LastModified); 
-        builder.HasIndex(e => e.TenantId); 
+        builder.HasIndex(e => e.LastModified);
+        builder.HasIndex(e => new { e.TenantId, e.CompanyId, e.DataStatus });
+        builder.HasIndex(e => new { e.TenantId, e.CompanyId, e.WorkflowStatus });
         builder.HasIndex(e => new { e.DataStatus, e.Created });
         builder.HasIndex(e => new { e.DataStatus, e.LastModified }); // Composite for recent changes
 

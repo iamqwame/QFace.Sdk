@@ -19,6 +19,21 @@ public sealed record CompanyScope
 
     public IEnumerable<string> RealCompanyIds => AllowedCompanyIds.Where(id => !string.IsNullOrEmpty(id));
 
+    public string EffectiveCompanyId
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(ActiveCompanyId))
+                return ActiveCompanyId;
+
+            if (!FilterActive)
+                return string.Empty;
+
+            var real = RealCompanyIds.ToArray();
+            return real.Length == 1 ? real[0] : string.Empty;
+        }
+    }
+
     public static CompanyScope ForCompanies(IEnumerable<string> ids, string? active)
     {
         var allowed = ids

@@ -28,12 +28,14 @@ public sealed class CompanyStampInterceptorTests : IDisposable
     {
         public DbSet<EntityCodeConfig> Configs { get; set; } = null!;
         public DbSet<TenantWideRow> TenantWideRows { get; set; } = null!;
+        public DbSet<TenantPluginFlag> TenantPluginFlags { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<EntityCodeConfig>().Ignore(e => e.CustomFields);
             modelBuilder.Entity<TenantWideRow>().Ignore(e => e.CustomFields);
+            modelBuilder.Entity<TenantPluginFlag>().Ignore(e => e.CustomFields);
         }
     }
 
@@ -176,6 +178,19 @@ public sealed class CompanyStampInterceptorTests : IDisposable
         await harness.Db.SaveChangesAsync();
 
         row.CompanyId.Should().BeEmpty();
+    }
+
+    [Fact(DisplayName = "TenantPluginFlag (ITenantWideEntity) is never company-stamped")]
+    public async Task TenantPluginFlag_IsNeverStamped()
+    {
+        using var harness = new Harness();
+        SetScope(CompanyScope.ForCompanies([CompanyA], CompanyA));
+
+        var flag = TenantPluginFlag.Create(Tenant, "gh-ipss-export");
+        harness.Db.TenantPluginFlags.Add(flag);
+        await harness.Db.SaveChangesAsync();
+
+        flag.CompanyId.Should().BeEmpty();
     }
 
     [Fact(DisplayName = "CompanyStampScope.Enter supplies the write target when no company is active")]

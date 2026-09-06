@@ -65,6 +65,11 @@ public sealed class CreateAppSettingHandler<TResponse>(
 
             return Result.WithSuccess(created.ToResponse());
         }
+        catch (AppSettingScopeViolationException ex)
+        {
+            logger.LogDebug("CreateAppSetting rejected: {Message}", ex.Message);
+            return Result.WithFailure<AppSettingResponse>(new Error("CreateAppSetting.ScopeViolation", ex.Message));
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Error processing CreateAppSetting: {Request}", JsonSerializer.Serialize(request));
