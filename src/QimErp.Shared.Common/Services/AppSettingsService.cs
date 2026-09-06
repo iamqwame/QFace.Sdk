@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using QimErp.Shared.Common.Database;
 using QimErp.Shared.Common.Services.MultiTenancy;
@@ -24,20 +25,32 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
     private static string EffectiveCompanyId => CompanyContext.CurrentScope.EffectiveCompanyId;
 
+    // IMemoryCache is per-process, so generation-based eviction is best-effort across instances.
+    private static readonly ConcurrentDictionary<string, long> TenantCacheGenerations = new();
+
     // IMemoryCache is a process-wide singleton shared by every tenant and company, so the key must
     // include both ids — otherwise one company's cached value is served to another's read/write.
-    private string CacheKey(string key) => $"{CacheKeyPrefix}{_context.CurrentTenantId}_{EffectiveCompanyId}_{key}";
+    private string CacheKey(string key) =>
+        $"{CacheKeyPrefix}{_context.CurrentTenantId}_g{TenantCacheGenerations.GetOrAdd(_context.CurrentTenantId ?? string.Empty, 0)}_{EffectiveCompanyId}_{key}";
 
-    private string CacheKey(string key, string companyId) => $"{CacheKeyPrefix}{_context.CurrentTenantId}_{companyId}_{key}";
+    private void EvictTenantWide() =>
+        TenantCacheGenerations.AddOrUpdate(_context.CurrentTenantId ?? string.Empty, 1, (_, current) => current + 1);
 
     private IQueryable<AppSetting> Candidates(string companyId) =>
         AppSettings.Where(s => s.CompanyId == string.Empty || s.CompanyId == companyId);
 
     // Resolve against EffectiveCompanyId, never the ambient read scope: AllowedCompanyIds admits every
     // company the caller can see, so the global filter alone would return an arbitrary company's row.
-    private static AppSetting? Resolve(IEnumerable<AppSetting> rows, string companyId) =>
-        rows.FirstOrDefault(s => s.CompanyId == companyId && companyId.Length > 0)
-        ?? rows.FirstOrDefault(s => s.CompanyId.Length == 0);
+    // A TenantOnly shared row wins over any company row, including one written before the key was marked.
+    private static AppSetting? Resolve(IEnumerable<AppSetting> rows, string companyId)
+    {
+        var shared = rows.FirstOrDefault(s => s.CompanyId.Length == 0);
+
+        if (companyId.Length == 0 || shared?.Scope == AppSettingScope.TenantOnly)
+            return shared;
+
+        return rows.FirstOrDefault(s => s.CompanyId == companyId) ?? shared;
+    }
 
     public async Task<T?> GetSettingAsync<T>(string key, T? defaultValue = default)
     {
@@ -238,22 +251,21 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 }
                 else
                 {
-                    using (CompanyStampScope.EnterShared())
+                    using (CompanyStampScope.EnterSharedAsTenantWideWriter($"Setting '{key}'"))
                         await _context.SaveChangesAsync();
                 }
             }
 
             _cache.Remove(CacheKey(key));
 
-            if (companyId.Length == 0 && CompanyContext.CurrentScope.MultiCompanyEnabled)
-            {
-                foreach (var allowedCompanyId in CompanyContext.CurrentScope.AllowedCompanyIds)
-                    _cache.Remove(CacheKey(key, allowedCompanyId));
-            }
+            if (companyId.Length == 0)
+                EvictTenantWide();
 
             _logger.LogInformation("Setting {Key} updated", key);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not CrossCompanyWriteException
+                                       and not AppSettingScopeViolationException
+                                       and not DbUpdateException)
         {
             _logger.LogError(ex, "Failed to set setting {Key}. This might be due to database schema issues.", key);
             // Don't throw the exception to prevent application startup failure
@@ -369,7 +381,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             }
             else
             {
-                using (CompanyStampScope.EnterShared())
+                using (CompanyStampScope.EnterSharedAsTenantWideWriter(
+                           $"Setting(s) '{string.Join(", ", settingKeys)}'"))
                     await _context.SaveChangesAsync();
             }
 
@@ -379,18 +392,14 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 _cache.Remove(CacheKey(key));
             }
 
-            if (companyId.Length == 0 && CompanyContext.CurrentScope.MultiCompanyEnabled)
-            {
-                foreach (var allowedCompanyId in CompanyContext.CurrentScope.AllowedCompanyIds)
-                {
-                    foreach (var key in settingKeys)
-                        _cache.Remove(CacheKey(key, allowedCompanyId));
-                }
-            }
+            if (companyId.Length == 0)
+                EvictTenantWide();
 
             _logger.LogInformation("Bulk inserted/updated {Count} settings in category {Category}", settings.Count, category);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not CrossCompanyWriteException
+                                       and not AppSettingScopeViolationException
+                                       and not DbUpdateException)
         {
             _logger.LogError(ex, "Failed to bulk set settings. This might be due to database schema issues.");
             // Don't throw the exception to prevent application startup failure
@@ -461,7 +470,9 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
             }
 
             var companyId = EffectiveCompanyId;
-            var setting = Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId);
+
+            // Exact match, never the resolve fallback: a company delete must not remove the shared row.
+            var setting = await AppSettings.FirstOrDefaultAsync(s => s.Key == key && s.CompanyId == companyId);
 
             if (setting != null)
             {
@@ -469,11 +480,8 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
                 await _context.SaveChangesAsync();
                 _cache.Remove(CacheKey(key));
 
-                if (companyId.Length == 0 && CompanyContext.CurrentScope.MultiCompanyEnabled)
-                {
-                    foreach (var allowedCompanyId in CompanyContext.CurrentScope.AllowedCompanyIds)
-                        _cache.Remove(CacheKey(key, allowedCompanyId));
-                }
+                if (companyId.Length == 0)
+                    EvictTenantWide();
 
                 _logger.LogInformation("Setting {Key} deleted", key);
             }
@@ -496,6 +504,26 @@ public abstract class AppSettingsService<TContext> : IAppSettingsService
 
             var companyId = EffectiveCompanyId;
             return Resolve(await Candidates(companyId).Where(s => s.Key == key).ToListAsync(), companyId) is not null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to check if setting {Key} exists. This might be due to database schema issues.", key);
+            return false;
+        }
+    }
+
+    public async Task<bool> SettingExistsForCurrentCompanyAsync(string key)
+    {
+        try
+        {
+            if (!_context.Database.CanConnect())
+            {
+                _logger.LogWarning("Database is not available, returning false for setting {Key}", key);
+                return false;
+            }
+
+            var companyId = EffectiveCompanyId;
+            return await AppSettings.AnyAsync(s => s.Key == key && s.CompanyId == companyId);
         }
         catch (Exception ex)
         {

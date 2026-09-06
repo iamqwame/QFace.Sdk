@@ -12,8 +12,9 @@ public enum AppSettingDataType
 
 public enum AppSettingScope
 {
-    TenantOnly,
-    CompanyOverridable
+    // First member is what an empty/absent stored value converts to — it must be the permissive one.
+    CompanyOverridable,
+    TenantOnly
 }
 
 public class AppSettingValidationRules

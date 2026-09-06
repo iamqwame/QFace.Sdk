@@ -117,6 +117,17 @@ public sealed class EntityCodeConfig : GuidAuditableEntity
             LastSequence = value;
     }
 
+    /// <summary>
+    /// Copies sequence state from another config for the same entity type.
+    /// A company's first config must continue the tenant-wide sequence, never re-issue codes already handed out.
+    /// </summary>
+    public void SeedSequenceFrom(EntityCodeConfig source)
+    {
+        LastSequence = source.LastSequence;
+        ManualHighWaterMark = source.ManualHighWaterMark;
+        LastResetPeriodKey = source.LastResetPeriodKey;
+    }
+
     /// <summary>Records that the sequence was reset in this period.</summary>
     public void MarkSequenceReset(string periodKey)
     {

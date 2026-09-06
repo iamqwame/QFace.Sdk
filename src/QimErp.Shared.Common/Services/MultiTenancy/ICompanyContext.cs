@@ -34,6 +34,12 @@ public sealed record CompanyScope
         }
     }
 
+    /// <summary>
+    /// True when the caller sees the whole tenant, so a write with no company target is genuinely tenant-shared.
+    /// A caller filtered to a company list is never tenant-wide, even when no company is active.
+    /// </summary>
+    public bool IsTenantWideWriter => !MultiCompanyEnabled || !FilterActive;
+
     public static CompanyScope ForCompanies(IEnumerable<string> ids, string? active)
     {
         var allowed = ids

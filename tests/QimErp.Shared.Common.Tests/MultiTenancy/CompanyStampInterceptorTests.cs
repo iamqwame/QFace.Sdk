@@ -108,6 +108,28 @@ public sealed class CompanyStampInterceptorTests : IDisposable
 
     public void Dispose() => new CompanyContext().Clear();
 
+    public static TheoryData<string, CompanyScope> WriteTargetShapes => new()
+    {
+        { "inactive", CompanyScope.Inactive },
+        { "one company, none active", CompanyScope.ForCompanies([CompanyA], null) },
+        { "two companies, B active", CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyB) },
+        { "all companies, A active", CompanyScope.AllCompanies(CompanyA) },
+    };
+
+    [Theory(DisplayName = "The stamped company equals CompanyScope.EffectiveCompanyId across scope shapes")]
+    [MemberData(nameof(WriteTargetShapes))]
+    public async Task StampedCompany_EqualsEffectiveCompanyId(string _, CompanyScope scope)
+    {
+        using var harness = new Harness();
+        SetScope(scope);
+
+        var row = EntityCodeConfig.Create(string.Empty, "Invoice");
+        harness.Db.Configs.Add(row);
+        await harness.Db.SaveChangesAsync();
+
+        row.CompanyId.Should().Be(scope.EffectiveCompanyId);
+    }
+
     [Fact(DisplayName = "Active company is the write target")]
     public async Task ActiveCompany_IsStamped()
     {

@@ -389,17 +389,7 @@ public class AuditEntitySaveChangesInterceptor(
             return;
         }
 
-        var companyId = scope.ActiveCompanyId;
-
-        if (string.IsNullOrEmpty(companyId) && scope.FilterActive)
-        {
-            var realCompanyIds = scope.RealCompanyIds.ToArray();
-            if (realCompanyIds.Length == 1)
-            {
-                companyId = realCompanyIds[0];
-                logger.LogDebug("CompanyId resolved from the single company in scope: {CompanyId}", companyId);
-            }
-        }
+        string? companyId = scope.EffectiveCompanyId;
 
         if (string.IsNullOrEmpty(companyId))
         {

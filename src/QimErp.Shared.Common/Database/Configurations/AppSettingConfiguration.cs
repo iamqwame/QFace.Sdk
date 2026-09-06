@@ -17,8 +17,10 @@ public class AppSettingConfiguration : AuditableEntityConfiguration<AppSetting>
         builder.Property(x => x.DataType).IsRequired()
             .HasConversion(new EnumToStringConverter<AppSettingDataType>());
 
+        // Without an explicit default, every pre-existing row upgrades to the first enum member.
         builder.Property(x => x.Scope).IsRequired()
-            .HasConversion(new EnumToStringConverter<AppSettingScope>());
+            .HasConversion(new EnumToStringConverter<AppSettingScope>())
+            .HasDefaultValue(AppSettingScope.CompanyOverridable);
 
         // Configure ValidationRules as a simple JSON column without complex property mapping
         builder.Property(as_ => as_.ValidationRules)

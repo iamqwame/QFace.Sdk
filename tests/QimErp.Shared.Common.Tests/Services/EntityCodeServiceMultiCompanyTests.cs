@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using QimErp.Shared.Common.Database;
 using QimErp.Shared.Common.Entities;
+using QimErp.Shared.Common.ExceptionHandlers;
 using QimErp.Shared.Common.Interceptors;
 using QimErp.Shared.Common.Services;
 using QimErp.Shared.Common.Services.Auth;
@@ -153,6 +154,41 @@ public sealed class EntityCodeServiceMultiCompanyTests : IDisposable
         configs.Should().HaveCount(2);
         configs.Should().Contain(c => c.CompanyId == CompanyA && c.LastSequence == 2);
         configs.Should().Contain(c => c.CompanyId == CompanyB && c.LastSequence == 1);
+    }
+
+    [Fact(DisplayName = "Company A's first code after multi-company enablement continues the tenant sequence, it does not restart")]
+    public async Task FirstCompanyCode_ContinuesTenantSequence_DoesNotRestart()
+    {
+        using var harness = new Harness();
+
+        SetScope(CompanyScope.Inactive);
+        (await harness.Service.GenerateAsync(Tenant, "Invoice")).Should().Be("INV-0001");
+
+        var tenantWide = await harness.Db.EntityCodeConfigs.IgnoreQueryFilters()
+            .FirstAsync(c => c.EntityType == "Invoice" && c.CompanyId == string.Empty);
+        tenantWide.IncrementSequenceBy(499);
+        await harness.Db.SaveChangesAsync();
+
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyA));
+
+        (await harness.Service.GenerateAsync(Tenant, "Invoice")).Should().Be("INV-0501");
+
+        var companyConfig = await harness.Db.EntityCodeConfigs.IgnoreQueryFilters()
+            .FirstAsync(c => c.EntityType == "Invoice" && c.CompanyId == CompanyA);
+        companyConfig.LastSequence.Should().Be(501);
+    }
+
+    [Fact(DisplayName = "A two-company caller with no active company cannot auto-create a tenant-shared numbering config")]
+    public async Task TwoCompanyCaller_NoActiveCompany_CannotWriteTenantSharedConfig()
+    {
+        using var harness = new Harness();
+
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], active: null));
+
+        var act = async () => await harness.Service.GenerateAsync(Tenant, "Invoice");
+        await act.Should().ThrowAsync<AppSettingScopeViolationException>();
+
+        (await harness.Db.EntityCodeConfigs.IgnoreQueryFilters().ToListAsync()).Should().BeEmpty();
     }
 
     [Fact(DisplayName = "Cache keys for the same entity type differ between two companies in the same tenant")]

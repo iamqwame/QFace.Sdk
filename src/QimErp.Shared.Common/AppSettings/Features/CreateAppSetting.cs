@@ -43,7 +43,7 @@ public sealed class CreateAppSettingHandler<TResponse>(
 
         try
         {
-            if (await appSettingsService.SettingExistsAsync(request.SettingKey))
+            if (await appSettingsService.SettingExistsForCurrentCompanyAsync(request.SettingKey))
             {
                 return Result.WithFailure<AppSettingResponse>(
                     new Error("CreateAppSetting.AlreadyExists", "Setting with this key already exists."));

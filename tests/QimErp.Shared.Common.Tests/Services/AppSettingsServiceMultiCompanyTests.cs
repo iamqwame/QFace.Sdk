@@ -179,6 +179,95 @@ public sealed class AppSettingsServiceMultiCompanyTests : IDisposable
         (await harness.Service.GetStringSettingAsync("security.mfaRequired")).Should().Be("false");
     }
 
+    [Fact(DisplayName = "A company delete with no override of its own leaves the tenant-shared row, and company B's value, intact")]
+    public async Task CompanyDelete_LeavesTenantSharedRow_AndCompanyBValue_Intact()
+    {
+        using var harness = new Harness();
+
+        SetScope(CompanyScope.Inactive);
+        await harness.Service.SetStringSettingAsync("payroll.cycle", "Monthly", "Payroll", "desc");
+
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyA));
+        await harness.Service.DeleteSettingAsync("payroll.cycle");
+
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyB));
+        (await harness.Service.GetStringSettingAsync("payroll.cycle")).Should().Be("Monthly");
+
+        var shared = await harness.Db.AppSettings.IgnoreQueryFilters()
+            .FirstAsync(s => s.Key == "payroll.cycle" && s.CompanyId == string.Empty);
+        shared.DataStatus.Should().Be(DataState.Active);
+    }
+
+    [Fact(DisplayName = "A TenantOnly key ignores a company row that already existed when the key was marked")]
+    public async Task TenantOnlySetting_PreExistingCompanyRow_NeverWinsOnRead()
+    {
+        using var harness = new Harness();
+
+        SetScope(CompanyScope.ForCompanies([CompanyA], CompanyA));
+        await harness.Service.SetStringSettingAsync("security.mfaRequired", "false", "Security", "desc");
+
+        SetScope(CompanyScope.Inactive);
+        await harness.Service.SetStringSettingAsync("security.mfaRequired", "true", "Security", "desc");
+
+        var shared = await harness.Db.AppSettings.IgnoreQueryFilters()
+            .FirstAsync(s => s.Key == "security.mfaRequired" && s.CompanyId == string.Empty);
+        shared.WithScope(AppSettingScope.TenantOnly);
+        await harness.Db.SaveChangesAsync();
+
+        SetScope(CompanyScope.ForCompanies([CompanyA], CompanyA));
+
+        (await harness.Service.GetStringSettingAsync("security.mfaRequired")).Should().Be("true");
+        (await harness.Service.GetSettingEntityAsync("security.mfaRequired"))!.CompanyId.Should().BeEmpty();
+    }
+
+    [Fact(DisplayName = "A two-company caller with no active company cannot write a tenant-shared setting")]
+    public async Task TwoCompanyCaller_NoActiveCompany_CannotWriteTenantSharedSetting()
+    {
+        using var harness = new Harness();
+
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], active: null));
+
+        var act = async () => await harness.Service.SetStringSettingAsync(
+            "currency.code", "GHS", "General", "desc");
+        await act.Should().ThrowAsync<AppSettingScopeViolationException>();
+
+        (await harness.Db.AppSettings.IgnoreQueryFilters().ToListAsync()).Should().BeEmpty();
+    }
+
+    [Fact(DisplayName = "A write refused by the company guard surfaces as a failure instead of being reported as success")]
+    public async Task RefusedCrossCompanyWrite_IsNotReportedAsSuccess()
+    {
+        using var harness = new Harness();
+
+        SetScope(CompanyScope.ForCompanies([CompanyA], CompanyA));
+
+        var foreign = AppSetting.Create("foreign.key", "x", "General");
+        foreign.WithCompanyId("company-outside-scope");
+        harness.Db.AppSettings.Add(foreign);
+
+        var act = async () => await harness.Service.SetStringSettingAsync(
+            "currency.code", "GHS", "General", "desc");
+        await act.Should().ThrowAsync<CrossCompanyWriteException>();
+    }
+
+    [Fact(DisplayName = "A tenant-default write evicts every company's cached value, not just the writer's")]
+    public async Task TenantDefaultWrite_EvictsOtherCompaniesCachedValues()
+    {
+        using var harness = new Harness();
+
+        SetScope(CompanyScope.AllCompanies(active: null));
+        await harness.Service.SetStringSettingAsync("leave.approvalLevels", "1", "Leave", "desc");
+
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyA));
+        (await harness.Service.GetStringSettingAsync("leave.approvalLevels")).Should().Be("1");
+
+        SetScope(CompanyScope.AllCompanies(active: null));
+        await harness.Service.SetStringSettingAsync("leave.approvalLevels", "2", "Leave", "desc");
+
+        SetScope(CompanyScope.ForCompanies([CompanyA, CompanyB], CompanyA));
+        (await harness.Service.GetStringSettingAsync("leave.approvalLevels")).Should().Be("2");
+    }
+
     [Fact(DisplayName = "Cache keys for the same key differ between two companies in the same tenant")]
     public async Task CacheKeys_DifferBetweenCompanies_InSameTenant()
     {

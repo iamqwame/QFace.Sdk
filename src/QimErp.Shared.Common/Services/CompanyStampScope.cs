@@ -1,3 +1,5 @@
+using QimErp.Shared.Common.Services.MultiTenancy;
+
 namespace QimErp.Shared.Common.Services;
 
 /// <summary>
@@ -37,6 +39,22 @@ public static class CompanyStampScope
 
     /// <summary>Stamp <c>""</c> — reference and lookup seeding that is genuinely tenant-wide.</summary>
     public static IDisposable EnterShared() => Enter(string.Empty);
+
+    /// <summary>
+    /// Tenant-shared stamp for a caller whose scope really does cover the whole tenant.
+    /// A caller holding a company list but no active selection is refused: the row would otherwise
+    /// be served to every company in the tenant, including ones outside that caller's claim.
+    /// </summary>
+    public static IDisposable EnterSharedAsTenantWideWriter(string subject)
+    {
+        var scope = CompanyContext.CurrentScope;
+        if (scope.IsTenantWideWriter)
+            return EnterShared();
+
+        throw new AppSettingScopeViolationException(
+            $"{subject} has no company write target: {scope.RealCompanyIds.Count()} company/companies are in scope " +
+            "and none was selected as active. Send the X-Company-Id header to choose one.");
+    }
 
     private sealed class Restorer(string? previous) : IDisposable
     {

@@ -152,7 +152,7 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
             }
             else
             {
-                using (CompanyStampScope.EnterShared())
+                using (CompanyStampScope.EnterSharedAsTenantWideWriter($"EntityCodeConfig '{entityType}'"))
                     await _context.SaveChangesAsync(ct);
             }
         }
@@ -223,6 +223,14 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
             includeYear: def.IncludeYear,
             paddingWidth: def.PaddingWidth > 0 ? def.PaddingWidth : 4);
 
+        // Enabling multi-company must not restart numbering: continue the tenant-wide sequence.
+        if (companyId.Length > 0)
+        {
+            var tenantWide = await GetConfigAsync(tenantId, string.Empty, entityType, ct);
+            if (tenantWide is not null)
+                config.SeedSequenceFrom(tenantWide);
+        }
+
         _context.Set<EntityCodeConfig>().Add(config);
 
         if (companyId.Length > 0)
@@ -232,7 +240,7 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         }
         else
         {
-            using (CompanyStampScope.EnterShared())
+            using (CompanyStampScope.EnterSharedAsTenantWideWriter($"EntityCodeConfig '{entityType}'"))
                 await _context.SaveChangesAsync(ct);
         }
 
