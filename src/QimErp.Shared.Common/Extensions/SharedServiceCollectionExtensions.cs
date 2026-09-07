@@ -21,6 +21,7 @@ using QFace.Sdk.Temporal.Interceptors;
 using QimErp.Shared.Common.Authorization;
 using QimErp.Shared.Common.Behaviours;
 using QimErp.Shared.Common.Database;
+using QimErp.Shared.Common.Integrations.Microsoft365;
 using QimErp.Shared.Common.Middlewares;
 using QimErp.Shared.Common.Services.AI;
 using QimErp.Shared.Common.Services.Knowledge;
