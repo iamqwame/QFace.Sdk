@@ -184,15 +184,7 @@ public class FileUploadService : IFileUploadService
             var url = _s3Client.GetPreSignedURL(request);
             _logger.LogInformation("Generated pre-signed URL before fix: {Url}", url);
 
-            // Fix the doubled bucket name in the URL
-            var fixedUrl = url;
-            if (url.Contains($"{_bucketName}.{_bucketName}."))
-            {
-                fixedUrl = url.Replace($"{_bucketName}.{_bucketName}.", $"{_bucketName}.");
-                _logger.LogInformation("Fixed URL with doubled bucket name: {Url}", fixedUrl);
-            }
-
-            return Task.FromResult(fixedUrl);
+            return Task.FromResult(FixDoubledBucketHost(url));
         }
         catch (AmazonS3Exception ex)
         {
@@ -204,6 +196,67 @@ public class FileUploadService : IFileUploadService
             _logger.LogError(ex, "Unexpected error getting pre-signed URL: {Message}", ex.Message);
             throw;
         }
+    }
+
+    public Task<PresignedPutUrlResult> CreatePresignedPutUrlAsync(
+        string key,
+        string contentType,
+        long contentLength,
+        int expirationMinutes = 15)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        if (string.IsNullOrWhiteSpace(contentType))
+            throw new ArgumentException("Content type cannot be null or empty", nameof(contentType));
+        if (contentLength <= 0)
+            throw new ArgumentOutOfRangeException(nameof(contentLength), "Content length must be greater than zero");
+
+        try
+        {
+            var s3Key = key.TrimStart('/');
+            var request = new GetPreSignedUrlRequest
+            {
+                BucketName = _bucketName,
+                Key = s3Key,
+                Expires = DateTime.UtcNow.AddMinutes(expirationMinutes),
+                Protocol = Protocol.HTTPS,
+                Verb = HttpVerb.PUT,
+                ContentType = contentType
+            };
+            request.Headers.ContentLength = contentLength;
+
+            var putUrl = FixDoubledBucketHost(_s3Client.GetPreSignedURL(request));
+            _logger.LogInformation("Generated presigned PUT URL for key: {S3Key}", s3Key);
+
+            return Task.FromResult(new PresignedPutUrlResult
+            {
+                PutUrl = putUrl,
+                PublicUrl = GetCdnUrl(s3Key),
+                Key = s3Key
+            });
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "AWS S3 Error creating presigned PUT URL: {Message}", ex.Message);
+            throw new Exception($"Error creating presigned PUT URL: {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error creating presigned PUT URL: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    private string FixDoubledBucketHost(string url)
+    {
+        if (url.Contains($"{_bucketName}.{_bucketName}."))
+        {
+            var fixedUrl = url.Replace($"{_bucketName}.{_bucketName}.", $"{_bucketName}.");
+            _logger.LogInformation("Fixed URL with doubled bucket name: {Url}", fixedUrl);
+            return fixedUrl;
+        }
+
+        return url;
     }
 
     /// <summary>

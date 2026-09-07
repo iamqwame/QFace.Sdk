@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using QFace.Sdk.BlobStorage.Models;
 
 namespace QFace.Sdk.BlobStorage.Services;
 
@@ -38,6 +39,16 @@ public interface IFileUploadService
     /// <param name="expirationMinutes">Duration in minutes for which the URL remains valid</param>
     /// <returns>Pre-signed URL for the file</returns>
     Task<string> GetPreSignedUrlAsync(string fileKey, int expirationMinutes = 15);
+
+    /// <summary>
+    /// Creates a browser-direct presigned PUT URL. Content-Type and Content-Length are signed;
+    /// the client must send the same headers when uploading.
+    /// </summary>
+    Task<PresignedPutUrlResult> CreatePresignedPutUrlAsync(
+        string key,
+        string contentType,
+        long contentLength,
+        int expirationMinutes = 15);
         
     /// <summary>
     /// Gets the CDN URL for a file
