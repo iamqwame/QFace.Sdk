@@ -438,6 +438,9 @@ public static class SharedServiceCollectionExtensions
         // Register cache services (adapter that uses SDK)
         services.AddScoped<IDistributedCacheService, RedisCacheService>();
         services.AddScoped<ICacheService, RedisCacheService>();
+        services.AddHttpClient("microsoft365-graph");
+        services.AddHttpClient("microsoft365-token");
+        services.AddScoped<IMicrosoft365GraphClient, Microsoft365GraphClient>();
         services.AddSingleton<IAIOptionsProvider, CachedAIOptionsProvider>();
         services.AddAuth(configuration);
         services.AddCorsConfig(configuration);

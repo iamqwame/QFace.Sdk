@@ -53,4 +53,11 @@ public static class SharedCacheKeys
 
     public static string TenantAIProviderConfig(Guid tenantId)
         => TenantAIProviderConfig(tenantId.ToString());
+
+    // Written by IAM TenantMicrosoft365SettingsService on save; read by Leave OOF / Events Teams activities.
+    public static string TenantMicrosoft365Config(string tenantId)
+        => $"{Prefix}{tenantId}:shared:tenant_microsoft365_config";
+
+    public static string TenantMicrosoft365Config(Guid tenantId)
+        => TenantMicrosoft365Config(tenantId.ToString());
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using QimErp.Shared.Common.Entities;
 using QimErp.Shared.Common.Services;
+using QimErp.Shared.Common.Services.Workflow;
 using QimErp.Shared.Common.Workflows;
 using Temporalio.Activities;
 
@@ -48,6 +49,9 @@ public sealed class CompanyStampActivities<TContext>(TContext context, ILogger<C
             stamped += await task;
         }
 
+        // A metadata-only stamp on an in-progress workflow entity would otherwise be
+        // rejected by the edit-blocked validation meant for business-field edits.
+        using var engineScope = WorkflowEngineScope.Enter();
         await context.SaveChangesAsync(ct);
 
         logger?.LogInformation(
