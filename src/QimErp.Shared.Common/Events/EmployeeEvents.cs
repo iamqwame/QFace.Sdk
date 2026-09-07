@@ -6,6 +6,10 @@ public class EmployeeChangedEvent : DomainEvent
     public string EmployeeId { get; set; } = string.Empty;
     public string? EmployeeNo { get; set; }
     public string? Code { get; set; }
+    public string CompanyId { get; set; } = string.Empty;
+    public bool IsVisibleAcrossCompanies { get; set; }
+    /// <summary>When set, IAM SyncEmployeeUpdated/Created grants UserCompanyAccess for this company.</summary>
+    public string? GrantCompanyId { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
@@ -75,6 +79,21 @@ public class EmployeeChangedEvent : DomainEvent
     }
     
     public EmployeeChangedEvent WithEmployeeId(string id) { EmployeeId = id; return this; }
+    public EmployeeChangedEvent WithCompanyId(string? companyId)
+    {
+        CompanyId = companyId?.Trim() ?? string.Empty;
+        return this;
+    }
+    public EmployeeChangedEvent WithVisibilityAcrossCompanies(bool isVisibleAcrossCompanies)
+    {
+        IsVisibleAcrossCompanies = isVisibleAcrossCompanies;
+        return this;
+    }
+    public EmployeeChangedEvent WithGrantCompanyId(string? grantCompanyId)
+    {
+        GrantCompanyId = string.IsNullOrWhiteSpace(grantCompanyId) ? null : grantCompanyId.Trim();
+        return this;
+    }
     public EmployeeChangedEvent WithEmployeeNo(string? no) { EmployeeNo = no; return this; }
     public EmployeeChangedEvent WithCode(string? code) { Code = code; return this; }
     public EmployeeChangedEvent WithMiddleName(string? middle) { MiddleName = middle; return this; }
