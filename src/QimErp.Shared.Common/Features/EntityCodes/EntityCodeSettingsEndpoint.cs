@@ -103,6 +103,96 @@ public sealed class EntityCodeSettingsEndpoint : ICarterModule
         })
         .WithTags("EntityCodes")
         .WithSummary("Update the numbering rule for one entity type");
+
+        app.MapPost("/api/entity-codes/{entityType}/suggest", [Authorize] async (
+            string entityType,
+            IEntityCodeService codeService,
+            ICurrentUserService currentUserService,
+            CancellationToken ct) =>
+        {
+            if (!codeService.GetKnownEntityTypes().Contains(entityType, StringComparer.OrdinalIgnoreCase))
+            {
+                return Result.WithNotFound<EntityCodeSuggestResponse>(
+                    new Error("EntityCodes.UnknownEntityType", $"'{entityType}' is not a known entity type for this module.")).ToIResult();
+            }
+
+            var tenantId = currentUserService.GetTenantId() ?? string.Empty;
+            var code = await codeService.SuggestAsync(tenantId, entityType, ct);
+            return Result.WithSuccess(new EntityCodeSuggestResponse { Code = code }).ToIResult();
+        })
+        .WithTags("EntityCodes")
+        .WithSummary("Suggest the next entity code without reserving it");
+
+        app.MapPost("/api/entity-codes/{entityType}/validate", [Authorize] async (
+            string entityType,
+            ValidateEntityCodeRequest request,
+            IEntityCodeService codeService,
+            ICurrentUserService currentUserService,
+            CancellationToken ct) =>
+        {
+            if (!codeService.GetKnownEntityTypes().Contains(entityType, StringComparer.OrdinalIgnoreCase))
+            {
+                return Result.WithNotFound<EntityCodeValidationResponse>(
+                    new Error("EntityCodes.UnknownEntityType", $"'{entityType}' is not a known entity type for this module.")).ToIResult();
+            }
+
+            var tenantId = currentUserService.GetTenantId() ?? string.Empty;
+            var (isValid, error) = await codeService.ValidateManualAsync(tenantId, entityType, request.Code, ct);
+            return Result.WithSuccess(new EntityCodeValidationResponse
+            {
+                IsValid = isValid,
+                Error = error,
+            }).ToIResult();
+        })
+        .WithTags("EntityCodes")
+        .WithSummary("Validate a manually entered entity code against format rules");
+
+        app.MapPost("/api/entity-codes/{entityType}/reserve", [Authorize] async (
+            string entityType,
+            ReserveEntityCodeRequest request,
+            IEntityCodeService codeService,
+            ICurrentUserService currentUserService,
+            CancellationToken ct) =>
+        {
+            var tenantId = currentUserService.GetTenantId();
+            if (string.IsNullOrWhiteSpace(tenantId))
+            {
+                return Result.WithSuccess(new EntityCodeReserveResponse
+                {
+                    Reserved = false,
+                    Error = "Tenant context is required.",
+                }).ToIResult();
+            }
+
+            var ttl = request.TtlSeconds is > 0
+                ? TimeSpan.FromSeconds(Math.Min(request.TtlSeconds.Value, (int)EntityCodeReservation.MaxTtl.TotalSeconds))
+                : EntityCodeReservation.DefaultTtl;
+            var (reserved, error) = await codeService.TryReserveManualAsync(
+                tenantId, entityType, request.Code, request.ReservationToken, ttl,
+                validateFormat: true, metadata: null, ct);
+            return Result.WithSuccess(new EntityCodeReserveResponse
+            {
+                Reserved = reserved,
+                Error = error,
+            }).ToIResult();
+        })
+        .WithTags("EntityCodes")
+        .WithSummary("Reserve a manually entered entity code for a short TTL");
+
+        app.MapPost("/api/entity-codes/{entityType}/release", [Authorize] async (
+            string entityType,
+            ReleaseEntityCodeRequest request,
+            IEntityCodeService codeService,
+            ICurrentUserService currentUserService,
+            CancellationToken ct) =>
+        {
+            var tenantId = currentUserService.GetTenantId() ?? string.Empty;
+            await codeService.ReleaseReservationAsync(
+                tenantId, entityType, request.Code, request.ReservationToken, ct);
+            return Result.WithSuccess(true).ToIResult();
+        })
+        .WithTags("EntityCodes")
+        .WithSummary("Release a previously reserved entity code");
     }
 
     private static EntityCodeConfigResponse ToResponse(EntityCodeConfig config, IEntityCodeService codeService) => new()
@@ -117,4 +207,39 @@ public sealed class EntityCodeSettingsEndpoint : ICarterModule
         ResetPeriod = config.ResetPeriod.ToString(),
         Preview = config.FormatCode(config.LastSequence + 1),
     };
+}
+
+public sealed class ValidateEntityCodeRequest
+{
+    public string Code { get; set; } = string.Empty;
+}
+
+public sealed class ReserveEntityCodeRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string ReservationToken { get; set; } = string.Empty;
+    public int? TtlSeconds { get; set; }
+}
+
+public sealed class ReleaseEntityCodeRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string ReservationToken { get; set; } = string.Empty;
+}
+
+public sealed class EntityCodeValidationResponse
+{
+    public bool IsValid { get; set; }
+    public string? Error { get; set; }
+}
+
+public sealed class EntityCodeReserveResponse
+{
+    public bool Reserved { get; set; }
+    public string? Error { get; set; }
+}
+
+public sealed class EntityCodeSuggestResponse
+{
+    public string Code { get; set; } = string.Empty;
 }

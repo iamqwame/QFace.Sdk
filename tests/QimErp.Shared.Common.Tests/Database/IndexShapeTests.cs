@@ -82,6 +82,21 @@ public sealed class IndexShapeTests
         HasIndex(entityType, unique: true, "TenantId", "EntityType").Should().BeFalse();
     }
 
+    [Fact(DisplayName = "EntityCodeReservation has a filtered unique index on {TenantId, CompanyId, EntityType, Code}")]
+    public void EntityCodeReservation_HasFilteredUniqueIndex()
+    {
+        using var context = CreateAuditableContext();
+        var entityType = context.Model.FindEntityType(typeof(EntityCodeReservation))!;
+
+        var index = entityType.GetIndexes().SingleOrDefault(i =>
+            i.IsUnique
+            && i.Properties.Select(p => p.Name).SequenceEqual(new[] { "TenantId", "CompanyId", "EntityType", "Code" }));
+
+        index.Should().NotBeNull();
+        index!.GetDatabaseName().Should().Be("IX_EntityCodeReservations_TenantId_CompanyId_EntityType_Code");
+        index!.GetFilter().Should().Contain("DataStatus");
+    }
+
     [Fact(DisplayName = "AuditableEntityConfiguration composite index is {TenantId, CompanyId, DataStatus}")]
     public void AuditableEntity_HasTenantCompanyDataStatusIndex()
     {

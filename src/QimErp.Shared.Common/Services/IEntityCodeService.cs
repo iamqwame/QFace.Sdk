@@ -24,6 +24,7 @@ public interface IEntityCodeService
     /// Returns the next likely code WITHOUT reserving it (advisory / preview only).
     /// The returned code MAY already be taken by the time the caller submits.
     /// Callers MUST display a "not reserved" indicator alongside this value.
+    /// Skips codes held by an active reservation from another token.
     /// </summary>
     Task<string> SuggestAsync(string tenantId, string entityType, CancellationToken ct = default);
 
@@ -64,4 +65,37 @@ public interface IEntityCodeService
     /// this service's own module, since every entity type it knows about is one it registered itself.
     /// </summary>
     string GetModuleFor(string entityType);
+
+    /// <summary>
+    /// Validates that <paramref name="code"/> round-trips through the entity type's format rules.
+    /// </summary>
+    Task<(bool IsValid, string? Error)> ValidateManualAsync(
+        string tenantId, string entityType, string code, CancellationToken ct = default);
+
+    /// <summary>
+    /// Holds <paramref name="code"/> for <paramref name="ttl"/> under <paramref name="reservationToken"/>.
+    /// When <paramref name="validateFormat"/> is true (default), runs <see cref="ValidateManualAsync"/> first.
+    /// Callers that validate elsewhere (e.g. ChartOfAccount ranges) pass <c>validateFormat: false</c>.
+    /// </summary>
+    Task<(bool Reserved, string? Error)> TryReserveManualAsync(
+        string tenantId, string entityType, string code, string reservationToken, TimeSpan ttl,
+        bool validateFormat = true, string? metadata = null, CancellationToken ct = default);
+
+    /// <summary>Releases a hold when the create dialog is abandoned or the code changes.</summary>
+    Task ReleaseReservationAsync(
+        string tenantId, string entityType, string code, string reservationToken,
+        CancellationToken ct = default);
+
+    /// <summary>Removes the hold after a successful create so the code can never be re-suggested as free.</summary>
+    Task ConsumeReservationAsync(
+        string tenantId, string entityType, string code, string reservationToken,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// True when an active reservation for this code exists under a different token.
+    /// Used by suggest/generate skip logic and ChartOfAccount next-code allocation.
+    /// </summary>
+    Task<bool> IsCodeReservedByOtherAsync(
+        string tenantId, string entityType, string code, string? myToken = null,
+        CancellationToken ct = default);
 }
