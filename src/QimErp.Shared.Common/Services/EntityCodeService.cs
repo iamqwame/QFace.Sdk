@@ -289,12 +289,16 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         else
         {
             // IgnoreQueryFilters: explicit tenant+company scope below.
-            var activeCount = await _context.Set<EntityCodeReservation>()
+            var activeExpiries = await _context.Set<EntityCodeReservation>()
                 .IgnoreQueryFilters()
-                .CountAsync(r => r.TenantId == tenantId
-                                 && r.CompanyId == companyId
-                                 && r.DataStatus == DataState.Active
-                                 && r.ExpiresAt > now, ct);
+                .Where(r => r.TenantId == tenantId
+                            && r.CompanyId == companyId
+                            && r.DataStatus == DataState.Active)
+                .Select(r => r.ExpiresAt)
+                .ToListAsync(ct);
+
+            // DateTimeOffset ordering does not translate on SQLite; expiry is compared in memory.
+            var activeCount = activeExpiries.Count(e => e > now);
             if (activeCount >= EntityCodeReservation.MaxActiveReservationsPerScope)
                 return (false, "Too many active code reservations; release unused codes or wait for expiry.");
 
@@ -411,16 +415,20 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         var token = myToken?.Trim();
 
         // IgnoreQueryFilters: explicit tenant+company scope below.
-        return await _context.Set<EntityCodeReservation>()
+        var candidates = await _context.Set<EntityCodeReservation>()
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .AnyAsync(r => r.TenantId == tenantId
-                           && r.CompanyId == companyId
-                           && r.EntityType == entityType
-                           && r.Code == trimmedCode
-                           && r.DataStatus == DataState.Active
-                           && r.ExpiresAt > now
-                           && (token == null || token.Length == 0 || r.ReservationToken != token), ct);
+            .Where(r => r.TenantId == tenantId
+                        && r.CompanyId == companyId
+                        && r.EntityType == entityType
+                        && r.Code == trimmedCode
+                        && r.DataStatus == DataState.Active)
+            .Select(r => new { r.ExpiresAt, r.ReservationToken })
+            .ToListAsync(ct);
+
+        // DateTimeOffset ordering does not translate on SQLite; expiry is compared in memory.
+        return candidates.Any(r => r.ExpiresAt > now
+            && (string.IsNullOrEmpty(token) || r.ReservationToken != token));
     }
 
     public async Task<IReadOnlyList<EntityCodeConfig>> GetAllConfigsAsync(string tenantId, CancellationToken ct = default)
