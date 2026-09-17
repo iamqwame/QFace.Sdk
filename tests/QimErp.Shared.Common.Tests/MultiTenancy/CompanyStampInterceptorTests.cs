@@ -34,6 +34,7 @@ public sealed class CompanyStampInterceptorTests : IDisposable
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<EntityCodeConfig>().Ignore(e => e.CustomFields);
+            modelBuilder.Entity<EntityCodeReservation>().Ignore(e => e.CustomFields);
             modelBuilder.Entity<TenantWideRow>().Ignore(e => e.CustomFields);
             modelBuilder.Entity<TenantPluginFlag>().Ignore(e => e.CustomFields);
         }

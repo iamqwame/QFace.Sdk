@@ -35,6 +35,13 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
 
     private static string EffectiveCompanyId => CompanyContext.CurrentScope.EffectiveCompanyId;
 
+    // Tenant-unique master codes reserve with CompanyId "".
+    protected virtual bool UsesTenantWideReservations(string entityType) =>
+        string.Equals(entityType, "ChartOfAccount", StringComparison.OrdinalIgnoreCase);
+
+    private string ReservationCompanyId(string entityType) =>
+        UsesTenantWideReservations(entityType) ? string.Empty : EffectiveCompanyId;
+
     // The cache key must include the company — a cache hit is otherwise shared across companies.
     private static string CacheKey(string tenantId, string companyId, string entityType)
         => $"shared:{tenantId}:company:{companyId}:lookup:entity-code-config:{entityType}";
@@ -84,24 +91,41 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         var config = await GetOrCreateConfigAsync(tenantId, companyId, entityType, ct);
         await CheckAndApplyResetAsync(config, companyId, ct);
 
-        // Atomic increment: UPDATE … SET LastSequence = LastSequence + @count RETURNING LastSequence
-        // The returned value is the FINAL LastSequence (after adding count).
-        // Codes use values [final - count + 1 … final].
-        var finalSeq = await IncrementSequenceAsync(tenantId, companyId, entityType, count, ct);
+        const int maxSkipAttempts = 100;
+        var codes = new List<string>(count);
+        var attempts = 0;
 
-        var firstSeq = finalSeq - count + 1;
-        var now = DateTimeOffset.UtcNow;
-        return Enumerable.Range(0, count)
-            .Select(i => config.FormatCode(firstSeq + i, now))
-            .ToArray();
+        while (codes.Count < count && attempts < maxSkipAttempts)
+        {
+            attempts++;
+            var finalSeq = await IncrementSequenceAsync(tenantId, companyId, entityType, 1, ct);
+            var formatted = config.FormatCode(finalSeq, DateTimeOffset.UtcNow);
+            if (await IsCodeReservedByOtherAsync(tenantId, entityType, formatted, myToken: null, ct))
+                continue;
+            codes.Add(formatted);
+        }
+
+        if (codes.Count < count)
+            throw new InvalidOperationException(
+                $"Could not allocate {count} free {entityType} code(s) after skipping reserved values (cap {maxSkipAttempts}).");
+
+        return codes.ToArray();
     }
 
     public async Task<string> SuggestAsync(string tenantId, string entityType, CancellationToken ct = default)
     {
-        // Advisory only — reads current LastSequence + 1 without incrementing.
         var companyId = EffectiveCompanyId;
         var config = await GetOrCreateConfigAsync(tenantId, companyId, entityType, ct);
-        return config.FormatCode(config.LastSequence + 1, DateTimeOffset.UtcNow);
+        var seq = config.LastSequence + 1;
+        const int maxPeek = 100;
+        for (var i = 0; i < maxPeek; i++)
+        {
+            var candidate = config.FormatCode(seq + i, DateTimeOffset.UtcNow);
+            if (!await IsCodeReservedByOtherAsync(tenantId, entityType, candidate, myToken: null, ct))
+                return candidate;
+        }
+
+        return config.FormatCode(seq + maxPeek, DateTimeOffset.UtcNow);
     }
 
     public async Task<EntityCodeConfig?> GetConfigAsync(string tenantId, string entityType, CancellationToken ct = default)
@@ -196,6 +220,208 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
     public IReadOnlyCollection<string> GetKnownEntityTypes() => _defaults.Keys.ToArray();
 
     public string GetModuleFor(string entityType) => _moduleName;
+
+    public async Task<(bool IsValid, string? Error)> ValidateManualAsync(
+        string tenantId, string entityType, string code, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return (false, "Code cannot be empty.");
+
+        var companyId = EffectiveCompanyId;
+        var config = await GetOrCreateConfigAsync(tenantId, companyId, entityType, ct);
+        var suffix = ExtractNumericSuffix(code.Trim());
+        if (!suffix.HasValue)
+            return (false, "Code must end with a numeric sequence.");
+
+        var roundTripped = config.FormatCode(suffix.Value, DateTimeOffset.UtcNow);
+        if (!string.Equals(roundTripped, code.Trim(), StringComparison.Ordinal))
+            return (false, $"Code does not match the configured format (expected like '{roundTripped}').");
+
+        return (true, null);
+    }
+
+    public async Task<(bool Reserved, string? Error)> TryReserveManualAsync(
+        string tenantId, string entityType, string code, string reservationToken, TimeSpan ttl,
+        bool validateFormat = true, string? metadata = null, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return (false, "Code cannot be empty.");
+        if (string.IsNullOrWhiteSpace(reservationToken))
+            return (false, "ReservationToken cannot be empty.");
+        if (ttl <= TimeSpan.Zero)
+            ttl = EntityCodeReservation.DefaultTtl;
+        else if (ttl > EntityCodeReservation.MaxTtl)
+            ttl = EntityCodeReservation.MaxTtl;
+
+        var trimmedCode = code.Trim();
+        if (validateFormat)
+        {
+            var (isValid, error) = await ValidateManualAsync(tenantId, entityType, trimmedCode, ct);
+            if (!isValid)
+                return (false, error);
+        }
+
+        var companyId = ReservationCompanyId(entityType);
+        var now = DateTimeOffset.UtcNow;
+
+        // IgnoreQueryFilters: explicit tenant+company scope below.
+        var existing = await _context.Set<EntityCodeReservation>()
+            .IgnoreQueryFilters()
+            .Where(r => r.TenantId == tenantId
+                        && r.CompanyId == companyId
+                        && r.EntityType == entityType
+                        && r.Code == trimmedCode
+                        && r.DataStatus == DataState.Active)
+            .ToListAsync(ct);
+
+        var activeOther = existing.FirstOrDefault(r =>
+            r.ExpiresAt > now
+            && !string.Equals(r.ReservationToken, reservationToken.Trim(), StringComparison.Ordinal));
+        if (activeOther is not null)
+            return (false, "Code is reserved by another session.");
+
+        var own = existing.FirstOrDefault(r =>
+            string.Equals(r.ReservationToken, reservationToken.Trim(), StringComparison.Ordinal));
+        if (own is not null)
+        {
+            own.RefreshTtl(ttl, metadata);
+        }
+        else
+        {
+            // IgnoreQueryFilters: explicit tenant+company scope below.
+            var activeCount = await _context.Set<EntityCodeReservation>()
+                .IgnoreQueryFilters()
+                .CountAsync(r => r.TenantId == tenantId
+                                 && r.CompanyId == companyId
+                                 && r.DataStatus == DataState.Active
+                                 && r.ExpiresAt > now, ct);
+            if (activeCount >= EntityCodeReservation.MaxActiveReservationsPerScope)
+                return (false, "Too many active code reservations; release unused codes or wait for expiry.");
+
+            foreach (var stale in existing.Where(r => r.ExpiresAt <= now))
+                stale.OnSoftRemove();
+
+            var reservation = EntityCodeReservation.Create(
+                tenantId, entityType, trimmedCode, reservationToken, ttl, metadata);
+            if (companyId.Length > 0)
+                reservation.WithCompanyId(companyId);
+            _context.Set<EntityCodeReservation>().Add(reservation);
+        }
+
+        if (validateFormat)
+        {
+            var suffix = ExtractNumericSuffix(trimmedCode);
+            if (suffix.HasValue)
+            {
+                var configCompanyId = EffectiveCompanyId;
+                var config = await GetOrCreateConfigAsync(tenantId, configCompanyId, entityType, ct);
+                if (suffix.Value > config.LastSequence)
+                {
+                    config.SetManualHighWaterMark(suffix.Value);
+                    await _cache.RemoveAsync(CacheKey(tenantId, configCompanyId, entityType));
+                }
+            }
+        }
+
+        try
+        {
+            if (companyId.Length > 0)
+                await _context.SaveChangesAsync(ct);
+            else if (UsesTenantWideReservations(entityType))
+                await SaveTenantWideReservationAsync(ct);
+            else
+            {
+                using (CompanyStampScope.EnterSharedAsTenantWideWriter($"EntityCodeReservation '{entityType}'"))
+                    await _context.SaveChangesAsync(ct);
+            }
+        }
+        catch (DbUpdateException)
+        {
+            return (false, "Code is reserved by another session.");
+        }
+
+        return (true, null);
+    }
+
+    // Tenant-unique codes stamp CompanyId "" even when an X-Company-Id is active.
+    private async Task SaveTenantWideReservationAsync(CancellationToken ct)
+    {
+        var previous = CompanyContext.CurrentScope;
+        new CompanyContext().SetScope(
+            previous.MultiCompanyEnabled
+                ? CompanyScope.AllCompanies(null)
+                : CompanyScope.Inactive);
+        try
+        {
+            using (CompanyStampScope.EnterShared())
+                await _context.SaveChangesAsync(ct);
+        }
+        finally
+        {
+            new CompanyContext().SetScope(previous);
+        }
+    }
+
+    public async Task ReleaseReservationAsync(
+        string tenantId, string entityType, string code, string reservationToken,
+        CancellationToken ct = default)
+    {
+        var companyId = ReservationCompanyId(entityType);
+        var trimmedCode = (code ?? string.Empty).Trim();
+        var token = (reservationToken ?? string.Empty).Trim();
+        if (trimmedCode.Length == 0 || token.Length == 0)
+            return;
+
+        var rows = await _context.Set<EntityCodeReservation>()
+            .IgnoreQueryFilters()
+            .Where(r => r.TenantId == tenantId
+                        && r.CompanyId == companyId
+                        && r.EntityType == entityType
+                        && r.Code == trimmedCode
+                        && r.ReservationToken == token
+                        && r.DataStatus == DataState.Active)
+            .ToListAsync(ct);
+
+        if (rows.Count == 0)
+            return;
+
+        foreach (var row in rows)
+            row.OnSoftRemove();
+
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task ConsumeReservationAsync(
+        string tenantId, string entityType, string code, string reservationToken,
+        CancellationToken ct = default)
+    {
+        await ReleaseReservationAsync(tenantId, entityType, code, reservationToken, ct);
+    }
+
+    public async Task<bool> IsCodeReservedByOtherAsync(
+        string tenantId, string entityType, string code, string? myToken = null,
+        CancellationToken ct = default)
+    {
+        var companyId = ReservationCompanyId(entityType);
+        var trimmedCode = (code ?? string.Empty).Trim();
+        if (trimmedCode.Length == 0)
+            return false;
+
+        var now = DateTimeOffset.UtcNow;
+        var token = myToken?.Trim();
+
+        // IgnoreQueryFilters: explicit tenant+company scope below.
+        return await _context.Set<EntityCodeReservation>()
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .AnyAsync(r => r.TenantId == tenantId
+                           && r.CompanyId == companyId
+                           && r.EntityType == entityType
+                           && r.Code == trimmedCode
+                           && r.DataStatus == DataState.Active
+                           && r.ExpiresAt > now
+                           && (token == null || token.Length == 0 || r.ReservationToken != token), ct);
+    }
 
     public async Task<IReadOnlyList<EntityCodeConfig>> GetAllConfigsAsync(string tenantId, CancellationToken ct = default)
     {

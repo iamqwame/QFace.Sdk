@@ -31,6 +31,7 @@ public sealed class EntityCodeServiceMultiCompanyTests : IDisposable
 
             modelBuilder.Entity<AppSetting>().Ignore(e => e.CustomFields);
             modelBuilder.Entity<EntityCodeConfig>().Ignore(e => e.CustomFields);
+            modelBuilder.Entity<EntityCodeReservation>().Ignore(e => e.CustomFields);
             modelBuilder.Entity<TenantPluginFlag>().Ignore(e => e.CustomFields);
             modelBuilder.Entity<Import>().Ignore(e => e.CustomFields);
             modelBuilder.Entity<EntityWorkflowStep>().Ignore(e => e.CustomFields);

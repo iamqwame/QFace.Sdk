@@ -52,6 +52,7 @@ public abstract class ApplicationDbContext<TContext>(
     public DbSet<Import> Imports { get; set; }
     public DbSet<EntityWorkflowStep> EntityWorkflowSteps { get; set; }
     public DbSet<EntityCodeConfig> EntityCodeConfigs { get; set; }
+    public DbSet<EntityCodeReservation> EntityCodeReservations { get; set; }
     public DbSet<TenantPluginFlag> TenantPluginFlags { get; set; }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -69,6 +70,7 @@ public abstract class ApplicationDbContext<TContext>(
         modelBuilder.ApplyConfiguration(new ImportConfiguration());
         modelBuilder.ApplyConfiguration(new EntityWorkflowStepConfiguration());
         modelBuilder.ApplyConfiguration(new EntityCodeConfigConfiguration());
+        modelBuilder.ApplyConfiguration(new EntityCodeReservationConfiguration());
         modelBuilder.ApplyConfiguration(new TenantPluginFlagConfiguration());
     }
 }
