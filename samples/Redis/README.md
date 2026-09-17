@@ -1,3 +1,5 @@
+> Message consumer samples were removed. See docs/consumer-pipeline-removal.md.
+
 # Redis SDK Demos
 
 This directory contains demo applications showing how to use the QFace Redis SDKs:
