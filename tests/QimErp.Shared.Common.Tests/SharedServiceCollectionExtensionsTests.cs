@@ -79,7 +79,9 @@ public class SharedServiceCollectionExtensionsTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
+        #pragma warning disable CS0618 // AddDbContextWithOutboxConsumer is obsolete; kept for compatibility tests
         services.AddDbContextWithOutboxConsumer<TestApplicationDbContext>(TestConnectionString);
+#pragma warning restore CS0618
 
         // Act
         var provider = services.BuildServiceProvider();

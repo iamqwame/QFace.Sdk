@@ -17,10 +17,8 @@ builder.Services.AddActorSystemWithLifecycle(
     actorConfig => builder.Configuration.GetSection(nameof(ActorConfig)).Bind(actorConfig)
 );
 
-builder.Services.AddRedisMq(
-    builder.Configuration,
-    new[] { assembly }
-);
+// Redis MQ publisher only — message consumer hosts are retired (use Temporal workers).
+builder.Services.AddRedisMqProducer(builder.Configuration);
 
 var app = builder.Build();
 

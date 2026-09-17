@@ -1,3 +1,7 @@
+> **Deprecated for QimERP:** Standalone message-consumer hosts (including RabbitMQ consumer pipelines) are retired.
+> Use Temporal workers hosted in WebApi. See [consumer-pipeline-removal.md](./consumer-pipeline-removal.md).
+> This document is historical reference only.
+
 # QFace RabbitMQ SDK
 
 ## Overview

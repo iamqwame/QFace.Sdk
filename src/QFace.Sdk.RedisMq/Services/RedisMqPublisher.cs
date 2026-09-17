@@ -36,7 +36,7 @@ public class RedisMqPublisher : IRedisMqPublisher
                         }
                         catch
                         {
-                            _logger.LogError("[Redis] Publisher actor not found. Make sure UseRedisMqInApi/UseRedisMqInConsumer has been called.");
+                            _logger.LogError("[Redis] Publisher actor not found. Make sure UseRedisMqInApi has been called.");
                             return Task.FromResult(false);
                         }
                     }

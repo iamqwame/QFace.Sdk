@@ -19,11 +19,8 @@ builder.Services.AddActorSystemWithLifecycle(
     actorConfig => builder.Configuration.GetSection(nameof(ActorConfig)).Bind(actorConfig)
 );
 
-// Add Kafka with producer capability
-builder.Services.AddKafka(
-    builder.Configuration,
-    [assembly]
-);
+// Kafka producer only — message consumer hosts are retired (use Temporal workers).
+builder.Services.AddKafkaProducer(builder.Configuration);
 
 var app = builder.Build();
 
