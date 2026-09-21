@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>QFace.Sdk.BlobStorage</PackageId>
-        <Version>1.0.14</Version>
+        <Version>1.0.15</Version>
         <Authors>IAmQwame</Authors>
         <Company>QFace</Company>
         <Description>A library for handling blob storage operations in .NET applications.</Description>
@@ -34,9 +34,9 @@
 
     <!-- Documentation files -->
     <ItemGroup>
-        <None Include="$(SolutionDir)README.md" Pack="true" PackagePath="\" />
-        <None Include="$(SolutionDir)docs\blob-storage.md" Pack="true" PackagePath="content\docs\" />
-        <None Include="$(SolutionDir)docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
+        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+        <None Include="..\..\docs\blob-storage.md" Pack="true" PackagePath="content\docs\" />
+        <None Include="..\..\docs\shared\**" Pack="true" PackagePath="content\docs\shared\" />
     </ItemGroup>
 
 </Project>
