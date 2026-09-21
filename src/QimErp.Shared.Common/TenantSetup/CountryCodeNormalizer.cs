@@ -72,6 +72,10 @@ public static class CountryCodeNormalizer
 
         var trimmed = value.Trim();
 
+        // Whole-string first, so a hyphenated country name still resolves past the dial-code-plus-ISO split below.
+        if (Aliases.TryGetValue(trimmed, out var code))
+            return code;
+
         // An explicit ISO suffix is authoritative: "+1-CA" must not resolve to US via the dial code.
         var dashIndex = trimmed.IndexOf('-');
         if (dashIndex >= 0 && dashIndex + 1 < trimmed.Length)
@@ -79,9 +83,6 @@ public static class CountryCodeNormalizer
             var iso = trimmed[(dashIndex + 1)..].Trim();
             return Aliases.TryGetValue(iso, out var fromIso) ? fromIso : null;
         }
-
-        if (Aliases.TryGetValue(trimmed, out var code))
-            return code;
 
         return DialCodes.TryGetValue(trimmed, out var fromDial) ? fromDial : null;
     }

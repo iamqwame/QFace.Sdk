@@ -1,3 +1,4 @@
+using System.Reflection;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using QimErp.Shared.Common.TenantSetup;
@@ -133,6 +134,23 @@ public sealed class CountryCodeNormalizerTests
             CountryCodeNormalizer.Normalize(profile.CountryName)
                 .Should().Be(profile.CountryCode.ToUpperInvariant(),
                     "profile name '{0}' must normalize to '{1}'", profile.CountryName, profile.CountryCode);
+        }
+    }
+
+    [Fact(DisplayName = "Every alias in the table normalizes to its own ISO-2 code")]
+    public void Every_alias_round_trips()
+    {
+        var aliases = (Dictionary<string, string>)typeof(CountryCodeNormalizer)
+            .GetField("Aliases", BindingFlags.NonPublic | BindingFlags.Static)!
+            .GetValue(null)!;
+
+        aliases.Should().NotBeEmpty();
+
+        foreach (var (alias, expected) in aliases)
+        {
+            CountryCodeNormalizer.Normalize(alias)
+                .Should().Be(expected,
+                    "alias '{0}' must normalize to '{1}' \u2014 a hyphenated name would otherwise be swallowed by the dial-code split", alias, expected);
         }
     }
 }
