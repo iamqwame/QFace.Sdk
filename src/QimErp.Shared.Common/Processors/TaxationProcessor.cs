@@ -9,11 +9,8 @@ public class TaxationProcessor(ILogger<TaxationProcessor> logger)
         int quantity,
         decimal discount,
         List<TaxationShared> taxes)
-    {
-        TaxComputationContext context = new();
-        var amount = unitPrice * quantity;
-        return ComputeTax(amount, taxes, context);
-    }
+        => ComputeTax(unitPrice, quantity, discount, taxes, new TaxComputationContext());
+
     public TaxCalculationResult ComputeTax(
         decimal unitPrice,
         int quantity,
@@ -21,8 +18,10 @@ public class TaxationProcessor(ILogger<TaxationProcessor> logger)
         List<TaxationShared> taxes,
         TaxComputationContext context)
     {
-        var amount = unitPrice * quantity;
-        return ComputeTax(amount, taxes, context);
+        var lineAmount = unitPrice * quantity;
+        // Left unrounded so the taxable base equals InvoiceLines/BillLines LineTotalBeforeTax exactly.
+        var netAmount = lineAmount - (discount / 100m * lineAmount);
+        return ComputeTax(netAmount, taxes, context);
     }
     public TaxCalculationResult ComputeTax(
         decimal amount,

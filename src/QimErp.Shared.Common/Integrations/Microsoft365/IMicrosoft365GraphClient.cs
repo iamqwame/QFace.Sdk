@@ -10,7 +10,9 @@ public sealed class TenantMicrosoft365ResolvedOptions
     public string ClientId { get; set; } = string.Empty;
     public string ClientSecret { get; set; } = string.Empty;
     public bool EnableOutlookOofOnLeave { get; set; }
+    public bool HideLeaveTypeInOutlookOof { get; set; }
     public bool EnableCalendarBlockOnLeave { get; set; }
+    public bool EnableTeamsPresenceOnLeave { get; set; }
     public bool EnableTeamsMeetingOnCompanyEvents { get; set; }
     public List<string> ConsentedScopes { get; set; } = [];
 }
@@ -50,6 +52,24 @@ public interface IMicrosoft365GraphClient
         DateTime endUtc,
         string externalMessage,
         string internalMessage,
+        bool clear,
+        CancellationToken cancellationToken = default);
+
+    Task<Microsoft365OofResult> TryUpsertLeaveCalendarEventAsync(
+        string tenantId,
+        string mailboxUserPrincipalName,
+        string subject,
+        DateTime startUtc,
+        DateTime endUtcExclusive,
+        string? transactionId,
+        bool clear,
+        CancellationToken cancellationToken = default);
+
+    Task<Microsoft365OofResult> TrySetLeavePresenceAsync(
+        string tenantId,
+        string mailboxUserPrincipalName,
+        DateTime startUtc,
+        DateTime endUtcExclusive,
         bool clear,
         CancellationToken cancellationToken = default);
 }
