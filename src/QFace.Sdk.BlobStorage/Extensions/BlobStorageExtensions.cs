@@ -1,5 +1,6 @@
 using Amazon;
 using Amazon.Runtime;
+using Amazon.S3;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using QFace.Sdk.BlobStorage.Models;
@@ -39,11 +40,18 @@ public static class BlobStorageExtensions
             var region = options.Region ?? "us-east-1";
             var provider = ParseProviderType(options.Provider ?? "DigitalOcean", logger);
 
-            // For Digital Ocean, we should use virtual-hosted style (not path style)
+            // DigitalOcean uses virtual-hosted style; R2/MinIO/Generic need path-style.
             var isDigitalOcean = provider == S3Provider.DigitalOcean ||
                 (!string.IsNullOrEmpty(serviceUrl) &&
                  serviceUrl.Contains("digitaloceanspaces.com", StringComparison.OrdinalIgnoreCase));
-            var forcePathStyle = !isDigitalOcean && options.ForcePathStyle;
+            var isCloudflareR2 = provider == S3Provider.CloudflareR2
+                || (!string.IsNullOrEmpty(serviceUrl)
+                    && serviceUrl.Contains("r2.cloudflarestorage.com", StringComparison.OrdinalIgnoreCase));
+            var forcePathStyle = isCloudflareR2
+                || (!isDigitalOcean && (options.ForcePathStyle || provider is S3Provider.MinIO or S3Provider.Generic));
+
+            // R2 rejects SigV2; older AWSSDK builds fall back to V2 on custom endpoints unless this is set.
+            AWSConfigsS3.UseSignatureVersion4 = true;
 
             logger.LogInformation("Blob Storage Configuration: Provider={Provider}, ServiceURL={ServiceUrl}, Region={Region}, ForcePathStyle={ForcePathStyle}, IsDigitalOcean={IsDigitalOcean}",
                 provider, serviceUrl, region, forcePathStyle, isDigitalOcean);
@@ -61,8 +69,10 @@ public static class BlobStorageExtensions
             {
                 RegionEndpoint = RegionEndpoint.GetBySystemName(region),
                 ForcePathStyle = forcePathStyle,
-                SignatureVersion = "4", // Always use v4 signature
-                SignatureMethod = SigningAlgorithm.HmacSHA256 // Use SHA256
+                SignatureVersion = "4",
+                SignatureMethod = SigningAlgorithm.HmacSHA256,
+                // Required for SigV4 presigns against custom S3-compatible hosts (R2).
+                AuthenticationRegion = region
             };
 
             // Set service URL if provided (for DigitalOcean or other S3-compatible services)

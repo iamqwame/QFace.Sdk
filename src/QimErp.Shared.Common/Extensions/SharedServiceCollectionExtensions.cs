@@ -21,6 +21,7 @@ using QFace.Sdk.Temporal.Interceptors;
 using QimErp.Shared.Common.Authorization;
 using QimErp.Shared.Common.Behaviours;
 using QimErp.Shared.Common.Database;
+using QimErp.Shared.Common.Integrations.GoogleWorkspace;
 using QimErp.Shared.Common.Integrations.Microsoft365;
 using QimErp.Shared.Common.Middlewares;
 using QimErp.Shared.Common.Services.AI;
@@ -151,9 +152,12 @@ public static class SharedServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers DbContext with outbox support and audit interceptor for consumer/background apps.
+    /// Registers DbContext with outbox support and audit interceptor for background/Temporal worker hosts.
+    /// Standalone message-consumer projects are retired — prefer hosting Temporal workers in WebApi
+    /// and registering <see cref="ConsumerUserContextService"/> there when needed for activity audit context.
     /// </summary>
     /// <param name="configuration">Optional. When provided, options bind from config; when null, default values are used.</param>
+    [Obsolete("Standalone Consumer hosts are retired. Host Temporal workers in WebApi; use ConsumerUserContextService for activity audit context.")]
     public static IServiceCollection AddDbContextWithOutboxConsumer<TContext>(
         this IServiceCollection services, string connectionString, IConfiguration? configuration = null) where TContext : ApplicationDbContext<TContext>
     {
@@ -442,6 +446,9 @@ public static class SharedServiceCollectionExtensions
         services.AddHttpClient("microsoft365-graph");
         services.AddHttpClient("microsoft365-token");
         services.AddScoped<IMicrosoft365GraphClient, Microsoft365GraphClient>();
+        services.AddHttpClient("google-calendar");
+        services.AddHttpClient("google-oauth");
+        services.AddScoped<IGoogleCalendarClient, GoogleCalendarClient>();
         services.AddSingleton<IAIOptionsProvider, CachedAIOptionsProvider>();
         services.AddAuth(configuration);
         services.AddCorsConfig(configuration);

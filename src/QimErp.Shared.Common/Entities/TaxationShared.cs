@@ -240,8 +240,9 @@ public class TaxationShared : GuidAuditableEntity
 
 public class TaxDistributionLineShared
 {
-    public Guid Id { get; private set; }
-    public decimal Percentage { get; private set; } // Percentage of allocation (e.g., 100% or 50%)
+    // `init`, not `private set`: persisted as jsonb, and System.Text.Json cannot write private setters.
+    public Guid Id { get; init; }
+    public decimal Percentage { get; init; }
     public required string BasedOn { get; init; } // "Base" or "% of Tax"
     public required AccountProperty Account { get; init; } // Financial account for tax (e.g., "451000 VAT Payable")
     public required string TaxGrid { get; init; } // Tax grid reference for reporting
