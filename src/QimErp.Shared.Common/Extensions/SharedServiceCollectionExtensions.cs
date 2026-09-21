@@ -21,6 +21,7 @@ using QFace.Sdk.Temporal.Interceptors;
 using QimErp.Shared.Common.Authorization;
 using QimErp.Shared.Common.Behaviours;
 using QimErp.Shared.Common.Database;
+using QimErp.Shared.Common.Integrations.GoogleWorkspace;
 using QimErp.Shared.Common.Integrations.Microsoft365;
 using QimErp.Shared.Common.Middlewares;
 using QimErp.Shared.Common.Services.AI;
@@ -442,6 +443,9 @@ public static class SharedServiceCollectionExtensions
         services.AddHttpClient("microsoft365-graph");
         services.AddHttpClient("microsoft365-token");
         services.AddScoped<IMicrosoft365GraphClient, Microsoft365GraphClient>();
+        services.AddHttpClient("google-calendar");
+        services.AddHttpClient("google-oauth");
+        services.AddScoped<IGoogleCalendarClient, GoogleCalendarClient>();
         services.AddSingleton<IAIOptionsProvider, CachedAIOptionsProvider>();
         services.AddAuth(configuration);
         services.AddCorsConfig(configuration);
