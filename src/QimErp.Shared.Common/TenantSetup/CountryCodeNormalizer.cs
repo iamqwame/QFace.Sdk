@@ -72,14 +72,12 @@ public static class CountryCodeNormalizer
 
         var trimmed = value.Trim();
 
+        // An explicit ISO suffix is authoritative: "+1-CA" must not resolve to US via the dial code.
         var dashIndex = trimmed.IndexOf('-');
         if (dashIndex >= 0 && dashIndex + 1 < trimmed.Length)
         {
             var iso = trimmed[(dashIndex + 1)..].Trim();
-            if (Aliases.TryGetValue(iso, out var fromIso))
-                return fromIso;
-
-            trimmed = trimmed[..dashIndex].Trim();
+            return Aliases.TryGetValue(iso, out var fromIso) ? fromIso : null;
         }
 
         if (Aliases.TryGetValue(trimmed, out var code))

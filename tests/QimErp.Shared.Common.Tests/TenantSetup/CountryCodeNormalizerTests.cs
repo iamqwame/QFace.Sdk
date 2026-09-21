@@ -82,9 +82,12 @@ public sealed class CountryCodeNormalizerTests
     public void Dial_code_shapes_resolve(string input, string expected)
         => CountryCodeNormalizer.Normalize(input).Should().Be(expected);
 
-    [Fact(DisplayName = "Dial code with an unrecognised ISO suffix falls back to the dial code")]
-    public void Unrecognised_iso_suffix_falls_back_to_dial_code()
-        => CountryCodeNormalizer.Normalize("+233-XX").Should().Be("GH");
+    [Theory(DisplayName = "An explicit but unrecognised ISO suffix returns null instead of the dial code")]
+    [InlineData("+233-XX")]
+    [InlineData("+1-CA")]
+    [InlineData("+44-IE")]
+    public void Unrecognised_iso_suffix_returns_null(string input)
+        => CountryCodeNormalizer.Normalize(input).Should().BeNull();
 
     [Theory(DisplayName = "Surrounding whitespace is trimmed")]
     [InlineData("  GH  ", "GH")]
