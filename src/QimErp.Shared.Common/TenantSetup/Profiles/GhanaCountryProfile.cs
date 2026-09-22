@@ -184,6 +184,25 @@ public class GhanaCountryProfile : ICountrySetupProfile
             Documentation:       "Written request with reason. Supporting documents where applicable.",
             ApprovalProcess:     "Line manager + HR Director approval required.",
             Unpaid:              true),
+
+        new(
+            Name:                "Comp Off / TOIL",
+            Code:                "TOIL",
+            EntitlementDays:     0,
+            WomenOnly:           false,
+            Icon:                "🔄",
+            Category:            "Time off",
+            IsEarned:            false,
+            CarryOverAllowed:    false,
+            CarryOverDays:       null,
+            MaxConsecutiveDays:  null,
+            MinAdvanceNoticeDays: 0,
+            MaxPerRequest:       null,
+            Description:         "Time off in lieu for working on a public holiday. Credited by HR after the worked holiday.",
+            Rules:               "Balance starts at zero. HR credits days for each worked public holiday. No carry-over.",
+            Eligibility:         "All staff who work an applicable public holiday, as credited by HR.",
+            Documentation:       "Not required unless local policy says otherwise.",
+            ApprovalProcess:     "Line manager approves; HR records."),
     ];
 
     // Codes must match PayrollCodes.AllowanceCodes.X / DeductionCodes.X in QimErp.Payroll.

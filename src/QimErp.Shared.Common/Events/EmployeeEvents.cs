@@ -25,6 +25,8 @@ public class EmployeeChangedEvent : DomainEvent
     public string? ReferenceCode { get; set; }
     public bool IsActive { get; set; }
     public string? EmploymentStatus { get; set; }
+    public string? WorkWeekDays { get; set; }
+    public DateOnly? DateOfEmployment { get; set; }
     public string? Gender { get; set; }
     public string? SsnitNumber { get; set; }
     public string? TaxIdentificationNumber { get; set; }
@@ -36,6 +38,10 @@ public class EmployeeChangedEvent : DomainEvent
     public Guid? LocationId { get; set; }
     public string? LocationName { get; set; }
     public string? LocationCode { get; set; }
+    public string? LocationCountry { get; set; }
+    public string? LocationRegion { get; set; }
+    /// <summary>False means the publisher did not resolve geography — consumers must keep their existing country/region snapshot instead of clearing it.</summary>
+    public bool LocationGeographyResolved { get; set; }
     
     // Supervisor fields
     public Guid? SupervisorId { get; set; }
@@ -117,6 +123,8 @@ public class EmployeeChangedEvent : DomainEvent
     public EmployeeChangedEvent WithReferenceCode(string? reference) { ReferenceCode = reference; return this; }
     public EmployeeChangedEvent Active(bool isActive = true) { IsActive = isActive; return this; }
     public EmployeeChangedEvent WithEmploymentStatus(string? status) { EmploymentStatus = status; return this; }
+    public EmployeeChangedEvent WithWorkWeekDays(string? workWeekDays) { WorkWeekDays = workWeekDays; return this; }
+    public EmployeeChangedEvent WithDateOfEmployment(DateOnly? dateOfEmployment) { DateOfEmployment = dateOfEmployment; return this; }
     public EmployeeChangedEvent WithGender(string? gender) { Gender = gender; return this; }
     public EmployeeChangedEvent WithSsnitNumber(string? ssnit) { SsnitNumber = ssnit; return this; }
     public EmployeeChangedEvent WithTaxIdentificationNumber(string? tin) { TaxIdentificationNumber = tin; return this; }
@@ -137,6 +145,17 @@ public class EmployeeChangedEvent : DomainEvent
         LocationName = name; 
         LocationCode = code; 
         return this; 
+    }
+    
+    public EmployeeChangedEvent WithLocation(Guid? id, string? name, string? code, string? country, string? region)
+    {
+        LocationId = id;
+        LocationName = name;
+        LocationCode = code;
+        LocationCountry = country;
+        LocationRegion = region;
+        LocationGeographyResolved = true;
+        return this;
     }
     
     public EmployeeChangedEvent WithSupervisor(

@@ -98,7 +98,8 @@ public sealed class CreateAppSettingHandlerTests : IDisposable
                 Service,
                 new StubMapper(),
                 new StructuredAppSettingsApiOptions<StubResponse>(),
-                new CreateAppSettingCommandValidator());
+                new CreateAppSettingCommandValidator(),
+                sp);
         }
 
         public void Dispose()
