@@ -24,6 +24,11 @@ public sealed class StructuredAppSettingsApiOptions<TResponse>
     public string? UpdateRouteTemplate { get; set; }
     public string? DeleteRouteTemplate { get; set; }
 
+    // Null = any authenticated user may write. Return failure Result to reject.
+    public Func<IServiceProvider, Result?>? AuthorizeWrite { get; set; }
+
+    public Func<TResponse, Result?>? ValidateUpsert { get; set; }
+
     public string StructuredGetRoute => $"{RoutePrefix}/structured";
     public string BulkPatchRoute => $"{RoutePrefix}/bulk";
     public string ResolvedPageRoute => PageRoute ?? $"{RoutePrefix}/page";

@@ -254,6 +254,25 @@ public sealed class NigeriaCountryProfile : GhanaCountryProfile
             Eligibility:         "All staff.",
             Documentation:       "Death certificate or supporting evidence on return.",
             ApprovalProcess:     "Notify line manager; HR records."),
+
+        new(
+            Name:                "Comp Off / TOIL",
+            Code:                "TOIL",
+            EntitlementDays:     0,
+            WomenOnly:           false,
+            Icon:                "🔄",
+            Category:            "Time off",
+            IsEarned:            false,
+            CarryOverAllowed:    false,
+            CarryOverDays:       null,
+            MaxConsecutiveDays:  null,
+            MinAdvanceNoticeDays: 0,
+            MaxPerRequest:       null,
+            Description:         "Time off in lieu for working on a public holiday. Credited by HR after the worked holiday.",
+            Rules:               "Balance starts at zero. HR credits days for each worked public holiday. No carry-over.",
+            Eligibility:         "All staff who work an applicable public holiday, as credited by HR.",
+            Documentation:       "Not required unless local policy says otherwise.",
+            ApprovalProcess:     "Line manager approves; HR records."),
     ];
 
     public override IReadOnlyList<PublicHolidayDefinition> GetPublicHolidays(int year) =>
@@ -513,6 +532,25 @@ public sealed class KenyaCountryProfile : GhanaCountryProfile
             Eligibility:         "All staff.",
             Documentation:       "Death certificate or supporting evidence on return.",
             ApprovalProcess:     "Notify line manager; HR records."),
+
+        new(
+            Name:                "Comp Off / TOIL",
+            Code:                "TOIL",
+            EntitlementDays:     0,
+            WomenOnly:           false,
+            Icon:                "🔄",
+            Category:            "Time off",
+            IsEarned:            false,
+            CarryOverAllowed:    false,
+            CarryOverDays:       null,
+            MaxConsecutiveDays:  null,
+            MinAdvanceNoticeDays: 0,
+            MaxPerRequest:       null,
+            Description:         "Time off in lieu for working on a public holiday. Credited by HR after the worked holiday.",
+            Rules:               "Balance starts at zero. HR credits days for each worked public holiday. No carry-over.",
+            Eligibility:         "All staff who work an applicable public holiday, as credited by HR.",
+            Documentation:       "Not required unless local policy says otherwise.",
+            ApprovalProcess:     "Line manager approves; HR records."),
     ];
 
     public override IReadOnlyList<PublicHolidayDefinition> GetPublicHolidays(int year) =>

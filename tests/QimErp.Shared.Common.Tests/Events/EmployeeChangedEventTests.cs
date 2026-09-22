@@ -94,4 +94,24 @@ public sealed class EmployeeChangedEventTests
         @event.LocationRegion.Should().BeNull();
         @event.LocationGeographyResolved.Should().BeTrue();
     }
+
+    [Fact(DisplayName = "WithDateOfEmployment round-trips")]
+    public void WithDateOfEmployment_round_trips()
+    {
+        var hireDate = new DateOnly(2024, 3, 15);
+
+        var @event = new EmployeeChangedEvent().WithDateOfEmployment(hireDate);
+
+        @event.DateOfEmployment.Should().Be(hireDate);
+    }
+
+    [Fact(DisplayName = "WithDateOfEmployment(null) clears the value")]
+    public void WithDateOfEmployment_null_clears()
+    {
+        var @event = new EmployeeChangedEvent()
+            .WithDateOfEmployment(new DateOnly(2024, 3, 15))
+            .WithDateOfEmployment(null);
+
+        @event.DateOfEmployment.Should().BeNull();
+    }
 }

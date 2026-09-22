@@ -25,7 +25,8 @@ public sealed class CreateAppSettingHandler<TResponse>(
     IAppSettingsService appSettingsService,
     IStructuredSettingsMapper<TResponse> mapper,
     StructuredAppSettingsApiOptions<TResponse> options,
-    IValidator<CreateAppSettingCommand> validator)
+    IValidator<CreateAppSettingCommand> validator,
+    IServiceProvider serviceProvider)
     : IRequestHandler<CreateAppSettingCommand, Result<AppSettingResponse>>
 {
     public async Task<Result<AppSettingResponse>> Handle(
@@ -33,6 +34,13 @@ public sealed class CreateAppSettingHandler<TResponse>(
         CancellationToken cancellationToken)
     {
         logger.LogDebug("Processing CreateAppSetting: {Request}", JsonSerializer.Serialize(request));
+
+        var authFailure = options.AuthorizeWrite?.Invoke(serviceProvider);
+        if (authFailure is not null)
+        {
+            return Result.WithFailure<AppSettingResponse>(
+                authFailure.Error!, authFailure.Message, authFailure.Code);
+        }
 
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)

@@ -1,3 +1,5 @@
+using QimErp.Shared.Common.AppSettings.Options;
+
 namespace QimErp.Shared.Common.AppSettings.Features;
 
 public sealed class DeleteAppSettingCommand : IRequest<Result<bool>>
@@ -16,7 +18,9 @@ public sealed class DeleteAppSettingCommandValidator : AbstractValidator<DeleteA
 public sealed class DeleteAppSettingHandler<TResponse>(
     ILogger<DeleteAppSettingHandler<TResponse>> logger,
     IAppSettingsService appSettingsService,
-    IValidator<DeleteAppSettingCommand> validator)
+    IValidator<DeleteAppSettingCommand> validator,
+    StructuredAppSettingsApiOptions<TResponse> options,
+    IServiceProvider serviceProvider)
     : IRequestHandler<DeleteAppSettingCommand, Result<bool>>
 {
     public async Task<Result<bool>> Handle(
@@ -24,6 +28,12 @@ public sealed class DeleteAppSettingHandler<TResponse>(
         CancellationToken cancellationToken)
     {
         logger.LogDebug("Processing DeleteAppSetting: {Request}", JsonSerializer.Serialize(request));
+
+        var authFailure = options.AuthorizeWrite?.Invoke(serviceProvider);
+        if (authFailure is not null)
+        {
+            return Result.WithFailure<bool>(authFailure.Error!, authFailure.Message, authFailure.Code);
+        }
 
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
