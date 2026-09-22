@@ -27,7 +27,8 @@ public sealed class UpdateAppSettingHandler<TResponse>(
     IAppSettingsService appSettingsService,
     IStructuredSettingsMapper<TResponse> mapper,
     StructuredAppSettingsApiOptions<TResponse> options,
-    IValidator<UpdateAppSettingCommand> validator)
+    IValidator<UpdateAppSettingCommand> validator,
+    IServiceProvider serviceProvider)
     : IRequestHandler<UpdateAppSettingCommand, Result<AppSettingResponse>>
 {
     public async Task<Result<AppSettingResponse>> Handle(
@@ -35,6 +36,13 @@ public sealed class UpdateAppSettingHandler<TResponse>(
         CancellationToken cancellationToken)
     {
         logger.LogDebug("Processing UpdateAppSetting: {Request}", JsonSerializer.Serialize(request));
+
+        var authFailure = options.AuthorizeWrite?.Invoke(serviceProvider);
+        if (authFailure is not null)
+        {
+            return Result.WithFailure<AppSettingResponse>(
+                authFailure.Error!, authFailure.Message, authFailure.Code);
+        }
 
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)

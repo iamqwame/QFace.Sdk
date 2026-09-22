@@ -10,7 +10,8 @@ public sealed class UpsertStructuredAppSettingsBulkHandler<TResponse>(
     ILogger<UpsertStructuredAppSettingsBulkHandler<TResponse>> logger,
     IAppSettingsService appSettingsService,
     IStructuredSettingsMapper<TResponse> mapper,
-    StructuredAppSettingsApiOptions<TResponse> options)
+    StructuredAppSettingsApiOptions<TResponse> options,
+    IServiceProvider serviceProvider)
     : IRequestHandler<UpsertStructuredAppSettingsBulkCommand<TResponse>, Result<TResponse>>
 {
     public async Task<Result<TResponse>> Handle(
@@ -18,6 +19,19 @@ public sealed class UpsertStructuredAppSettingsBulkHandler<TResponse>(
         CancellationToken cancellationToken)
     {
         logger.LogDebug("Processing UpsertStructuredAppSettingsBulk for {ResponseType}", typeof(TResponse).Name);
+
+        var authFailure = options.AuthorizeWrite?.Invoke(serviceProvider);
+        if (authFailure is not null)
+        {
+            return Result.WithFailure<TResponse>(authFailure.Error!, authFailure.Message, authFailure.Code);
+        }
+
+        var validationFailure = options.ValidateUpsert?.Invoke(request.Settings);
+        if (validationFailure is not null)
+        {
+            return Result.WithFailure<TResponse>(
+                validationFailure.Error!, validationFailure.Message, validationFailure.Code);
+        }
 
         try
         {

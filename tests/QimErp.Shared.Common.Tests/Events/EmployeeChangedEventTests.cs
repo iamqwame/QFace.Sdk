@@ -55,4 +55,63 @@ public sealed class EmployeeChangedEventTests
         @event.WithGrantCompanyId("  ");
         @event.GrantCompanyId.Should().BeNull();
     }
+
+    [Fact(DisplayName = "3-arg WithLocation leaves geography unresolved")]
+    public void Three_arg_WithLocation_leaves_geography_unresolved()
+    {
+        var locationId = Guid.NewGuid();
+
+        var @event = new EmployeeChangedEvent().WithLocation(locationId, "Accra Office", "ACC");
+
+        @event.LocationId.Should().Be(locationId);
+        @event.LocationName.Should().Be("Accra Office");
+        @event.LocationCode.Should().Be("ACC");
+        @event.LocationGeographyResolved.Should().BeFalse();
+        @event.LocationCountry.Should().BeNull();
+        @event.LocationRegion.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "5-arg WithLocation marks geography resolved")]
+    public void Five_arg_WithLocation_marks_geography_resolved()
+    {
+        var locationId = Guid.NewGuid();
+
+        var @event = new EmployeeChangedEvent()
+            .WithLocation(locationId, "Accra Office", "ACC", "GH", "Greater Accra");
+
+        @event.LocationCountry.Should().Be("GH");
+        @event.LocationRegion.Should().Be("Greater Accra");
+        @event.LocationGeographyResolved.Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "5-arg WithLocation with a null country still marks geography resolved")]
+    public void Five_arg_WithLocation_with_null_country_marks_geography_resolved()
+    {
+        var @event = new EmployeeChangedEvent()
+            .WithLocation(Guid.NewGuid(), "Remote", "RMT", null, null);
+
+        @event.LocationCountry.Should().BeNull();
+        @event.LocationRegion.Should().BeNull();
+        @event.LocationGeographyResolved.Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "WithDateOfEmployment round-trips")]
+    public void WithDateOfEmployment_round_trips()
+    {
+        var hireDate = new DateOnly(2024, 3, 15);
+
+        var @event = new EmployeeChangedEvent().WithDateOfEmployment(hireDate);
+
+        @event.DateOfEmployment.Should().Be(hireDate);
+    }
+
+    [Fact(DisplayName = "WithDateOfEmployment(null) clears the value")]
+    public void WithDateOfEmployment_null_clears()
+    {
+        var @event = new EmployeeChangedEvent()
+            .WithDateOfEmployment(new DateOnly(2024, 3, 15))
+            .WithDateOfEmployment(null);
+
+        @event.DateOfEmployment.Should().BeNull();
+    }
 }
