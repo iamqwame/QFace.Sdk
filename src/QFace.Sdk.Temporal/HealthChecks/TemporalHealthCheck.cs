@@ -7,7 +7,7 @@ namespace QFace.Sdk.Temporal.HealthChecks;
 /// <summary>
 /// Health check that verifies the Temporal server is reachable.
 /// Reports Unhealthy when the Temporal connection is down so load balancers
-/// and orchestration platforms (Railway, k8s) stop routing traffic.
+/// and orchestration platforms (Docker, k8s) stop routing traffic.
 ///
 /// Registered via: builder.Services.AddHealthChecks().AddTemporalHealthCheck()
 /// Expose on /ready endpoint (tag: "ready") so liveness (/alive) is unaffected.
