@@ -31,9 +31,16 @@ public class StackExchangeRedisProvider : IRedisProvider
         _connection = ConnectionMultiplexer.Connect(configurationOptions);
         _database = _connection.GetDatabase(options.Database);
 
-        _logger.LogInformation("StackExchange.Redis connected to {ConnectionString}, Database: {Database}",
-            options.ConnectionString, options.Database);
+        _logger.LogInformation("StackExchange.Redis connected to {Endpoints}, Database: {Database}",
+            DescribeEndpoints(configurationOptions), options.Database);
     }
+
+    internal static string DescribeEndpoints(ConfigurationOptions configurationOptions) =>
+        string.Join(",", configurationOptions.EndPoints.Select(e => e switch
+        {
+            System.Net.DnsEndPoint dns => $"{dns.Host}:{dns.Port}",
+            _ => e.ToString()
+        }));
 
     public async Task<T> GetAsync<T>(string key)
     {

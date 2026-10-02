@@ -14,19 +14,40 @@ permissions:
 jobs:
   validate:
     name: Build & Test
-    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, qimerp-ci]
+    timeout-minutes: 45
+    concurrency:
+      group: qimerp-ci-sdk-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
+      - name: Install .NET 9 (user-local on Contabo)
+        run: |
+          set -euo pipefail
+          INSTALL_DIR="${HOME}/.dotnet"
+          has_sdk() { "${INSTALL_DIR}/dotnet" --list-sdks 2>/dev/null | grep '^9\.0\.' >/dev/null; }
+          if ! has_sdk; then
+            exec 9>"${HOME}/.dotnet-install.lock"
+            flock 9
+            if ! has_sdk; then
+              installer="$(mktemp -p "${RUNNER_TEMP}" dotnet-install.XXXXXX)"
+              curl -fsSL https://dot.net/v1/dotnet-install.sh -o "${installer}"
+              bash "${installer}" --channel 9.0 --install-dir "${INSTALL_DIR}"
+              rm -f "${installer}"
+            fi
+            flock -u 9
+          fi
+          echo "${INSTALL_DIR}" >> "${GITHUB_PATH}"
+          echo "DOTNET_ROOT=${INSTALL_DIR}" >> "${GITHUB_ENV}"
+          "${INSTALL_DIR}/dotnet" --info
 
       - name: Restore and build packable projects
         run: |
           shopt -s nullglob
+          mkdir -p ./nupkgs
           failed=0
           for project in ./src/*/*.csproj; do
             project_name=$(basename "$(dirname "$project")")
@@ -40,7 +61,24 @@ jobs:
               continue
             fi
             echo "Building $project_name..."
-            dotnet restore "$project" || failed=1
-            dotnet build "$project" -c Release --no-restore || failed=1
+            # Packages bumped together in one PR resolve from ./nupkgs; the readme is only staged by build.yml.
+            dotnet restore "$project" -s ./nupkgs -s https://api.nuget.org/v3/index.json || { failed=1; continue; }
+            dotnet build "$project" -c Release --no-restore -m:3 -nodeReuse:false -p:UseSharedCompilation=false || { failed=1; continue; }
+            dotnet pack "$project" -c Release --no-build -o ./nupkgs -p:PackageReadmeFile= || failed=1
           done
           exit $failed
+
+      - name: Test
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for project in ./tests/*/*.csproj; do
+            # Testcontainers suites need Docker, which the CI box does not run.
+            if grep -q "Testcontainers" "$project"; then
+              echo "Skipping $project (Testcontainers)"
+              continue
+            fi
+            dotnet restore "$project" -s ./nupkgs -s https://api.nuget.org/v3/index.json
+            dotnet build "$project" -c Release --no-restore -m:3 -nodeReuse:false -p:UseSharedCompilation=false
+            dotnet test "$project" -c Release --no-build
+          done
