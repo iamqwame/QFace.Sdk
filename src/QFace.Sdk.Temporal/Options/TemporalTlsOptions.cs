@@ -4,7 +4,7 @@ namespace QFace.Sdk.Temporal.Options;
 /// Advanced TLS options for Temporal connections.
 /// Only needed when EnableTls is true and the default TLS settings
 /// (system CA, SNI from Address host) are not sufficient.
-/// Typical for Railway/cloud deployments with custom CA certificates.
+/// Typical for cloud deployments with custom CA certificates.
 /// </summary>
 public sealed class TemporalTlsOptions
 {
