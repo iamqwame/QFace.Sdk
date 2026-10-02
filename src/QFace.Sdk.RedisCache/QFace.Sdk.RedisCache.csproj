@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>QFace.Sdk.RedisCache</PackageId>
-        <Version>1.0.1</Version>
+        <Version>1.0.2</Version>
         <Authors>IAmQwame</Authors>
         <Company>QFace</Company>
         <Description>A Redis caching SDK for .NET applications supporting both Upstash Redis (HTTP) and standard Redis (StackExchange.Redis TCP).</Description>
@@ -31,6 +31,10 @@
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="QFace.Sdk.RedisCache.Tests" />
     </ItemGroup>
 
     <!-- Documentation files -->
