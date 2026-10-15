@@ -33,9 +33,9 @@ public class EntityWorkflowStep : GuidAuditableEntity
     public WorkflowDefinition WorkflowDefinition { get; set; } = new();
 
     /// <summary>
-    /// Version of the workflow for tracking updates
+    /// Version of the workflow definition for tracking updates
     /// </summary>
-    public int Version { get; set; } = 1;
+    public int DefinitionVersion { get; set; } = 1;
 
     /// <summary>
     /// Reference to the original workflow template ID

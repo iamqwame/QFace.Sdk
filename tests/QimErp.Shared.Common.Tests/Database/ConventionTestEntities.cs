@@ -40,6 +40,18 @@ public class TenantWideThing : BaseAuditableEntity<Guid>, ITenantWideEntity
     public string Name { get; set; } = string.Empty;
 }
 
+public enum ConventionSampleStatus
+{
+    Open = 0,
+    Closed = 1,
+}
+
+public class EnumConventionThing : BaseAuditableEntity<Guid>
+{
+    public string Name { get; set; } = string.Empty;
+    public ConventionSampleStatus Status { get; set; }
+}
+
 public sealed class TestEmployee : EmployeeBase
 {
     public TestEmployee() { }
@@ -64,6 +76,7 @@ public class ConfigurationOnlyThingConfiguration : IEntityTypeConfiguration<Conf
     {
         builder.ToTable("configuration_only_thing");
         builder.HasKey(e => e.Id);
+        builder.Ignore(e => e.CustomFields);
     }
 }
 
@@ -77,6 +90,7 @@ public sealed class ConventionTestDbContext(
     public DbSet<CustomFilteredThing> CustomFilteredThings => Set<CustomFilteredThing>();
     public DbSet<SelfScopedThing> SelfScopedThings => Set<SelfScopedThing>();
     public DbSet<TenantWideThing> TenantWideThings => Set<TenantWideThing>();
+    public DbSet<EnumConventionThing> EnumConventionThings => Set<EnumConventionThing>();
     public DbSet<TestEmployee> Employees => Set<TestEmployee>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -88,6 +102,7 @@ public sealed class ConventionTestDbContext(
 
         modelBuilder.Entity<PlainThing>().OwnsOne(e => e.Detail);
         modelBuilder.Entity<DerivedThing>();
+        modelBuilder.Entity<EnumConventionThing>();
 
         // Same shape as the 17 Accounting configurations: replaces the global filter, no company clause.
         modelBuilder.Entity<CustomFilteredThing>().HasQueryFilter(e =>

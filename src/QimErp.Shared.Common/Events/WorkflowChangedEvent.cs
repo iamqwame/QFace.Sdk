@@ -34,7 +34,7 @@ public class WorkflowChangedEvent : DomainEvent
     /// <summary>
     /// Version of the workflow for tracking updates
     /// </summary>
-    public int Version { get; set; } = 1;
+    public new int Version { get; set; } = 1;
 
     /// <summary>
     /// Reference to the original workflow template ID

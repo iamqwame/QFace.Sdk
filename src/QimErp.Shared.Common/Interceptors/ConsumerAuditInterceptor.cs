@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
+
 namespace QimErp.Shared.Common.Interceptors;
 
 /// <summary>
@@ -113,17 +116,34 @@ public class ConsumerAuditInterceptor(
 
                 case EntityState.Modified:
                     entity.OnModify(triggeredBy, triggeredBy, triggeredBy);
+                    IncrementVersion(entry);
                     logger.LogDebug("Updated audit metadata for modified {EntityType}", entity.GetType().Name);
                     break;
 
                 case EntityState.Deleted:
-                    // Soft delete by changing DataStatus instead of actually deleting
                     entry.State = EntityState.Modified;
                     entity.OnSoftRemove();
                     entity.OnModify(triggeredBy, triggeredBy, triggeredBy);
+                    IncrementVersion(entry);
                     logger.LogDebug("Soft deleted {EntityType}", entity.GetType().Name);
                     break;
             }
         }
+    }
+
+    private static void IncrementVersion(EntityEntry<AuditableEntity> entry)
+    {
+        var versionProperty = entry.Property(nameof(AuditableEntity.Version));
+        // Only AuditableEntity.Version (long optimistic token). Skip EF row-versions / uint shadows.
+        if (versionProperty.Metadata.ClrType != typeof(long)
+            || versionProperty.Metadata.ValueGenerated == ValueGenerated.OnAddOrUpdate)
+        {
+            return;
+        }
+
+        var originalVersion = versionProperty.OriginalValue is long original
+            ? original
+            : 1L;
+        versionProperty.CurrentValue = originalVersion + 1;
     }
 }

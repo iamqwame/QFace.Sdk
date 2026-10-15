@@ -42,6 +42,8 @@ public abstract class AuditableEntity
     /// </summary>
     public string CompanyId { get; set; } = string.Empty;
 
+    public long Version { get; private set; } = 1;
+
     // Created Information
     public string CreatedByUserId { get; private set; } = string.Empty;
     public string CreatedByEmail { get; private set; } = string.Empty;
@@ -122,19 +124,19 @@ public abstract class AuditableEntity
     {
         CreatedByUserId = userId;
         CreatedByEmail = email;
-        CreatedByName = name;
+        CreatedByName = string.Empty;
         Created = DateTime.UtcNow;
         PreviousDataStatus = null;
 
         EntityStatusCreated = Created;
         EntityStatusCreatedByUserId = userId;
         EntityStatusCreatedByEmail = email;
-        EntityStatusCreatedByName = name;
+        EntityStatusCreatedByName = string.Empty;
 
         LastModified = Created;
         LastModifiedByUserId = userId;
         LastModifiedByEmail = email;
-        LastModifiedByName = name;
+        LastModifiedByName = string.Empty;
 
         return this;
     }
@@ -144,7 +146,7 @@ public abstract class AuditableEntity
         LastModified = DateTime.UtcNow;
         LastModifiedByUserId = userId;
         LastModifiedByEmail = email;
-        LastModifiedByName = name;
+        LastModifiedByName = string.Empty;
 
         return this;
     }
@@ -199,25 +201,22 @@ public abstract class AuditableEntity
 
     public AuditableEntity AddAuditMetadata(string userId, string email, string name, DateTime timestamp)
     {
-        // Set creation metadata if this is a new entry
         if (string.IsNullOrWhiteSpace(CreatedByUserId))
         {
             CreatedByUserId = userId;
             CreatedByEmail = email;
-            CreatedByName = name;
+            CreatedByName = string.Empty;
             Created = timestamp;
         }
 
-        // Always set last modification metadata
         LastModifiedByUserId = userId;
         LastModifiedByEmail = email;
-        LastModifiedByName = name;
+        LastModifiedByName = string.Empty;
         LastModified = timestamp;
 
-        // Set entity status modification metadata
         EntityStatusLastModifiedByUserId = userId;
         EntityStatusLastModifiedByEmail = email;
-        EntityStatusLastModifiedByName = name;
+        EntityStatusLastModifiedByName = string.Empty;
 
         return this;
     }

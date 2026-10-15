@@ -23,7 +23,7 @@ public class EntityWorkflowStepConfiguration : AuditableEntityConfiguration<Enti
             .IsRequired()
             .HasDefaultValue(true);
 
-        builder.Property(e => e.Version)
+        builder.Property(e => e.DefinitionVersion)
             .IsRequired()
             .HasDefaultValue(1);
 

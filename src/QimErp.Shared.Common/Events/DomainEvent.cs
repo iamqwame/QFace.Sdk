@@ -14,6 +14,9 @@ public abstract class DomainEvent : IDomainEvent
     /// <summary>Optional application correlation id (e.g. from <c>X-Correlation-Id</c>) for consumers and tracing.</summary>
     public string? CorrelationId { get; set; }
 
+    /// <summary>Source entity optimistic version at publish time. 0 = not supplied (legacy consumers apply unconditionally).</summary>
+    public long Version { get; set; }
+
     protected DomainEvent()
     {
         OccurredOn = DateTime.UtcNow;
