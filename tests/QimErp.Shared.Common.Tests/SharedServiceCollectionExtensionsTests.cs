@@ -1,12 +1,14 @@
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using QimErp.Shared.Common.Entities;
 using QimErp.Shared.Common.Extensions;
 using QimErp.Shared.Common.Interceptors;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Outbox;
 using QimErp.Shared.Common.Services.Auth;
 using Xunit;
 
@@ -92,5 +94,74 @@ public class SharedServiceCollectionExtensionsTests
         // Assert
         consumer.Should().NotBeNull();
         interceptor.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AddDbContextWithOutbox_RegistersOutboxProcessorBackgroundService_ExactlyOnce()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDbContextWithOutbox<TestApplicationDbContext>(TestConnectionString);
+
+        using var provider = services.BuildServiceProvider();
+        var hostedServices = provider.GetServices<IHostedService>()
+            .OfType<OutboxProcessorBackgroundService<TestApplicationDbContext>>()
+            .ToList();
+
+        hostedServices.Should().ContainSingle(
+            "AddDbContextWithOutbox must register exactly one sweeper per TContext via TryAddEnumerable");
+    }
+
+    [Fact]
+    public void AddDbContextWithOutbox_CalledTwice_StillRegistersOutboxProcessorOnce()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDbContextWithOutbox<TestApplicationDbContext>(TestConnectionString);
+        services.AddDbContextWithOutbox<TestApplicationDbContext>(TestConnectionString);
+
+        using var provider = services.BuildServiceProvider();
+        var hostedServices = provider.GetServices<IHostedService>()
+            .OfType<OutboxProcessorBackgroundService<TestApplicationDbContext>>()
+            .ToList();
+
+        hostedServices.Should().ContainSingle(
+            "TryAddEnumerable must not duplicate the sweeper when AddDbContextWithOutbox is called more than once");
+    }
+
+    [Fact]
+    public void AddDbContextWithOutbox_WithoutConfiguration_UsesDefaultOutboxProcessorOptions()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDbContextWithOutbox<TestApplicationDbContext>(TestConnectionString);
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<OutboxProcessorOptions>>().Value;
+
+        options.BatchSize.Should().Be(50);
+        options.PollingIntervalSeconds.Should().Be(30);
+    }
+
+    [Fact]
+    public void AddDbContextWithOutbox_WithConfiguration_BindsOutboxProcessorOptions()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [$"{OutboxProcessorOptions.SectionName}:BatchSize"] = "25",
+                [$"{OutboxProcessorOptions.SectionName}:PollingIntervalSeconds"] = "10"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDbContextWithOutbox<TestApplicationDbContext>(TestConnectionString, configuration);
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<OutboxProcessorOptions>>().Value;
+
+        options.BatchSize.Should().Be(25);
+        options.PollingIntervalSeconds.Should().Be(10);
     }
 }
