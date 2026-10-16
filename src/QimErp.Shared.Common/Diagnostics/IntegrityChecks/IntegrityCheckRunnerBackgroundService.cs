@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using QFace.Sdk.Temporal.Interceptors;
+using QimErp.Shared.Common.Services.Auth;
 
 namespace QimErp.Shared.Common.Diagnostics.IntegrityChecks;
 
@@ -57,27 +59,23 @@ public sealed class IntegrityCheckRunnerBackgroundService : BackgroundService
     }
 
     /// <summary>
-    /// Runs every registered <see cref="IIntegrityCheck"/> once, in a single DI scope. Public so
-    /// tests can drive a sweep deterministically without running the hosted-service loop.
+    /// Runs every registered <see cref="IIntegrityCheck"/> once. Public so tests can drive a sweep
+    /// deterministically without running the hosted-service loop.
     /// </summary>
     public async Task<IReadOnlyList<IntegrityCheckResult>> RunAllChecksAsync(CancellationToken cancellationToken)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var checks = scope.ServiceProvider.GetServices<IIntegrityCheck>();
-
-        var results = new List<IntegrityCheckResult>();
-        foreach (var check in checks)
+        int checkCount;
+        using (var listScope = _scopeFactory.CreateScope())
         {
-            IntegrityCheckResult result;
-            try
-            {
-                result = await check.RunAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Integrity check {Check} failed to run", check.Name);
+            checkCount = listScope.ServiceProvider.GetServices<IIntegrityCheck>().Count();
+        }
+
+        var results = new List<IntegrityCheckResult>(checkCount);
+        for (var i = 0; i < checkCount; i++)
+        {
+            var result = await RunSingleCheckAsync(i, cancellationToken);
+            if (result is null)
                 continue;
-            }
 
             results.Add(result);
 
@@ -90,5 +88,34 @@ public sealed class IntegrityCheckRunnerBackgroundService : BackgroundService
         }
 
         return results;
+    }
+
+    private async Task<IntegrityCheckResult?> RunSingleCheckAsync(int checkIndex, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var userContextService = scope.ServiceProvider.GetService<ICurrentUserService>();
+        var tenantScopeSetter = scope.ServiceProvider.GetService<ITenantScopeSetter>();
+        var companyScopeSetter = scope.ServiceProvider.GetService<ICompanyScopeSetter>();
+
+        var checks = scope.ServiceProvider.GetServices<IIntegrityCheck>().ToList();
+        if (checkIndex >= checks.Count)
+            return null;
+
+        var check = checks[checkIndex];
+        try
+        {
+            return await check.RunAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Integrity check {Check} failed to run", check.Name);
+            return null;
+        }
+        finally
+        {
+            userContextService?.ClearContext();
+            tenantScopeSetter?.ClearTenantScope();
+            companyScopeSetter?.ClearCompanyScope();
+        }
     }
 }

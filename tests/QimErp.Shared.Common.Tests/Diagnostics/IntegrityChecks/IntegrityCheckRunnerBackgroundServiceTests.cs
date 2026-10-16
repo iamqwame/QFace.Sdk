@@ -1,7 +1,10 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using QFace.Sdk.Temporal.Interceptors;
 using QimErp.Shared.Common.Diagnostics.IntegrityChecks;
+using QimErp.Shared.Common.Services.Auth;
+using QimErp.Shared.Common.Services.MultiTenancy;
 using Xunit;
 
 namespace QimErp.Shared.Common.Tests.Diagnostics.IntegrityChecks;
@@ -34,6 +37,44 @@ public sealed class IntegrityCheckRunnerBackgroundServiceTests
 
         public Task<IntegrityCheckResult> RunAsync(CancellationToken cancellationToken) =>
             throw new InvalidOperationException("boom");
+    }
+
+    private sealed class TenantObservation
+    {
+        public string? TenantIdDuringSecondCheck { get; set; }
+    }
+
+    private sealed class TenantStompingCheck(ITenantScopeSetter tenantScopeSetter) : IIntegrityCheck
+    {
+        public string Name => "check.stomp";
+
+        public Task<IntegrityCheckResult> RunAsync(CancellationToken cancellationToken)
+        {
+            tenantScopeSetter.SetTenantScope("tenant-from-check-a");
+            return Task.FromResult(IntegrityCheckResult.Clean(Name));
+        }
+    }
+
+    private sealed class TenantObservingCheck(ITenantContext tenantContext, TenantObservation observation) : IIntegrityCheck
+    {
+        public string Name => "check.observe";
+
+        public Task<IntegrityCheckResult> RunAsync(CancellationToken cancellationToken)
+        {
+            observation.TenantIdDuringSecondCheck = tenantContext.TenantId;
+            return Task.FromResult(IntegrityCheckResult.Clean(Name));
+        }
+    }
+
+    private sealed class CountingScopeFactory(IServiceScopeFactory inner) : IServiceScopeFactory
+    {
+        public int CreateScopeCallCount { get; private set; }
+
+        public IServiceScope CreateScope()
+        {
+            CreateScopeCallCount++;
+            return inner.CreateScope();
+        }
     }
 
     private static IntegrityCheckRunnerBackgroundService CreateRunner(IServiceProvider provider) =>
@@ -109,18 +150,52 @@ public sealed class IntegrityCheckRunnerBackgroundServiceTests
         results.Subject.Should().ContainSingle(r => r.CheckName == "check.ok");
     }
 
-    [Fact(DisplayName = "RunAllChecksAsync resolves checks from a single DI scope per sweep")]
-    public async Task RunAllChecksAsync_ResolvesChecksFromOneScope()
+    [Fact(DisplayName = "RunAllChecksAsync runs each scoped check in its own DI scope")]
+    public async Task RunAllChecksAsync_ResolvesEachCheckInItsOwnScope()
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddScoped<IIntegrityCheck>(_ => new CleanCheck("check.scoped-a"));
         services.AddScoped<IIntegrityCheck>(_ => new CleanCheck("check.scoped-b"));
+        var root = services.BuildServiceProvider();
+        var scopeFactory = new CountingScopeFactory(root.GetRequiredService<IServiceScopeFactory>());
+
+        var runner = new IntegrityCheckRunnerBackgroundService(
+            scopeFactory,
+            NullLogger<IntegrityCheckRunnerBackgroundService>.Instance,
+            Microsoft.Extensions.Options.Options.Create(new IntegrityCheckRunnerOptions()));
+
+        var before = scopeFactory.CreateScopeCallCount;
+        var results = await runner.RunAllChecksAsync(CancellationToken.None);
+        var scopesCreated = scopeFactory.CreateScopeCallCount - before;
+
+        results.Should().HaveCount(2);
+        scopesCreated.Should().Be(1 + 2, "one scope to count registrations plus one scope per check");
+    }
+
+    [Fact(DisplayName = "Tenant scope set by check A does not leak into check B")]
+    public async Task TenantScopeFromCheckA_DoesNotLeakIntoCheckB()
+    {
+        var observation = new TenantObservation();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddHttpContextAccessor();
+        services.AddScoped<ITenantContext, TenantContext>();
+        services.AddScoped<ITenantScopeSetter>(sp => (ITenantScopeSetter)sp.GetRequiredService<ITenantContext>());
+        services.AddScoped<ICurrentUserService, UserContextService>();
+        services.AddSingleton(observation);
+        services.AddScoped<IIntegrityCheck, TenantStompingCheck>();
+        services.AddScoped<IIntegrityCheck, TenantObservingCheck>();
         var provider = services.BuildServiceProvider();
 
         var runner = CreateRunner(provider);
-        var results = await runner.RunAllChecksAsync(CancellationToken.None);
+        await runner.RunAllChecksAsync(CancellationToken.None);
 
-        results.Should().HaveCount(2);
+        observation.TenantIdDuringSecondCheck.Should().BeNull(
+            "check B must not see tenant scope left behind by check A");
+
+        using var verifyScope = provider.CreateScope();
+        verifyScope.ServiceProvider.GetRequiredService<ITenantContext>().TenantId.Should().BeNull(
+            "tenant scope must be cleared after each check, not leaked to the caller");
     }
 }
