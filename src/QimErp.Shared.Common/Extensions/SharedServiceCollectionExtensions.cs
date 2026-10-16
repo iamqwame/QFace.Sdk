@@ -28,6 +28,7 @@ using QimErp.Shared.Common.Services.AI;
 using QimErp.Shared.Common.Services.Knowledge;
 using QimErp.Shared.Common.Services.TenantSetup;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Outbox;
 using QimErp.Shared.Common.Services.Cache;
 using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Services.TenantActivity;
@@ -94,12 +95,17 @@ public static class SharedServiceCollectionExtensions
         return services;
     }
     /// <summary>
-    /// Registers DbContext with outbox support and audit interceptor.
+    /// Registers DbContext with a <b>durable transactional outbox</b> (DATA-09) and audit interceptor.
+    /// Domain events collected during <c>SaveChanges</c> are written as <see cref="OutboxMessage"/>
+    /// rows in the same transaction; an Akka poller → consistent-hash router → dispatch workers
+    /// relay delivers them via configured transports (in-process MediatR by default, Temporal for
+    /// workflow approval / module routing). Do <b>not</b> Tell actors or start Temporal after save.
     /// </summary>
     /// <param name="configuration">Optional. When provided, options bind from config; when null, default values are used.</param>
     /// <remarks>
     /// Requires ICurrentUserService. Registers DesignTimeCurrentUserService as fallback via TryAdd.
     /// Call AddCoreServices/AddAuth before or after to use UserContextService (HTTP-based user) instead.
+    /// Modules must add an EF migration for the <c>OutboxMessages</c> table — see docs/outbox-data-09.md.
     /// </remarks>
     public static IServiceCollection AddDbContextWithOutbox<TContext>(
         this IServiceCollection services, string connectionString, IConfiguration? configuration = null, bool enableVector = false) where TContext : ApplicationDbContext<TContext>
@@ -147,6 +153,8 @@ public static class SharedServiceCollectionExtensions
 
         services.AddScoped<IWorkflowAwareContext>(provider =>
             provider.GetRequiredService<TContext>());
+
+        services.AddTransactionalOutbox<TContext>(configuration);
 
         return services;
     }
@@ -199,6 +207,8 @@ public static class SharedServiceCollectionExtensions
             });
         services.AddScoped<IWorkflowAwareContext>(provider =>
             provider.GetRequiredService<TContext>());
+
+        services.AddTransactionalOutbox<TContext>(configuration);
 
         return services;
     }

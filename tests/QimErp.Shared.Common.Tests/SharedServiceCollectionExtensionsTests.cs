@@ -7,6 +7,7 @@ using QimErp.Shared.Common.Entities;
 using QimErp.Shared.Common.Extensions;
 using QimErp.Shared.Common.Interceptors;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Outbox;
 using QimErp.Shared.Common.Services.Auth;
 using Xunit;
 
@@ -48,9 +49,11 @@ public class SharedServiceCollectionExtensionsTests
         // Act
         using var scope = services.BuildServiceProvider().CreateScope();
         var interceptor = scope.ServiceProvider.GetService<AuditEntitySaveChangesInterceptor>();
+        var outbox = scope.ServiceProvider.GetService<IOutbox>();
 
         // Assert
         interceptor.Should().NotBeNull();
+        outbox.Should().NotBeNull("AddDbContextWithOutbox must register the durable DATA-09 outbox");
     }
 
     [Fact]
@@ -58,7 +61,10 @@ public class SharedServiceCollectionExtensionsTests
     {
         // Arrange
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>())
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Outbox:RelayEnabled"] = "false",
+            })
             .Build();
 
         var services = new ServiceCollection();
@@ -68,9 +74,11 @@ public class SharedServiceCollectionExtensionsTests
         // Act
         using var scope = services.BuildServiceProvider().CreateScope();
         var interceptor = scope.ServiceProvider.GetService<AuditEntitySaveChangesInterceptor>();
+        var outbox = scope.ServiceProvider.GetService<IOutbox>();
 
         // Assert
         interceptor.Should().NotBeNull();
+        outbox.Should().NotBeNull();
     }
 
     [Fact]

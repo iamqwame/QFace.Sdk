@@ -35,6 +35,11 @@ A generic AI/ML SDK library supporting multiple LLM providers (OpenAI, Anthropic
 
 > Note: `QimErp.Shared.Common` and `QimErp.Shared.DemoData` also build out of this repo's `src/` but are QimERP platform libraries, not QFace SDK — see the platform docs instead.
 
+### [Transactional outbox (DATA-09)](outbox-data-09.md)
+
+Durable same-transaction outbox + Akka relay used by `AddDbContextWithOutbox*`. Module migration
+notes for removing post-save `Tell` / Temporal starts.
+
 ## Getting Started
 
 For all SDKs, see the [installation](shared/installation.md) guide to get started with adding QFace packages to your project.
