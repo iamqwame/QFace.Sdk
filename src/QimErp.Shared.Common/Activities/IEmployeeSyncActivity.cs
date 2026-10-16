@@ -1,3 +1,4 @@
+#pragma warning disable CS0618 // Dual-publish bridge still references EmployeeChangedEvent
 using Temporalio.Activities;
 
 namespace QimErp.Shared.Common.Activities;
