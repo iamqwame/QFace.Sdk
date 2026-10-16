@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Runtime.CompilerServices;
 using System.Transactions;
+using QimErp.Shared.Common.Outbox;
+using QimErp.Shared.Common.Outbox.Transports;
 using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Services.Workflow;
 
@@ -66,19 +68,18 @@ public class AuditEntitySaveChangesInterceptor(
                 return await base.SavedChangesAsync(eventData, result, cancellationToken);
             }
 
-            if (result > 0 && _contextEvents.TryGetValue(context, out var workflowEvents))
+            // DATA-09: delivery is owned by the durable outbox + Akka relay.
+            // Events were written as OutboxMessage rows during SavingChanges (same transaction).
+            // Never Tell / MediatR-publish / Temporal-start here — that recreates the save-then-publish gap.
+            if (_contextEvents.TryGetValue(context, out var leftover) && leftover.Count > 0)
             {
-                logger.LogDebug("Publishing {EventCount} workflow events after successful save ({RowsAffected} rows affected)",
-                    workflowEvents.Count, result);
-                await PublishWorkflowEventsWithTransactionAsync(workflowEvents, context, cancellationToken);
-                _contextEvents.Remove(context);
-            }
-            else if (result == 0)
-            {
-                logger.LogDebug("No changes saved (result=0), skipping event publication");
-                _contextEvents.Remove(context);
+                logger.LogWarning(
+                    "Discarding {EventCount} in-memory event(s) after SaveChanges — they should have been " +
+                    "persisted to OutboxMessages during SavingChanges. Ensure IOutbox is registered via AddDbContextWithOutbox.",
+                    leftover.Count);
             }
 
+            _contextEvents.Remove(context);
             return await base.SavedChangesAsync(eventData, result, cancellationToken);
         }
         catch (Exception ex)
@@ -134,18 +135,14 @@ public class AuditEntitySaveChangesInterceptor(
                 return base.SavedChanges(eventData, result);
             }
 
-            if (result > 0 && _contextEvents.TryGetValue(context, out var workflowEvents))
+            if (_contextEvents.TryGetValue(context, out var leftover) && leftover.Count > 0)
             {
-                logger.LogDebug("Publishing {EventCount} workflow events after successful save (sync)", workflowEvents.Count);
-                PublishWorkflowEventsWithTransactionAsync(workflowEvents, context, CancellationToken.None).GetAwaiter().GetResult();
-                _contextEvents.Remove(context);
-            }
-            else if (result == 0)
-            {
-                logger.LogDebug("No changes saved (result=0), skipping event publication");
-                _contextEvents.Remove(context);
+                logger.LogWarning(
+                    "Discarding {EventCount} in-memory event(s) after SaveChanges (sync) — expected outbox persistence during SavingChanges.",
+                    leftover.Count);
             }
 
+            _contextEvents.Remove(context);
             return base.SavedChanges(eventData, result);
         }
         catch (Exception ex)
@@ -273,8 +270,56 @@ public class AuditEntitySaveChangesInterceptor(
         var workflowEvents = new List<IDomainEvent>();
         await ProcessWorkflowEntitiesAsync(workflowEvents, cancellationToken, context);
         await CaptureWorkflowEventsAsync(workflowEvents, context, cancellationToken);
-        _contextEvents.AddOrUpdate(context, workflowEvents);
+        var leftovers = PersistCapturedEventsToOutbox(workflowEvents);
+        _contextEvents.AddOrUpdate(context, leftovers);
         AddAuditMetadata(context);
+    }
+
+    /// <summary>
+    /// Writes captured domain / workflow events as <see cref="OutboxMessage"/> rows on the same
+    /// <see cref="DbContext"/> so they commit with the business change (DATA-09).
+    /// Returns any events that could not be persisted (IOutbox missing) for SavedChanges diagnostics.
+    /// </summary>
+    private List<IDomainEvent> PersistCapturedEventsToOutbox(List<IDomainEvent> events)
+    {
+        if (events.Count == 0) return [];
+
+        var outbox = serviceProvider.GetService<IOutbox>();
+        if (outbox is null)
+        {
+            logger.LogError(
+                "IOutbox is not registered — {EventCount} event(s) cannot be durably handed off. " +
+                "Call AddDbContextWithOutbox (or AddTransactionalOutbox) so DATA-09 outbox rows are written.",
+                events.Count);
+            return events;
+        }
+
+        foreach (var domainEvent in events)
+        {
+            var entityId = TryResolveEntityIdFromEvent(domainEvent);
+            outbox.Add(domainEvent, entityId, entityVersion: 0);
+        }
+
+        logger.LogDebug(
+            "Persisted {EventCount} event(s) to OutboxMessages in the current SaveChanges transaction",
+            events.Count);
+        return [];
+    }
+
+    private static Guid TryResolveEntityIdFromEvent(IDomainEvent domainEvent)
+    {
+        var type = domainEvent.GetType();
+        foreach (var name in new[] { "EntityId", "Id", "AggregateId" })
+        {
+            var prop = type.GetProperty(name);
+            if (prop is null) continue;
+            var value = prop.GetValue(domainEvent);
+            if (value is Guid g) return g;
+            if (value is string s && Guid.TryParse(s, out var parsed)) return parsed;
+            if (value is long or int) return OutboxEntityId.FromValue(value);
+        }
+
+        return Guid.CreateVersion7();
     }
 
     private void SetTenantIdOnEntities(DbContext context)
@@ -859,38 +904,37 @@ public class AuditEntitySaveChangesInterceptor(
                 logger.LogDebug("[CaptureWorkflowEvents] Created WorkflowEventMessage for {EntityType} {EntityId}. WorkflowId={WorkflowId}, WorkflowCode={WorkflowCode}, TenantId={TenantId} (source: {TenantIdSource})",
                     entity.EntityType, GetEntityId(entity), workflowHistoryId, workflowCode, resolvedTenantId, tenantIdSource);
 
-                var bridge = serviceProvider.GetService<IWorkflowTriggerBridge>();
                 var approvalGate = serviceProvider.GetService<IWorkflowModuleApprovalGate>();
                 if (approvalGate is not null
                     && !await approvalGate.IsApprovalModuleEnabledAsync(resolvedTenantId, cancellationToken))
                 {
                     logger.LogDebug(
-                        "[CaptureWorkflowEvents] Workflow module not installed for tenant {TenantId} — skipping Temporal trigger for {EntityType} {EntityId}",
+                        "[CaptureWorkflowEvents] Workflow module not installed for tenant {TenantId} — skipping outbox Temporal hand-off for {EntityType} {EntityId}",
                         resolvedTenantId, entity.EntityType, GetEntityId(entity));
                     continue;
                 }
 
-                if (bridge == null)
+                // DATA-09: enqueue WorkflowApprovalRequired in the same transaction — never start Temporal here.
+                var approvalOutbox = serviceProvider.GetService<IOutbox>();
+                if (approvalOutbox is null)
                 {
-                    logger.LogWarning("[CaptureWorkflowEvents] IWorkflowTriggerBridge is not registered. Workflow approval-required event will not be triggered for {EntityType} {EntityId}.",
+                    logger.LogError(
+                        "[CaptureWorkflowEvents] IOutbox is not registered. Cannot durably enqueue WorkflowApprovalRequired for {EntityType} {EntityId}.",
                         entity.EntityType, GetEntityId(entity));
                 }
                 else
                 {
-                    try
-                    {
-                        var handled = await bridge.TryTriggerTemporalWorkflowAsync(workflowMessage, cancellationToken);
-                        if (handled)
-                            logger.LogInformation("[CaptureWorkflowEvents] Temporal workflow triggered for {EntityType} {EntityId}", entity.EntityType, GetEntityId(entity));
-                        else
-                            logger.LogWarning("[CaptureWorkflowEvents] WorkflowTriggerBridge returned false for {EntityType} {EntityId}. No workflow was started.",
-                                entity.EntityType, GetEntityId(entity));
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "[CaptureWorkflowEvents] WorkflowTriggerBridge failed for {EntityType} {EntityId}. Error: {ErrorMessage}",
-                            entity.EntityType, GetEntityId(entity), ex.Message);
-                    }
+                    var entityGuid = OutboxEntityId.FromValue(GetEntityId(entity));
+                    approvalOutbox.Add(
+                        WorkflowApprovalOutboxTemporalHandler.EventTypeName,
+                        resolvedTenantId,
+                        entityGuid,
+                        entityVersion: 0,
+                        workflowMessage);
+
+                    logger.LogInformation(
+                        "[CaptureWorkflowEvents] Enqueued WorkflowApprovalRequired outbox row for {EntityType} {EntityId} (Temporal delivery via relay)",
+                        entity.EntityType, GetEntityId(entity));
                 }
             }
             else
@@ -915,20 +959,37 @@ public class AuditEntitySaveChangesInterceptor(
             }
         }
 
-        // Collect domain events from all AuditableEntity instances (e.g., WorkflowTemplate, WorkflowConfiguration)
-        // so AddDomainEvent() events flow through MediatR's IPublisher in-process.
+        // Collect domain events from AuditableEntity instances and write them to the outbox
+        // in this SaveChanges transaction (DATA-09). Delivery is via the Akka relay — not
+        // post-commit MediatR/Tell.
         var auditableEntities = context.ChangeTracker.Entries<AuditableEntity>()
             .Where(e => e.State is EntityState.Added or EntityState.Modified)
             .ToList();
 
+        var domainOutbox = serviceProvider.GetService<IOutbox>();
         foreach (var entry in auditableEntities)
         {
-            var domainEvents = entry.Entity.PullDomainEvents();
-            if (domainEvents.Any())
+            var domainEvents = entry.Entity.PullDomainEvents().ToList();
+            if (domainEvents.Count == 0)
+                continue;
+
+            if (domainOutbox is not null)
+            {
+                var entityId = OutboxEntityId.FromEntity(entry.Entity);
+                var version = OutboxEntityId.ReadVersion(entry.Entity);
+                foreach (var domainEvent in domainEvents)
+                    domainOutbox.Add(domainEvent, entityId, version);
+
+                logger.LogDebug(
+                    "Enqueued {EventCount} domain event(s) from {EntityType} to OutboxMessages",
+                    domainEvents.Count, entry.Entity.GetType().Name);
+            }
+            else
             {
                 events.AddRange(domainEvents);
-                logger.LogDebug("Collected {EventCount} domain event(s) from {EntityType}",
-                    domainEvents.Count(), entry.Entity.GetType().Name);
+                logger.LogDebug(
+                    "Collected {EventCount} domain event(s) from {EntityType} (IOutbox missing — deferred)",
+                    domainEvents.Count, entry.Entity.GetType().Name);
             }
         }
     }

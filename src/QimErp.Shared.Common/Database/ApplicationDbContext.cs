@@ -55,6 +55,12 @@ public abstract class ApplicationDbContext<TContext>(
     public DbSet<EntityCodeReservation> EntityCodeReservations { get; set; }
     public DbSet<TenantPluginFlag> TenantPluginFlags { get; set; }
 
+    /// <summary>
+    /// Durable outbox rows (DATA-09). Written in the same transaction as business changes;
+    /// the Akka relay delivers them after commit.
+    /// </summary>
+    public DbSet<OutboxMessage> OutboxMessages { get; set; }
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         base.ConfigureConventions(configurationBuilder);
@@ -72,5 +78,6 @@ public abstract class ApplicationDbContext<TContext>(
         modelBuilder.ApplyConfiguration(new EntityCodeConfigConfiguration());
         modelBuilder.ApplyConfiguration(new EntityCodeReservationConfiguration());
         modelBuilder.ApplyConfiguration(new TenantPluginFlagConfiguration());
+        modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration());
     }
 }

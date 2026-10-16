@@ -7,8 +7,8 @@ This document describes the configurable options for FrontendSettings, System id
 Options are automatically registered when you call:
 
 - `AddCoreServices(services, configuration, assembly)` — registers all Phase 1 options from configuration
-- `AddDbContextWithOutbox<TContext>(services, connectionString, configuration?)` — always registers options; when `configuration` is provided, binds from config; when null, uses default values
-- `AddDbContextWithOutboxConsumer<TContext>(services, connectionString, configuration?)` — always registers options; when `configuration` is provided, binds from config; when null, uses default values
+- `AddDbContextWithOutbox<TContext>(services, connectionString, configuration?)` — always registers options; when `configuration` is provided, binds from config; when null, uses default values. Also registers the durable DATA-09 outbox (`IOutbox`, `OutboxMessages`, Akka relay). See [docs/outbox-data-09.md](../../docs/outbox-data-09.md).
+- `AddDbContextWithOutboxConsumer<TContext>(services, connectionString, configuration?)` — same outbox registration for worker hosts (obsolete consumer host path)
 
 You can also register manually:
 
