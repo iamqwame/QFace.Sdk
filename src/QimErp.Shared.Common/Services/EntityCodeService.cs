@@ -33,6 +33,9 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
 
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(1);
 
+    // ≥ fan-out of concurrent InMemory GenerateAsync callers (product create test uses 10).
+    private const int NonRelationalConcurrencyAttempts = 12;
+
     private static string EffectiveCompanyId => CompanyContext.CurrentScope.EffectiveCompanyId;
 
     // Tenant-unique master codes reserve with CompanyId "".
@@ -490,9 +493,7 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
     /// <summary>
     /// Atomically increments LastSequence by <paramref name="count"/> and returns the new value.
     /// Uses a raw SQL UPDATE … RETURNING so the increment is a single DB round-trip.
-    /// On non-relational providers (EF InMemory, used by test hosts) raw SQL isn't supported at all,
-    /// so this falls back to a plain tracked-entity increment — safe there only because those hosts
-    /// are single-threaded/non-concurrent, unlike the relational path this is not atomic.
+    /// Non-relational providers (EF InMemory) fall back to tracked-entity increment with Version retries.
     /// </summary>
     private async Task<long> IncrementSequenceAsync(
         string tenantId, string companyId, string entityType, int count, CancellationToken ct)
@@ -528,18 +529,30 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
     private async Task<long> IncrementSequenceNonAtomicAsync(
         string tenantId, string companyId, string entityType, int count, CancellationToken ct)
     {
-        var config = await _context.Set<EntityCodeConfig>()
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(e => e.TenantId == tenantId && e.CompanyId == companyId && e.EntityType == entityType, ct);
+        for (var attempt = 1; ; attempt++)
+        {
+            var config = await _context.Set<EntityCodeConfig>()
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(
+                    e => e.TenantId == tenantId && e.CompanyId == companyId && e.EntityType == entityType, ct);
 
-        if (config is null)
-            throw new InvalidOperationException(
-                $"EntityCodeConfig row not found for ({tenantId}, {companyId}, {entityType}). " +
-                "Ensure the config exists before calling GenerateAsync.");
+            if (config is null)
+                throw new InvalidOperationException(
+                    $"EntityCodeConfig row not found for ({tenantId}, {companyId}, {entityType}). " +
+                    "Ensure the config exists before calling GenerateAsync.");
 
-        var finalSeq = config.IncrementSequenceBy(count);
-        await _context.SaveChangesAsync(ct);
-        return finalSeq;
+            var finalSeq = config.IncrementSequenceBy(count);
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+                return finalSeq;
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < NonRelationalConcurrencyAttempts)
+            {
+                foreach (var entry in _context.ChangeTracker.Entries<EntityCodeConfig>().ToList())
+                    await entry.ReloadAsync(ct);
+            }
+        }
     }
 
     private async Task CheckAndApplyResetAsync(EntityCodeConfig config, string companyId, CancellationToken ct)

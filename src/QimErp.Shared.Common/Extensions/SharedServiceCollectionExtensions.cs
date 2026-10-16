@@ -28,6 +28,7 @@ using QimErp.Shared.Common.Services.AI;
 using QimErp.Shared.Common.Services.Knowledge;
 using QimErp.Shared.Common.Services.TenantSetup;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Outbox;
 using QimErp.Shared.Common.Services.Cache;
 using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Services.TenantActivity;
@@ -147,6 +148,22 @@ public static class SharedServiceCollectionExtensions
 
         services.AddScoped<IWorkflowAwareContext>(provider =>
             provider.GetRequiredService<TContext>());
+
+        if (configuration != null)
+            services.AddOptions<OutboxProcessorOptions>()
+                .Bind(configuration.GetSection(OutboxProcessorOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+        else
+            services.AddOptions<OutboxProcessorOptions>()
+                .Configure(_ => { })
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+        // TryAddEnumerable: a module may call AddDbContextWithOutbox more than once (e.g. tests,
+        // composed hosts) — this keeps exactly one sweeper per TContext instead of duplicating it.
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, OutboxProcessorBackgroundService<TContext>>());
 
         return services;
     }
@@ -461,18 +478,8 @@ public static class SharedServiceCollectionExtensions
             .AddCheck("readiness", () => HealthCheckResult.Healthy(), tags: ["ready"])
             .AddQimErpRedisHealthCheck();
 
-        services.Configure<JsonOptions>(options =>
-        {
-            options.SerializerOptions.PropertyNameCaseInsensitive = true;
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-            options.SerializerOptions.Converters.Add(new DateOnlyJsonConverter());
-            options.SerializerOptions.Converters.Add(new NullableDateOnlyJsonConverter());
-
-            // Performance optimizations
-            options.SerializerOptions.WriteIndented = false; // Explicitly disable indentation for faster serialization
-            options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull; // Skip null properties
-            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // Consistent camelCase naming
-        });
+        services.Configure<JsonOptions>(ApplySharedJsonSerializerOptions);
+        services.ConfigureHttpJsonOptions(ApplySharedJsonSerializerOptions);
 
         // Always register workflow cache service and workflow service for all modules
         services.AddScoped<IWorkflowConfigCacheService, WorkflowConfigCacheService>();
@@ -487,6 +494,17 @@ public static class SharedServiceCollectionExtensions
 
 
         return services;
+    }
+
+    private static void ApplySharedJsonSerializerOptions(JsonOptions options)
+    {
+        options.SerializerOptions.PropertyNameCaseInsensitive = true;
+        options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        options.SerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+        options.SerializerOptions.Converters.Add(new NullableDateOnlyJsonConverter());
+        options.SerializerOptions.WriteIndented = false;
+        options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     }
 
     /// <summary>

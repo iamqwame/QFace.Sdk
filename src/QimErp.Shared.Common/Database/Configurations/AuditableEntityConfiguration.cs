@@ -5,6 +5,11 @@ public abstract class AuditableEntityConfiguration<TEntity> : IEntityTypeConfigu
 {
     public virtual void Configure(EntityTypeBuilder<TEntity> builder)
     {
+        builder.Property(e => e.Version)
+            .IsRequired()
+            .HasDefaultValue(1L)
+            .IsConcurrencyToken();
+
         builder.Property(e => e.DataStatus).HasConversion(new EnumToStringConverter<DataState>());
         builder.Property(e => e.CustomFields)
             .HasConversion(

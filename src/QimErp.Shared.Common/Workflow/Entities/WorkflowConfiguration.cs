@@ -13,7 +13,7 @@ public class WorkflowConfiguration: GuidAuditableEntity
     /// </summary>
     public string EntityType { get; set; } = ""; // Employee, PurchaseOrder, etc.
     public EntityWorkflowConfig Configuration { get; set; } = new();
-    public int Version { get; set; } = 1;
+    public int DefinitionVersion { get; set; } = 1;
     public string? Description { get; set; }
 }
 
