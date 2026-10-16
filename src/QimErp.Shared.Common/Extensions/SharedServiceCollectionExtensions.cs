@@ -478,18 +478,8 @@ public static class SharedServiceCollectionExtensions
             .AddCheck("readiness", () => HealthCheckResult.Healthy(), tags: ["ready"])
             .AddQimErpRedisHealthCheck();
 
-        services.Configure<JsonOptions>(options =>
-        {
-            options.SerializerOptions.PropertyNameCaseInsensitive = true;
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-            options.SerializerOptions.Converters.Add(new DateOnlyJsonConverter());
-            options.SerializerOptions.Converters.Add(new NullableDateOnlyJsonConverter());
-
-            // Performance optimizations
-            options.SerializerOptions.WriteIndented = false; // Explicitly disable indentation for faster serialization
-            options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull; // Skip null properties
-            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // Consistent camelCase naming
-        });
+        services.Configure<JsonOptions>(ApplySharedJsonSerializerOptions);
+        services.ConfigureHttpJsonOptions(ApplySharedJsonSerializerOptions);
 
         // Always register workflow cache service and workflow service for all modules
         services.AddScoped<IWorkflowConfigCacheService, WorkflowConfigCacheService>();
@@ -504,6 +494,17 @@ public static class SharedServiceCollectionExtensions
 
 
         return services;
+    }
+
+    private static void ApplySharedJsonSerializerOptions(JsonOptions options)
+    {
+        options.SerializerOptions.PropertyNameCaseInsensitive = true;
+        options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        options.SerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+        options.SerializerOptions.Converters.Add(new NullableDateOnlyJsonConverter());
+        options.SerializerOptions.WriteIndented = false;
+        options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     }
 
     /// <summary>

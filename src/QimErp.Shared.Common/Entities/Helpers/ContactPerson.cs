@@ -14,7 +14,7 @@ public class ContactPerson
     {
         return new ContactPerson
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Name = name,
             Phone = phone.ToStandardPhoneNumber(phoneNumberCode)
         };
@@ -23,7 +23,7 @@ public class ContactPerson
     {
         return new ContactPerson
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Name = name
         };
     }
