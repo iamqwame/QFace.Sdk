@@ -19,6 +19,7 @@ public class UnifiedMessageModel
     /// <summary>Template name (no extension). Notifications module resolves + renders it.
     /// Ignored when <see cref="Template"/> already contains pre-rendered HTML.</summary>
     public string? TemplateCode { get; set; }
+    // Persisted in plaintext in Temporal history; never put tokens, passwords or reset links here.
     public Dictionary<string, string> Replacements { get; set; } = new();
 
     // SMS properties

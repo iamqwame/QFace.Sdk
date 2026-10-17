@@ -395,7 +395,7 @@ public static class MultiTenantExtensions
     }
         
     /// <summary>
-    /// Adds default tenant resolution middleware
+    /// Adds default tenant resolution middleware. Must be registered after UseAuthentication.
     /// </summary>
     /// <param name="app">The application builder</param>
     /// <returns>The application builder</returns>
@@ -405,7 +405,7 @@ public static class MultiTenantExtensions
     }
         
     /// <summary>
-    /// Adds tenant resolution middleware with custom options
+    /// Adds tenant resolution middleware with custom options. Must be registered after UseAuthentication.
     /// </summary>
     /// <param name="app">The application builder</param>
     /// <param name="configure">Action to configure options</param>

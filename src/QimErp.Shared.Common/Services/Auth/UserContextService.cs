@@ -96,17 +96,6 @@ public class UserContextService(
             return NormalizeTenantId(tenantIdFromClaims) ?? string.Empty;
         }
         
-        // Fallback: Parse JWT token directly if claims aren't available
-        var token = GetToken();
-        if (!string.IsNullOrWhiteSpace(token))
-        {
-            var tenantIdFromToken = ExtractTenantIdFromToken(token);
-            if (!string.IsNullOrWhiteSpace(tenantIdFromToken))
-            {
-                return NormalizeTenantId(tenantIdFromToken) ?? string.Empty;
-            }
-        }
-        
         return string.Empty;
     }
 
@@ -329,65 +318,6 @@ public class UserContextService(
     
     private IEnumerable<Claim> Claims => GetClaims();
     private string? Find(string type) => Claims.FirstOrDefault(c => c.Type == type)?.Value;
-
-    /// <summary>
-    /// Extracts tenantId from JWT token payload by decoding the token
-    /// </summary>
-    private string? ExtractTenantIdFromToken(string token)
-    {
-        try
-        {
-            // JWT tokens have 3 parts separated by dots: header.payload.signature
-            var parts = token.Split('.');
-            if (parts.Length != 3)
-            {
-                return null; // Invalid JWT format
-            }
-
-            // Decode the payload (second part)
-            var payload = parts[1];
-            
-            // Add padding if needed (Base64Url encoding may not have padding)
-            var padding = payload.Length % 4;
-            if (padding != 0)
-            {
-                payload += new string('=', 4 - padding);
-            }
-            
-            // Replace Base64Url characters with Base64 characters
-            payload = payload.Replace('-', '+').Replace('_', '/');
-            
-            // Decode from Base64
-            var payloadBytes = Convert.FromBase64String(payload);
-            var payloadJson = Encoding.UTF8.GetString(payloadBytes);
-            
-            // Parse JSON to extract tenantId
-            using var doc = JsonDocument.Parse(payloadJson);
-            var root = doc.RootElement;
-            
-            // Try different possible claim names for tenantId
-            if (root.TryGetProperty("tenantId", out var tenantIdProp))
-            {
-                return tenantIdProp.GetString();
-            }
-            
-            if (root.TryGetProperty("TenantId", out var tenantIdProp2))
-            {
-                return tenantIdProp2.GetString();
-            }
-            
-            if (root.TryGetProperty("tenant_id", out var tenantIdProp3))
-            {
-                return tenantIdProp3.GetString();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Could not extract tenant id from JWT payload");
-        }
-        
-        return null;
-    }
 
     private class UserContext
     {

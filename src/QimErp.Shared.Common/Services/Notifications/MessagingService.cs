@@ -4,8 +4,6 @@ public interface IMessagingService
 {
     Task SendLoginNotificationAsync(string username, string? phoneNumber, string? email);
     Task SendRegistrationNotificationAsync(string username, string? phoneNumber, string? email);
-    Task SendPasswordResetEmailAsync(string email, string token);
-    Task SendEmailVerificationAsync(string email, string token);
 }
 
 public class MessagingService(
@@ -80,50 +78,6 @@ public class MessagingService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error sending registration notification for user {Username}", username);
-            throw;
-        }
-    }
-
-    public async Task SendPasswordResetEmailAsync(string email, string token)
-    {
-        try
-        {
-            logger.LogInformation("[Messaging] Queuing password reset email for {Email}...", email);
-            await notificationStarter.SendTemplatedEmailAsync(
-                email,
-                "Password Reset Request",
-                "password-reset",
-                new Dictionary<string, string>
-                {
-                    { "ResetToken", token },
-                    { "ExpiryHours", "24" }
-                });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error sending password reset email to {Email}", email);
-            throw;
-        }
-    }
-
-    public async Task SendEmailVerificationAsync(string email, string token)
-    {
-        try
-        {
-            logger.LogInformation("[Messaging] Queuing email verification for {Email}...", email);
-            await notificationStarter.SendTemplatedEmailAsync(
-                email,
-                "Email Verification",
-                "email-verification",
-                new Dictionary<string, string>
-                {
-                    { "VerificationToken", token },
-                    { "ExpiryHours", "24" }
-                });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error sending email verification to {Email}", email);
             throw;
         }
     }

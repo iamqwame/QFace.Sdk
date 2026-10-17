@@ -3,12 +3,13 @@ namespace QimErp.Shared.Common.Middlewares;
 public class RequestLoggingOptions
 {
     public bool Enabled { get; set; } = true;
-    public bool LogRequestBody { get; set; } = true;
+    public bool LogRequestBody { get; set; } = false;
     public bool LogRequestHeaders { get; set; } = true;
-    public bool LogQueryString { get; set; } = true;
+    public bool LogQueryString { get; set; } = false;
     public int MaxBodyLength { get; set; } = 4096; // 4KB limit
     public string[] ExcludedPaths { get; set; } = { "/health", "/metrics", "/favicon.ico" };
-    public string[] SensitiveHeaders { get; set; } = { "Authorization", "Cookie", "X-API-Key", "X-Auth-Token" };
+    public string[] SensitiveHeaders { get; set; } = { "Authorization", "Cookie", "X-API-Key", "X-Auth-Token", "X-Internal-Api-Key", "X-Session-Token", "Proxy-Authorization" };
+    public string[] QueryValueAllowList { get; set; } = { "page", "pageNumber", "pageSize", "sortBy", "sortOrder", "orderBy", "sortDirection" };
     public LogLevel LogLevel { get; set; } = LogLevel.Information;
 }
 
@@ -67,8 +68,11 @@ public class RequestLoggingMiddleware
     {
         var request = context.Request;
         var pathAndQuery = request.Path.Value ?? "";
-        if (_options.LogQueryString && !string.IsNullOrEmpty(request.QueryString.Value))
-            pathAndQuery += request.QueryString.Value;
+        if (_options.LogQueryString && request.Query.Count > 0)
+            pathAndQuery += "?" + string.Join("&", request.Query.Select(q =>
+                _options.QueryValueAllowList.Contains(q.Key, StringComparer.OrdinalIgnoreCase)
+                    ? $"{q.Key}={q.Value}"
+                    : $"{q.Key}=***"));
 
         _logger.Log(
             _options.LogLevel,

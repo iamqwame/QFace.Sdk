@@ -63,7 +63,6 @@ public sealed class DemoTenantSeedResult
     public Guid? TenantId { get; set; }
     public string? Domain { get; set; }
     public string? SuperAdminEmail { get; set; }
-    public string? GeneratedPassword { get; set; }
     public DemoSeedState State { get; set; } = new();
     public List<StepFailureInfo> Failures { get; } = new();
     public TimeSpan TotalElapsed { get; set; }

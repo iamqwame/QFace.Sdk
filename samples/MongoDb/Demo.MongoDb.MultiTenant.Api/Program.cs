@@ -77,19 +77,18 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Add tenant resolution middleware
-app.UseTenantResolution(options =>
-{
-    options.UseHeaderResolution = true;
-    options.UseRouteResolution = true;
-    options.UseQueryStringResolution = true;
-    options.UseAuthClaimResolution = true;
-    options.TenantExemptPaths.Add("/api/tenants");
-    options.TenantExemptPaths.Add("/api/auth");
-    options.ExcludedPaths.Add("/swagger");
-});
-
 app.UseAuthentication();
+
+app.UseWhen(
+    ctx => !ctx.Request.Path.Equals("/"),
+    branch => branch.UseTenantResolution(options =>
+    {
+        options.UseAuthClaimResolution = true;
+        options.TenantExemptPaths.Add("/api/tenants");
+        options.TenantExemptPaths.Add("/api/auth");
+        options.ExcludedPaths.Add("/swagger");
+    }));
+
 app.UseAuthorization();
 
 // Add a simple index page

@@ -5,7 +5,7 @@ namespace QimErp.Shared.Common.Middlewares;
 public class ResponseLoggingOptions
 {
     public bool Enabled { get; set; } = true;
-    public bool LogResponseBody { get; set; } = true;
+    public bool LogResponseBody { get; set; } = false;
     public bool LogResponseHeaders { get; set; } = true;
     public int MaxBodyLength { get; set; } = 4096; // 4KB limit
     public string[] ExcludedPaths { get; set; } = { "/health", "/metrics", "/favicon.ico" };
@@ -123,7 +123,9 @@ public class ResponseLoggingMiddleware
         // Log response headers
         if (_options.LogResponseHeaders)
         {
-            var headers = response.Headers.ToDictionary(h => h.Key, h => h.Value.ToString());
+            var headers = response.Headers
+                .Where(h => !h.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(h => h.Key, h => h.Value.ToString());
             if (headers.Any())
             {
                 _logger.LogDebug("Response Headers: {@Headers}", headers);

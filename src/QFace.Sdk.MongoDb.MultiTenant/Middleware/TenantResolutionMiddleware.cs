@@ -54,46 +54,49 @@ public class TenantResolutionMiddleware
             try
             {
                 string? tenantId = null;
-                string? tenantCode = null;
 
-                if (_options.UseRouteResolution)
-                {
-                    (tenantId, tenantCode) = TryResolveFromRoute(context);
-                    _logger.LogDebug("Route resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
-                }
+                var (claimTenantId, claimTenantCode) = _options.UseAuthClaimResolution
+                    ? TryResolveFromClaims(context)
+                    : (null, null);
+                var hasClaimTenant = !string.IsNullOrEmpty(claimTenantId) || !string.IsNullOrEmpty(claimTenantCode);
 
-                if (string.IsNullOrEmpty(tenantId) && _options.UseHeaderResolution)
+                if (hasClaimTenant)
                 {
-                    (tenantId, tenantCode) = TryResolveFromHeader(context);
-                    _logger.LogDebug("Header resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
-                }
+                    tenantId = await ResolveTenantIdAsync(claimTenantId, claimTenantCode, tenantService);
 
-                if (string.IsNullOrEmpty(tenantId) && _options.UseQueryStringResolution)
-                {
-                    (tenantId, tenantCode) = TryResolveFromQueryString(context);
-                    _logger.LogDebug("Query string resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
-                }
-
-                if (string.IsNullOrEmpty(tenantId) && _options.UseCookieResolution)
-                {
-                    (tenantId, tenantCode) = TryResolveFromCookie(context);
-                    _logger.LogDebug("Cookie resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
-                }
-
-                if (string.IsNullOrEmpty(tenantId) && _options.UseAuthClaimResolution)
-                {
-                    (tenantId, tenantCode) = TryResolveFromClaims(context);
-                    _logger.LogDebug("Auth claims resolution attempt - TenantId: {TenantId}, TenantCode: {TenantCode}", tenantId, tenantCode);
-                }
-
-                if (string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(tenantCode))
-                {
-                    _logger.LogInformation("Attempting to resolve tenantId from tenantCode: {TenantCode}", tenantCode);
-                    var tenant = await tenantService.GetByCodeAsync(tenantCode);
-                    tenantId = tenant?.Id;
-                    if (tenant == null)
+                    foreach (var (hintId, hintCode) in GetEnabledHints(context))
                     {
-                        _logger.LogWarning("No tenant found for tenantCode: {TenantCode}", tenantCode);
+                        if (string.IsNullOrEmpty(hintId) && string.IsNullOrEmpty(hintCode))
+                            continue;
+
+                        var hintTenantId = await ResolveTenantIdAsync(hintId, hintCode, tenantService);
+                        if (!await HintCodeMatchesIdAsync(hintId, hintCode, tenantService)
+                            || !string.Equals(hintTenantId, tenantId, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _logger.LogWarning("Tenant hint does not match authenticated tenant for path: {Path}", context.Request.Path);
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            await context.Response.WriteAsync("Tenant mismatch");
+                            return;
+                        }
+                    }
+                }
+                else if (_options.AllowUnauthenticatedTenantHints)
+                {
+                    foreach (var (hintId, hintCode) in GetEnabledHints(context))
+                    {
+                        if (string.IsNullOrEmpty(hintId) && string.IsNullOrEmpty(hintCode))
+                            continue;
+
+                        tenantId = await ResolveTenantIdAsync(hintId, hintCode, tenantService);
+                        if (!await HintCodeMatchesIdAsync(hintId, hintCode, tenantService))
+                        {
+                            _logger.LogWarning("Tenant id and code hints disagree for path: {Path}", context.Request.Path);
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            await context.Response.WriteAsync("Tenant mismatch");
+                            return;
+                        }
+
+                        break;
                     }
                 }
 
@@ -137,27 +140,66 @@ public class TenantResolutionMiddleware
                 else if (_options.RequireTenant && !IsExemptFromTenantRequirement(context))
                 {
                     _logger.LogWarning("Tenant resolution failed and tenant is required for path: {Path}", context.Request.Path);
+                    if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        await context.Response.WriteAsync("Authentication required");
+                        return;
+                    }
+
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     await context.Response.WriteAsync("Tenant identifier is required");
                     return;
                 }
-
-                await _next(context);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unhandled exception during tenant resolution");
-                if (_options.FailOnResolutionError)
+                if (_options.FailOnResolutionError && !context.Response.HasStarted)
                 {
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     await context.Response.WriteAsync("Error resolving tenant");
+                    return;
                 }
-                else
-                {
-                    await _next(context);
-                }
+
+                throw;
             }
+
+            await _next(context);
         }
+
+    private IEnumerable<(string? TenantId, string? TenantCode)> GetEnabledHints(HttpContext context)
+    {
+        if (_options.UseRouteResolution)
+            yield return TryResolveFromRoute(context);
+        if (_options.UseHeaderResolution)
+            yield return TryResolveFromHeader(context);
+        if (_options.UseQueryStringResolution)
+            yield return TryResolveFromQueryString(context);
+        if (_options.UseCookieResolution)
+            yield return TryResolveFromCookie(context);
+    }
+
+    private static async Task<bool> HintCodeMatchesIdAsync(string? tenantId, string? tenantCode, ITenantService tenantService)
+    {
+        if (string.IsNullOrEmpty(tenantId) || string.IsNullOrEmpty(tenantCode))
+            return true;
+
+        var tenant = await tenantService.GetByCodeAsync(tenantCode);
+        return tenant != null && string.Equals(tenant.Id, tenantId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task<string?> ResolveTenantIdAsync(string? tenantId, string? tenantCode, ITenantService tenantService)
+    {
+        if (!string.IsNullOrEmpty(tenantId))
+            return tenantId;
+
+        if (string.IsNullOrEmpty(tenantCode))
+            return null;
+
+        var tenant = await tenantService.GetByCodeAsync(tenantCode);
+        return tenant?.Id;
+    }
         
     /// <summary>
     /// Tries to resolve tenant from route values
@@ -296,12 +338,9 @@ public class TenantResolutionMiddleware
     /// </summary>
     private bool ShouldSkipTenantResolution(HttpContext context)
     {
-        var path = context.Request.Path.Value ?? "";
-            
-        // Check if path matches any excluded path
         foreach (var excludedPath in _options.ExcludedPaths)
         {
-            if (path.StartsWith(excludedPath, StringComparison.OrdinalIgnoreCase))
+            if (context.Request.Path.StartsWithSegments(excludedPath, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -315,12 +354,9 @@ public class TenantResolutionMiddleware
     /// </summary>
     private bool IsExemptFromTenantRequirement(HttpContext context)
     {
-        var path = context.Request.Path.Value ?? "";
-            
-        // Check if path matches any tenant-exempt path
         foreach (var exemptPath in _options.TenantExemptPaths)
         {
-            if (path.StartsWith(exemptPath, StringComparison.OrdinalIgnoreCase))
+            if (context.Request.Path.StartsWithSegments(exemptPath, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }

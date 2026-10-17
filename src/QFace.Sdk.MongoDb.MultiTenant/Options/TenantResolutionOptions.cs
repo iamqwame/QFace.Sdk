@@ -8,12 +8,12 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Middleware
         /// <summary>
         /// Use route value resolution (tenantId or tenantCode)
         /// </summary>
-        public bool UseRouteResolution { get; set; } = true;
+        public bool UseRouteResolution { get; set; } = false;
         
         /// <summary>
         /// Use header resolution (X-Tenant-ID or X-Tenant-Code)
         /// </summary>
-        public bool UseHeaderResolution { get; set; } = true;
+        public bool UseHeaderResolution { get; set; } = false;
         
         /// <summary>
         /// Use query string resolution (?tenantId=xxx or ?tenantCode=xxx)
@@ -25,6 +25,11 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Middleware
         /// </summary>
         public bool UseCookieResolution { get; set; } = false;
         
+        /// <summary>
+        /// Honour route/header/query/cookie tenant hints when the request has no claim tenant, including authenticated users without a tenant claim
+        /// </summary>
+        public bool AllowUnauthenticatedTenantHints { get; set; } = false;
+
         /// <summary>
         /// Use auth claim resolution (from token or identity)
         /// </summary>
@@ -58,7 +63,7 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Middleware
         /// <summary>
         /// Whether to require a tenant for all requests
         /// </summary>
-        public bool RequireTenant { get; set; } = false;
+        public bool RequireTenant { get; set; } = true;
         
         /// <summary>
         /// Whether to reject requests with invalid/inactive tenants
@@ -71,9 +76,9 @@ namespace QFace.Sdk.MongoDb.MultiTenant.Middleware
         public bool RejectUnprovisionedTenants { get; set; } = true;
         
         /// <summary>
-        /// Whether to fail the request on tenant resolution error
+        /// True returns 500 on a resolution error; false rethrows. Neither continues without a tenant
         /// </summary>
-        public bool FailOnResolutionError { get; set; } = false;
+        public bool FailOnResolutionError { get; set; } = true;
         
         /// <summary>
         /// Paths for which tenant resolution should be skipped
