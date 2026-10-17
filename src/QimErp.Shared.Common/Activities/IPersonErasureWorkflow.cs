@@ -4,7 +4,7 @@ namespace QimErp.Shared.Common.Activities;
 
 /// <summary>
 /// Temporal workflow interface for person erasure fan-out (DATA-23).
-/// Implemented in a future beachhead; fans out module pseudonymise activities.
+/// CoreHR beachhead exists; fans out module pseudonymise activities.
 /// Task queue: qimerp-corehr-person-erasure
 /// </summary>
 [Workflow("PersonErasureWorkflow")]
