@@ -19,4 +19,6 @@ public enum SyncType
     Customer,
     /// <summary>AP vendor create/update/delete → Inventory local vendor cache.</summary>
     Vendor,
+    /// <summary>Person erasure fan-out → module PseudonymisePerson activities (DATA-23).</summary>
+    PersonErasure,
 }

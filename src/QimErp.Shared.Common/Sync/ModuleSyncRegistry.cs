@@ -279,6 +279,8 @@ public static class ModuleSyncRegistry
         new(SyncType.StockIssue, ModuleKeys.Inventory, "qimerp-inventory-stock-issue-sync", "Inventory"),
         new(SyncType.Customer, ModuleKeys.Inventory, "qimerp-inventory-customer-sync", "Inventory"),
         new(SyncType.Vendor, ModuleKeys.Inventory, "qimerp-inventory-vendor-sync", "Inventory"),
+
+        new(SyncType.PersonErasure, ModuleKeys.CoreHR, ModuleSyncWorkflowQueues.PersonErasureParent, "CoreHR"),
     ];
 
     private static readonly Dictionary<string, ModuleSyncDefinition> ByItemKey =

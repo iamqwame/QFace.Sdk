@@ -96,6 +96,20 @@ public class ModuleSyncRegistryTests
     }
 
     [Fact]
+    public void FilterByInstalled_PersonErasure_CoreHrBeachhead()
+    {
+        ModuleSyncRegistry.GetRuntimeSubscribers(SyncType.PersonErasure)
+            .Should().ContainSingle(s => s.ModuleKey == ModuleKeys.CoreHR);
+
+        var subscribers = ModuleSyncRegistry.FilterByInstalled(
+            SyncType.PersonErasure,
+            [ModuleKeys.CoreHR]);
+        subscribers.Should().ContainSingle(s => s.ModuleKey == ModuleKeys.CoreHR);
+        subscribers[0].TaskQueue.Should().Be(ModuleSyncWorkflowQueues.PersonErasureParent);
+        subscribers[0].ActivitySuffix.Should().Be("CoreHR");
+    }
+
+    [Fact]
     public void TryResolveItemKey_MapsModuleKeysToCatalogSlugs()
     {
         ModuleSyncRegistry.TryResolveItemKey(ModuleKeys.Payroll).Should().Be("payroll");
