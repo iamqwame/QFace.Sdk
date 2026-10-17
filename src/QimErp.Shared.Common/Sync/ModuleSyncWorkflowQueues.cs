@@ -11,6 +11,7 @@ public static class ModuleSyncWorkflowQueues
     public const string StockIssueSyncParent = "qimerp-accounting-ar-stock-issue-sync";
     public const string CustomerSyncParent = "qimerp-accounting-ar-customer-sync";
     public const string VendorSyncParent = "qimerp-accounting-ap-vendor-sync";
+    public const string PersonErasureParent = "qimerp-corehr-person-erasure";
 
     public static string Suffix(string parentQueueBase, string? currentQueue) =>
         currentQueue?.StartsWith(parentQueueBase, StringComparison.Ordinal) == true
