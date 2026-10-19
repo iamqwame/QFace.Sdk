@@ -55,5 +55,27 @@ public sealed class EmployeeChangedEventV2Tests
         v2.GetType().GetProperty("FirstName").Should().BeNull();
         v2.GetType().GetProperty("SsnitNumber").Should().BeNull();
     }
+
+    [Fact(DisplayName = "StripGovernmentIds nulls gov IDs and keeps contact names")]
+    public void StripGovernmentIds_nulls_gov_ids_keeps_email_and_names()
+    {
+        var legacy = EmployeeChangedEvent
+            .Create("ama@bank.com", "Ama", "Owusu", "tenant-1", "system@qimerp.com")
+            .WithSsnitNumber("SSNIT-1")
+            .WithTaxIdentificationNumber("TIN-1")
+            .WithNhilNumber("NHIL-1")
+            .WithGhanaCardNumber("GHA-1");
+
+        var result = legacy.StripGovernmentIds();
+
+        result.Should().BeSameAs(legacy);
+        legacy.SsnitNumber.Should().BeNull();
+        legacy.TaxIdentificationNumber.Should().BeNull();
+        legacy.NhilNumber.Should().BeNull();
+        legacy.GhanaCardNumber.Should().BeNull();
+        legacy.Email.Should().Be("ama@bank.com");
+        legacy.FirstName.Should().Be("Ama");
+        legacy.LastName.Should().Be("Owusu");
+    }
 #pragma warning restore CS0618
 }

@@ -78,7 +78,7 @@ public sealed class OutboxProcessorBackgroundService<TContext> : BackgroundServi
         {
             var context = scope.ServiceProvider.GetRequiredService<TContext>();
             pendingIds = await context.Set<OutboxMessage>()
-                .Where(m => !m.IsProcessed)
+                .Where(m => m.ProcessedAt == null && m.DeadAt == null)
                 .OrderBy(m => m.OccurredAt)
                 .Take(_options.BatchSize)
                 .Select(m => m.Id)
@@ -109,7 +109,7 @@ public sealed class OutboxProcessorBackgroundService<TContext> : BackgroundServi
 
         var message = await context.Set<OutboxMessage>()
             .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
-        if (message is null || message.IsProcessed)
+        if (message is null || message.ProcessedAt is not null || message.DeadAt is not null)
             return false;
 
         var envelope = OutboxEnvelope.Unwrap(message.Payload);
@@ -141,7 +141,7 @@ public sealed class OutboxProcessorBackgroundService<TContext> : BackgroundServi
                 return false;
             }
 
-            message.IsProcessed = true;
+            message.ProcessedAt = DateTimeOffset.UtcNow;
             await context.SaveChangesAsync(cancellationToken);
             OutboxMetrics.RecordProcessed();
             return true;

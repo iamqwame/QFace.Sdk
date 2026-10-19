@@ -11,7 +11,8 @@ public static class EmployeeSyncV2Modules
         "Learning",
         "Performance",
         "Talent",
-        "WorkforcePlanning"
+        "WorkforcePlanning",
+        "Payroll"
     };
 
     public static bool UsesV2(string activitySuffix) =>

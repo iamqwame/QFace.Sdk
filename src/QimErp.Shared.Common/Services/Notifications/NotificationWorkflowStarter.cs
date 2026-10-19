@@ -25,7 +25,8 @@ public class NotificationWorkflowStarter(
 
     public Task SendAsync(UnifiedMessageModel model)
     {
-        model.MessageId ??= Guid.CreateVersion7().ToString();
+        if (string.IsNullOrWhiteSpace(model.MessageId))
+            model.MessageId = Guid.CreateVersion7().ToString();
         StampTenant(model);
         return starter.StartOrIgnoreAsync<INotificationWorkflow>(
             $"notification-{model.MessageId}",
@@ -35,11 +36,9 @@ public class NotificationWorkflowStarter(
 
     /// <summary>
     /// Stamp the ambient tenant onto the message so the notification worker's
-    /// <c>TenantContextActivityInterceptor</c> can seed tenant context for the
-    /// tenant-scoped <c>NotificationHistory</c> read/write. This is a singleton, so we
-    /// resolve <see cref="ITenantContext"/> through a fresh scope — its value is
-    /// AsyncLocal-backed and flows from the HTTP request (or the Temporal activity that
-    /// triggered the send) into the scope. Best-effort: never fail a send on this.
+    /// <c>TenantContextActivityInterceptor</c> can seed tenant context. Resolves
+    /// <see cref="ITenantContext"/> through a fresh scope (this type is a singleton;
+    /// tenant is AsyncLocal-backed). Fails closed if TenantId is still empty after stamp.
     /// </summary>
     private void StampTenant(UnifiedMessageModel model)
     {
@@ -53,8 +52,12 @@ public class NotificationWorkflowStarter(
         }
         catch
         {
-            // ignore — tenant stamping is best-effort and must not block notifications
+            // Resolution failure still fails closed below when TenantId remains empty.
         }
+
+        if (string.IsNullOrWhiteSpace(model.TenantId))
+            throw new InvalidOperationException(
+                "Cannot start notification workflow without a TenantId. Set UnifiedMessageModel.TenantId or ensure ITenantContext is seeded.");
     }
 
     public Task SendEmailAsync(

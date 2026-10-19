@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 using System.Runtime.CompilerServices;
 using System.Transactions;
 using QimErp.Shared.Common.Outbox;
@@ -690,6 +691,8 @@ public class AuditEntitySaveChangesInterceptor(
                         entry.Entity
                             .AddAuditMetadata(userId, email, name, timestamp);
 
+                        TryIncrementOptimisticVersion(entry);
+
                         if (entry.Entity.DataStatus != entry.Entity.PreviousDataStatus)
                         {
                             entry.Entity.OnDataStatusChange(entry.Entity.DataStatus ?? DataState.Active);
@@ -718,6 +721,21 @@ public class AuditEntitySaveChangesInterceptor(
         }
     }
 
+    private static void TryIncrementOptimisticVersion(EntityEntry<AuditableEntity> entry)
+    {
+        var versionProperty = entry.Property(nameof(AuditableEntity.Version));
+        // Only AuditableEntity.Version (long optimistic token). Skip EF row-versions / uint shadows.
+        if (versionProperty.Metadata.ClrType != typeof(long)
+            || versionProperty.Metadata.ValueGenerated == ValueGenerated.OnAddOrUpdate)
+        {
+            return;
+        }
+
+        var originalVersion = versionProperty.OriginalValue is long original
+            ? original
+            : 1L;
+        versionProperty.CurrentValue = originalVersion + 1;
+    }
 
     private async Task CaptureWorkflowEventsAsync(List<IDomainEvent> events, DbContext? context, CancellationToken cancellationToken)
     {

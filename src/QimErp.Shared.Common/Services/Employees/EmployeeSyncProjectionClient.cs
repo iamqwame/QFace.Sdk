@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using QimErp.Shared.Common.Contracts;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Services.Auth;
 
 namespace QimErp.Shared.Common.Services.Employees;
 
@@ -10,6 +11,7 @@ public sealed class EmployeeSyncProjectionClient(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
     IOptions<InternalApiOptions> internalApiOptions,
+    ICurrentUserService currentUserService,
     ILogger<EmployeeSyncProjectionClient> logger) : IEmployeeSyncProjectionClient
 {
     public const string HttpClientName = nameof(EmployeeSyncProjectionClient);
@@ -35,12 +37,21 @@ public sealed class EmployeeSyncProjectionClient(
             return null;
         }
 
+        var tenantId = currentUserService.GetTenantId();
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+            logger.LogError("TenantId is not set — cannot call People sync projection for {EmployeeId}", employeeId);
+            return null;
+        }
+
         var client = httpClientFactory.CreateClient(HttpClientName);
         client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
         client.DefaultRequestHeaders.Remove("X-Internal-Api-Key");
         client.DefaultRequestHeaders.Add("X-Internal-Api-Key", apiKey);
 
-        var response = await client.GetAsync($"internal/employees/{employeeId:D}/sync-projection", cancellationToken);
+        var path =
+            $"internal/employees/{employeeId:D}/sync-projection?tenantId={Uri.EscapeDataString(tenantId.Trim())}";
+        var response = await client.GetAsync(path, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             return null;
 

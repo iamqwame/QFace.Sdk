@@ -4,9 +4,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using QimErp.Shared.Common.Database.Configurations;
 using QimErp.Shared.Common.Entities;
+using QimErp.Shared.Common.Events;
 using QimErp.Shared.Common.Interceptors;
 using QimErp.Shared.Common.Options;
+using QimErp.Shared.Common.Outbox;
+using QimErp.Shared.Common.Outbox.Transports;
 using QimErp.Shared.Common.Services.Auth;
 using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Services.TenantSetup;
@@ -38,10 +42,14 @@ public class WorkflowInterceptorE2ETests
         entity.WorkflowCode.Should().Be("CREATE-WF");
         entity.CurrentWorkflowHistoryId.Should().NotBeNull();
 
-        harness.Bridge.Messages.Should().ContainSingle();
-        harness.Bridge.Messages[0].WorkflowCode.Should().Be("CREATE-WF");
-        harness.Bridge.Messages[0].Module.Should().Be(ModuleName);
-        harness.Bridge.Messages[0].CurrentState.Should().Be("CREATE-STEP");
+        harness.Bridge.Messages.Should().BeEmpty("Temporal delivery is via outbox relay, not SaveChanges");
+        var approval = await harness.Context.OutboxMessages
+            .Where(r => r.EventType == WorkflowApprovalOutboxTemporalHandler.EventTypeName)
+            .ToListAsync();
+        approval.Should().ContainSingle();
+        approval[0].Payload.Should().Contain("CREATE-WF");
+        approval[0].Payload.Should().Contain(ModuleName);
+        approval[0].Payload.Should().Contain("CREATE-STEP");
     }
 
     [Fact]
@@ -228,7 +236,9 @@ public class WorkflowInterceptorE2ETests
 
         routedEntity.WorkflowStatus.Should().Be(WorkflowStatus.InProgress);
         routedEntity.WorkflowCode.Should().Be("CREATE-WF");
-        correctModuleHarness.Bridge.Messages.Should().ContainSingle();
+        (await correctModuleHarness.Context.OutboxMessages
+                .CountAsync(r => r.EventType == WorkflowApprovalOutboxTemporalHandler.EventTypeName))
+            .Should().Be(1);
     }
 
     [Fact]
@@ -398,6 +408,23 @@ internal sealed class InterceptorE2EHarness : IAsyncDisposable
 {
     private readonly ServiceProvider _serviceProvider;
 
+    private sealed class BoundOutbox : IOutbox
+    {
+        private EfOutbox? _inner;
+
+        public void Bind(DbContext db, ITransportRouting routing, TimeProvider clock) =>
+            _inner = new EfOutbox(db, routing, clock);
+
+        public void Add(IDomainEvent domainEvent, Guid entityId, long entityVersion = 0) =>
+            Require().Add(domainEvent, entityId, entityVersion);
+
+        public void Add(string eventType, string tenantId, Guid entityId, long entityVersion, object payload) =>
+            Require().Add(eventType, tenantId, entityId, entityVersion, payload);
+
+        private EfOutbox Require() =>
+            _inner ?? throw new InvalidOperationException("Outbox not bound.");
+    }
+
     public InterceptorE2EHarness(string tenantId, string moduleName)
     {
         ConfigCache = new FakeWorkflowConfigCacheService();
@@ -411,6 +438,7 @@ internal sealed class InterceptorE2EHarness : IAsyncDisposable
             })
             .Build();
 
+        var bound = new BoundOutbox();
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IConfiguration>(configuration);
@@ -424,6 +452,8 @@ internal sealed class InterceptorE2EHarness : IAsyncDisposable
         services.AddSingleton<IWorkflowTriggerBridge>(sp => sp.GetRequiredService<RecordingWorkflowTriggerBridge>());
         services.AddSingleton<ITenantModuleAccessService>(new FakeTenantModuleAccessService());
         services.AddSingleton<IWorkflowService, WorkflowService>();
+        services.AddSingleton<IOutbox>(bound);
+        services.Configure<OutboxOptions>(_ => { });
         services.Configure<SystemOptions>(options =>
         {
             options.DefaultUserId = "test-user";
@@ -445,6 +475,8 @@ internal sealed class InterceptorE2EHarness : IAsyncDisposable
             .Options;
 
         Context = new InterceptorTestDbContext(options);
+        var routing = new TransportRouting(_serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<OutboxOptions>>());
+        bound.Bind(Context, routing, TimeProvider.System);
     }
 
     public InterceptorTestDbContext Context { get; }
@@ -461,7 +493,16 @@ internal sealed class InterceptorE2EHarness : IAsyncDisposable
 }
 
 internal sealed class InterceptorTestDbContext(DbContextOptions<TestWorkflowDbContext> options)
-    : TestWorkflowDbContext(options);
+    : TestWorkflowDbContext(options)
+{
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration());
+    }
+}
 
 internal sealed class FakeCurrentUserService(string tenantId) : ICurrentUserService
 {

@@ -1,13 +1,12 @@
 using FluentAssertions;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using QimErp.Shared.Common.Entities;
 using QimErp.Shared.Common.Events;
 using QimErp.Shared.Common.Interceptors;
 using QimErp.Shared.Common.Outbox;
-using QimErp.Shared.Common.Services;
 using QimErp.Shared.Common.Services.Auth;
 using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Tests.Workflow;
@@ -16,10 +15,8 @@ using Xunit;
 namespace QimErp.Shared.Common.Tests.Outbox;
 
 /// <summary>
-/// Covers the SDK-only outbox backstop added to <see cref="AuditEntitySaveChangesInterceptor"/>
-/// for plain domain events (the MediatR / <see cref="IPublisher"/> post-commit path). The
-/// Temporal/<see cref="QimErp.Shared.Common.Services.Workflow.IWorkflowTriggerBridge"/> pre-commit
-/// path is covered separately in <see cref="OutboxWorkflowBridgeTests"/>.
+/// Covers DATA-09: domain events raised on save are written as <see cref="OutboxMessage"/> rows
+/// in the same SaveChanges transaction via <see cref="IOutbox"/>. Delivery is the Akka relay's job.
 /// </summary>
 public sealed class AuditEntitySaveChangesInterceptorOutboxTests
 {
@@ -32,37 +29,36 @@ public sealed class AuditEntitySaveChangesInterceptorOutboxTests
         public string? TriggeredBy { get; } = "tester";
     }
 
-    private sealed class RecordingPublisher : IPublisher
+    /// <summary>Binds <see cref="IOutbox"/> to the harness DbContext after it is constructed.</summary>
+    private sealed class BoundOutbox : IOutbox
     {
-        public List<object> Published { get; } = [];
-        public bool ThrowOnPublish { get; set; }
+        private EfOutbox? _inner;
 
-        public Task Publish(object notification, CancellationToken cancellationToken = default)
-        {
-            if (ThrowOnPublish) throw new InvalidOperationException("boom");
-            Published.Add(notification);
-            return Task.CompletedTask;
-        }
+        public void Bind(DbContext db, ITransportRouting routing, TimeProvider clock) =>
+            _inner = new EfOutbox(db, routing, clock);
 
-        public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
-            where TNotification : INotification
-        {
-            if (ThrowOnPublish) throw new InvalidOperationException("boom");
-            Published.Add(notification!);
-            return Task.CompletedTask;
-        }
+        public void Add(IDomainEvent domainEvent, Guid entityId, long entityVersion = 0) =>
+            Require().Add(domainEvent, entityId, entityVersion);
+
+        public void Add(string eventType, string tenantId, Guid entityId, long entityVersion, object payload) =>
+            Require().Add(eventType, tenantId, entityId, entityVersion, payload);
+
+        private EfOutbox Require() =>
+            _inner ?? throw new InvalidOperationException("Outbox not bound to a DbContext.");
     }
 
     private sealed class Harness : IAsyncDisposable
     {
         private readonly ServiceProvider _sp;
         public TestApplicationDbContext Db { get; }
-        public RecordingPublisher Publisher { get; } = new();
 
-        public Harness(bool withPublisher = true)
+        public Harness()
         {
+            var bound = new BoundOutbox();
             var services = new ServiceCollection();
             services.AddLogging();
+            services.AddSingleton<IOutbox>(bound);
+            services.Configure<OutboxOptions>(_ => { });
             _sp = services.BuildServiceProvider();
 
             var tenantContext = new TenantContext();
@@ -70,8 +66,7 @@ public sealed class AuditEntitySaveChangesInterceptorOutboxTests
                 new FakeCurrentUserService(TenantId),
                 NullLogger<AuditEntitySaveChangesInterceptor>.Instance,
                 _sp,
-                configuration: null,
-                publisher: withPublisher ? Publisher : null);
+                configuration: null);
 
             var options = new DbContextOptionsBuilder<TestApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -79,6 +74,8 @@ public sealed class AuditEntitySaveChangesInterceptorOutboxTests
                 .Options;
 
             Db = new TestApplicationDbContext(options, tenantContext);
+            var routing = new TransportRouting(_sp.GetRequiredService<IOptions<OutboxOptions>>());
+            bound.Bind(Db, routing, TimeProvider.System);
         }
 
         public async ValueTask DisposeAsync()
@@ -103,10 +100,12 @@ public sealed class AuditEntitySaveChangesInterceptorOutboxTests
 
         var rows = await harness.Db.OutboxMessages.ToListAsync();
         rows.Should().ContainSingle();
+        rows[0].ProcessedAt.Should().BeNull("the Akka relay marks ProcessedAt after delivery");
+        rows[0].Transport.Should().Be(OutboxTransports.InProcess);
     }
 
-    [Fact(DisplayName = "2: Outbox payload wraps TenantId + serialized event data")]
-    public async Task OutboxPayload_ContainsEnvelopeWithTenantAndData()
+    [Fact(DisplayName = "2: Outbox row carries TenantId + serialized event payload")]
+    public async Task OutboxPayload_ContainsTenantAndEventData()
     {
         await using var harness = new Harness();
         var entity = NewEntityWithDomainEvent("hello");
@@ -114,17 +113,13 @@ public sealed class AuditEntitySaveChangesInterceptorOutboxTests
         await harness.Db.SaveChangesAsync();
 
         var row = await harness.Db.OutboxMessages.SingleAsync();
-        var envelope = OutboxEnvelope.Unwrap(row.Payload);
-
-        envelope.Should().NotBeNull();
-        envelope!.TenantId.Should().Be(TenantId);
-        envelope.Data.Should().Contain("hello");
-        row.EventType.Should().NotBeNullOrWhiteSpace();
-        Type.GetType(row.EventType!).Should().NotBeNull("EventType must be resolvable via Type.GetType for the processor to deserialize it");
+        row.TenantId.Should().Be(TenantId);
+        row.EventType.Should().Be(nameof(TestDomainEvent));
+        row.Payload.Should().Contain("hello");
     }
 
-    [Fact(DisplayName = "3: After successful post-commit IPublisher.Publish, OutboxMessage.IsProcessed becomes true")]
-    public async Task SuccessfulPublish_MarksOutboxMessageProcessed()
+    [Fact(DisplayName = "3: Immediately after SaveChanges the row is unprocessed (relay has not run)")]
+    public async Task OutboxRow_StaysUnprocessed_UntilRelayDelivers()
     {
         await using var harness = new Harness();
         var entity = NewEntityWithDomainEvent();
@@ -132,43 +127,28 @@ public sealed class AuditEntitySaveChangesInterceptorOutboxTests
 
         await harness.Db.SaveChangesAsync();
 
-        harness.Publisher.Published.Should().ContainSingle();
-
         var row = await harness.Db.OutboxMessages.SingleAsync();
-        row.IsProcessed.Should().BeTrue();
+        row.ProcessedAt.Should().BeNull();
+#pragma warning disable CS0618
+        row.IsProcessed.Should().BeFalse();
+#pragma warning restore CS0618
     }
 
-    [Fact(DisplayName = "4: Immediately after SaveChangesAsync returns the row is durably committed, even before IsProcessed is marked")]
-    public async Task OutboxRow_IsDurable_BeforeMarkingProcessed()
+    [Fact(DisplayName = "4: Outbox row is queryable the instant SaveChangesAsync returns")]
+    public async Task OutboxRow_IsDurable_BeforeRelay()
     {
-        // Regression guard for "enqueue in SavingChanges (same txn)": even if nothing published
-        // the row must already be queryable the instant the outer SaveChangesAsync call returns.
-        await using var harness = new Harness(withPublisher: false);
+        await using var harness = new Harness();
         var entity = NewEntityWithDomainEvent();
         harness.Db.Add(entity);
 
         await harness.Db.SaveChangesAsync();
 
-        var row = await harness.Db.OutboxMessages.SingleAsync();
-        row.IsProcessed.Should().BeFalse("no publisher was registered, so nothing could have dispatched it yet");
+        var row = await harness.Db.OutboxMessages.AsNoTracking().SingleAsync();
+        row.Id.Should().NotBeEmpty();
+        row.ProcessedAt.Should().BeNull();
     }
 
-    [Fact(DisplayName = "5: When IPublisher throws for a non-critical event, StoreFailedEventsAsync is log-only — OutboxMessage stays unprocessed and SaveChanges does not throw")]
-    public async Task FailedPublish_IsLogOnly_OutboxStaysUnprocessed()
-    {
-        await using var harness = new Harness();
-        harness.Publisher.ThrowOnPublish = true;
-        var entity = NewEntityWithDomainEvent();
-        harness.Db.Add(entity);
-
-        var act = async () => await harness.Db.SaveChangesAsync();
-        await act.Should().NotThrowAsync("a non-critical publish failure is logged, not thrown");
-
-        var row = await harness.Db.OutboxMessages.SingleAsync();
-        row.IsProcessed.Should().BeFalse("the backstop processor must redeliver this event later");
-    }
-
-    [Fact(DisplayName = "6: Saving an entity with no domain events writes no OutboxMessage row")]
+    [Fact(DisplayName = "5: Saving an entity with no domain events writes no OutboxMessage row")]
     public async Task NoDomainEvents_NoOutboxRow()
     {
         await using var harness = new Harness();
@@ -180,70 +160,17 @@ public sealed class AuditEntitySaveChangesInterceptorOutboxTests
         (await harness.Db.OutboxMessages.ToListAsync()).Should().BeEmpty();
     }
 
-    [Fact(DisplayName = "7: Outbox envelope carries CompanyId from the ambient CompanyContext scope at enqueue time")]
-    public async Task OutboxEnvelope_CarriesCompanyId_FromAmbientCompanyScope()
+    [Fact(DisplayName = "6: Outbox TenantId comes from the domain event")]
+    public async Task OutboxTenantId_ComesFromDomainEvent()
     {
         await using var harness = new Harness();
-        var companyContext = new CompanyContext();
-        companyContext.SetScope(CompanyScope.ForCompanies(["company-A"], "company-A"));
-        try
-        {
-            var entity = NewEntityWithDomainEvent();
-            harness.Db.Add(entity);
-            await harness.Db.SaveChangesAsync();
-        }
-        finally
-        {
-            companyContext.Clear();
-        }
-
-        var row = await harness.Db.OutboxMessages.SingleAsync();
-        var envelope = OutboxEnvelope.Unwrap(row.Payload);
-        envelope!.CompanyId.Should().Be("company-A",
-            "OutboxProcessorBackgroundService must redeliver this message under the same company scope");
-    }
-
-    [Fact(DisplayName = "8: Outbox envelope CompanyId falls back to the entity's stamped CompanyId when no single company is ambiently active")]
-    public async Task OutboxEnvelope_CompanyId_FallsBackToEntityStamp()
-    {
-        await using var harness = new Harness();
-        var companyContext = new CompanyContext();
-        // Multi-company on, no active selection: SetCompanyIdOnEntities falls through to the
-        // CompanyStampScope override below rather than the ambient scope's EffectiveCompanyId.
-        companyContext.SetScope(CompanyScope.AllCompanies(active: null));
-        try
-        {
-            using (CompanyStampScope.Enter("company-B"))
-            {
-                var entity = NewEntityWithDomainEvent();
-                harness.Db.Add(entity);
-                await harness.Db.SaveChangesAsync();
-            }
-        }
-        finally
-        {
-            companyContext.Clear();
-        }
-
-        var row = await harness.Db.OutboxMessages.SingleAsync();
-        var envelope = OutboxEnvelope.Unwrap(row.Payload);
-        envelope!.CompanyId.Should().Be("company-B");
-    }
-
-    [Fact(DisplayName = "9: Outbox envelope CompanyId is empty for a tenant-shared write (multi-company disabled)")]
-    public async Task OutboxEnvelope_CompanyId_EmptyForTenantSharedWrite()
-    {
-        await using var harness = new Harness();
-        // Default CompanyContext scope (CompanyScope.Inactive) ⇒ MultiCompanyEnabled=false ⇒
-        // SetCompanyIdOnEntities stamps every entity as tenant-shared ("").
-        var entity = NewEntityWithDomainEvent();
+        var entity = NewEntityWithDomainEvent("tenant-check");
         harness.Db.Add(entity);
         await harness.Db.SaveChangesAsync();
 
         var row = await harness.Db.OutboxMessages.SingleAsync();
-        var envelope = OutboxEnvelope.Unwrap(row.Payload);
-        envelope!.CompanyId.Should().BeEmpty(
-            "a tenant-shared write must never fabricate a company on redelivery");
+        row.TenantId.Should().Be(TenantId);
+        row.Payload.Should().Contain("tenant-check");
     }
 }
 
