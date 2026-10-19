@@ -112,15 +112,15 @@ public class SharedServiceCollectionExtensionsTests
 
         using var provider = services.BuildServiceProvider();
         var hostedServices = provider.GetServices<IHostedService>()
-            .OfType<OutboxProcessorBackgroundService<TestApplicationDbContext>>()
+            .OfType<OutboxRelayHostedService>()
             .ToList();
 
         hostedServices.Should().ContainSingle(
-            "AddDbContextWithOutbox must register exactly one sweeper per TContext via TryAddEnumerable");
+            "AddDbContextWithOutbox must register the Akka outbox relay hosted service");
     }
 
     [Fact]
-    public void AddDbContextWithOutbox_CalledTwice_StillRegistersOutboxProcessorOnce()
+    public void AddDbContextWithOutbox_CalledTwice_StillRegistersOutboxRelayOnce()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -129,35 +129,36 @@ public class SharedServiceCollectionExtensionsTests
 
         using var provider = services.BuildServiceProvider();
         var hostedServices = provider.GetServices<IHostedService>()
-            .OfType<OutboxProcessorBackgroundService<TestApplicationDbContext>>()
+            .OfType<OutboxRelayHostedService>()
             .ToList();
 
         hostedServices.Should().ContainSingle(
-            "TryAddEnumerable must not duplicate the sweeper when AddDbContextWithOutbox is called more than once");
+            "OutboxRelayHostedService must not duplicate when AddDbContextWithOutbox is called more than once");
     }
 
     [Fact]
-    public void AddDbContextWithOutbox_WithoutConfiguration_UsesDefaultOutboxProcessorOptions()
+    public void AddDbContextWithOutbox_WithoutConfiguration_UsesDefaultOutboxOptions()
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContextWithOutbox<TestApplicationDbContext>(TestConnectionString);
 
         using var provider = services.BuildServiceProvider();
-        var options = provider.GetRequiredService<IOptions<OutboxProcessorOptions>>().Value;
+        var options = provider.GetRequiredService<IOptions<OutboxOptions>>().Value;
 
-        options.BatchSize.Should().Be(50);
-        options.PollingIntervalSeconds.Should().Be(30);
+        options.BatchSize.Should().Be(100);
+        options.RelayEnabled.Should().BeTrue();
+        options.DefaultTransports.Should().Equal(OutboxTransports.InProcess);
     }
 
     [Fact]
-    public void AddDbContextWithOutbox_WithConfiguration_BindsOutboxProcessorOptions()
+    public void AddDbContextWithOutbox_WithConfiguration_BindsOutboxOptions()
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [$"{OutboxProcessorOptions.SectionName}:BatchSize"] = "25",
-                [$"{OutboxProcessorOptions.SectionName}:PollingIntervalSeconds"] = "10"
+                [$"{OutboxOptions.SectionName}:BatchSize"] = "25",
+                [$"{OutboxOptions.SectionName}:RelayEnabled"] = "false"
             })
             .Build();
 
@@ -166,9 +167,9 @@ public class SharedServiceCollectionExtensionsTests
         services.AddDbContextWithOutbox<TestApplicationDbContext>(TestConnectionString, configuration);
 
         using var provider = services.BuildServiceProvider();
-        var options = provider.GetRequiredService<IOptions<OutboxProcessorOptions>>().Value;
+        var options = provider.GetRequiredService<IOptions<OutboxOptions>>().Value;
 
         options.BatchSize.Should().Be(25);
-        options.PollingIntervalSeconds.Should().Be(10);
+        options.RelayEnabled.Should().BeFalse();
     }
 }

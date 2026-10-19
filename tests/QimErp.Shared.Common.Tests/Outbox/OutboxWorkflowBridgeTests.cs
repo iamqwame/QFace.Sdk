@@ -3,11 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using QimErp.Shared.Common.Database.Configurations;
 using QimErp.Shared.Common.Entities;
+using QimErp.Shared.Common.Events;
 using QimErp.Shared.Common.Interceptors;
 using QimErp.Shared.Common.Options;
 using QimErp.Shared.Common.Outbox;
+using QimErp.Shared.Common.Outbox.Transports;
 using QimErp.Shared.Common.Services.Auth;
 using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Services.TenantSetup;
@@ -21,20 +24,15 @@ using Xunit;
 namespace QimErp.Shared.Common.Tests.Outbox;
 
 /// <summary>
-/// Covers the WorkflowEventMessage / <see cref="IWorkflowTriggerBridge"/> pre-commit path of the
-/// outbox backstop: the dispatch attempt already happened synchronously by the time the
-/// OutboxMessage row is built, so IsProcessed is set directly at enqueue time (no second
-/// SaveChanges needed, unlike the post-commit MediatR path in
-/// <see cref="AuditEntitySaveChangesInterceptorOutboxTests"/>).
+/// DATA-09: workflow approval hand-off enqueues <c>WorkflowApprovalRequired</c> outbox rows
+/// (Temporal transport). The Akka relay delivers via <see cref="IWorkflowTriggerBridge"/> —
+/// SaveChanges itself never starts Temporal.
 /// </summary>
 public sealed class OutboxWorkflowBridgeTests
 {
     private const string TenantId = "e2e-tenant-id";
     private const string ModuleName = "TestModule";
 
-    // Extends the existing Workflow test harness's TestWorkflowDbContext so its model also maps
-    // OutboxMessage — the real TestWorkflowDbContext deliberately has no outbox mapping so the
-    // original WorkflowInterceptorE2ETests keep exercising a context that does NOT support outbox.
     private sealed class OutboxCapableWorkflowDbContext(DbContextOptions<TestWorkflowDbContext> options)
         : TestWorkflowDbContext(options)
     {
@@ -47,11 +45,28 @@ public sealed class OutboxWorkflowBridgeTests
         }
     }
 
+    private sealed class BoundOutbox : IOutbox
+    {
+        private EfOutbox? _inner;
+
+        public void Bind(DbContext db, ITransportRouting routing, TimeProvider clock) =>
+            _inner = new EfOutbox(db, routing, clock);
+
+        public void Add(IDomainEvent domainEvent, Guid entityId, long entityVersion = 0) =>
+            Require().Add(domainEvent, entityId, entityVersion);
+
+        public void Add(string eventType, string tenantId, Guid entityId, long entityVersion, object payload) =>
+            Require().Add(eventType, tenantId, entityId, entityVersion, payload);
+
+        private EfOutbox Require() =>
+            _inner ?? throw new InvalidOperationException("Outbox not bound.");
+    }
+
     private sealed class Harness : IAsyncDisposable
     {
         private readonly ServiceProvider _serviceProvider;
 
-        public Harness(string moduleName = ModuleName)
+        public Harness(string moduleName = ModuleName, bool registerOutbox = true)
         {
             ConfigCache = new FakeWorkflowConfigCacheService();
             DefinitionProvider = new FakeWorkflowDefinitionProvider(TenantId);
@@ -61,6 +76,7 @@ public sealed class OutboxWorkflowBridgeTests
                 .AddInMemoryCollection(new Dictionary<string, string?> { ["Workflow:Module"] = moduleName })
                 .Build();
 
+            var bound = new BoundOutbox();
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddSingleton<IConfiguration>(configuration);
@@ -80,6 +96,9 @@ public sealed class OutboxWorkflowBridgeTests
                 options.DefaultSystemEmail = "tester@qimerp.com";
                 options.DefaultUserName = "Tester";
             });
+            services.Configure<OutboxOptions>(_ => { });
+            if (registerOutbox)
+                services.AddSingleton<IOutbox>(bound);
 
             _serviceProvider = services.BuildServiceProvider();
 
@@ -95,6 +114,11 @@ public sealed class OutboxWorkflowBridgeTests
                 .Options;
 
             Context = new OutboxCapableWorkflowDbContext(options2);
+            if (registerOutbox)
+            {
+                var routing = new TransportRouting(_serviceProvider.GetRequiredService<IOptions<OutboxOptions>>());
+                bound.Bind(Context, routing, TimeProvider.System);
+            }
         }
 
         public OutboxCapableWorkflowDbContext Context { get; }
@@ -136,8 +160,8 @@ public sealed class OutboxWorkflowBridgeTests
         }
     };
 
-    [Fact(DisplayName = "7: Bridge dispatch succeeding (pre-commit) enqueues an OutboxMessage already marked IsProcessed=true")]
-    public async Task BridgeDispatchSucceeds_OutboxRowAlreadyMarkedProcessed()
+    [Fact(DisplayName = "7: Create workflow enqueues WorkflowApprovalRequired (temporal) unprocessed")]
+    public async Task CreateWorkflow_EnqueuesTemporalApprovalOutboxRow()
     {
         await using var harness = new Harness();
         harness.ConfigCache.SetConfig(ModuleName, CreateConfig(enableCreate: true, createCode: "CREATE-WF"));
@@ -147,69 +171,37 @@ public sealed class OutboxWorkflowBridgeTests
         harness.Context.Add(entity);
         await harness.Context.SaveChangesAsync();
 
-        harness.Bridge.Messages.Should().ContainSingle("the existing pre-commit Temporal bridge timing must be preserved");
+        harness.Bridge.Messages.Should().BeEmpty(
+            "SaveChanges must not call IWorkflowTriggerBridge — the relay delivers Temporal later");
 
-        // One row for the WorkflowEventMessage dispatched via the bridge, one for the
-        // WorkflowStatusChangedEvent domain event destined for the post-commit MediatR path.
-        var rows = await harness.Context.OutboxMessages.ToListAsync();
-        rows.Should().HaveCount(2);
-
-        var bridgeRow = rows.Single(r => r.EventType!.Contains(nameof(WorkflowEventMessage)));
-        bridgeRow.IsProcessed.Should().BeTrue("the bridge call already succeeded synchronously before the row was enqueued");
-
-        var envelope = OutboxEnvelope.Unwrap(bridgeRow.Payload);
-        envelope!.TenantId.Should().Be(TenantId);
-        envelope.Data.Should().Contain("CREATE-WF");
+        var approval = await harness.Context.OutboxMessages
+            .Where(r => r.EventType == WorkflowApprovalOutboxTemporalHandler.EventTypeName)
+            .ToListAsync();
+        approval.Should().ContainSingle();
+        approval[0].Transport.Should().Be(OutboxTransports.Temporal);
+        approval[0].TenantId.Should().Be(TenantId);
+        approval[0].ProcessedAt.Should().BeNull();
+        approval[0].Payload.Should().Contain("CREATE-WF");
     }
 
-    [Fact(DisplayName = "8: Bridge not registered leaves the OutboxMessage row unprocessed for the backstop processor")]
-    public async Task BridgeNotRegistered_OutboxRowStaysUnprocessed()
+    [Fact(DisplayName = "8: Without IOutbox, SaveChanges still completes and no approval row is written")]
+    public async Task OutboxNotRegistered_SaveSucceeds_NoApprovalRow()
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Workflow:Module"] = ModuleName })
-            .Build();
-        services.AddSingleton<IConfiguration>(configuration);
-        services.AddSingleton<ICurrentUserService>(new FakeCurrentUserService(TenantId));
-        services.AddSingleton<ITenantContext>(new TenantContext());
-        var configCache = new FakeWorkflowConfigCacheService();
-        configCache.SetConfig(ModuleName, CreateConfig(enableCreate: true, createCode: "CREATE-WF"));
-        services.AddSingleton<IWorkflowConfigCacheService>(configCache);
-        var definitionProvider = new FakeWorkflowDefinitionProvider(TenantId);
-        definitionProvider.SetDefinition("CREATE-WF", ActiveDefinition("CREATE-STEP"));
-        services.AddSingleton<IWorkflowDefinitionProvider>(definitionProvider);
-        services.AddSingleton<ITenantModuleAccessService>(new FakeTenantModuleAccessService());
-        services.AddSingleton<IWorkflowService, WorkflowService>();
-        services.Configure<SystemOptions>(o => { o.DefaultUserId = "test-user"; o.DefaultSystemEmail = "t@q.com"; o.DefaultUserName = "T"; });
-        // Deliberately NOT registering IWorkflowTriggerBridge.
-
-        await using var sp = services.BuildServiceProvider();
-        var interceptor = new AuditEntitySaveChangesInterceptor(
-            sp.GetRequiredService<ICurrentUserService>(),
-            sp.GetRequiredService<ILogger<AuditEntitySaveChangesInterceptor>>(),
-            sp,
-            configuration);
-
-        var options = new DbContextOptionsBuilder<TestWorkflowDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .AddInterceptors(interceptor)
-            .Options;
-        await using var context = new OutboxCapableWorkflowDbContext(options);
+        await using var harness = new Harness(registerOutbox: false);
+        harness.ConfigCache.SetConfig(ModuleName, CreateConfig(enableCreate: true, createCode: "CREATE-WF"));
+        harness.DefinitionProvider.SetDefinition("CREATE-WF", ActiveDefinition("CREATE-STEP"));
 
         var entity = NewEntity();
-        context.Add(entity);
-        await context.SaveChangesAsync();
+        harness.Context.Add(entity);
+        await harness.Context.SaveChangesAsync();
 
-        var row = await context.OutboxMessages.SingleAsync(r => r.EventType!.Contains(nameof(WorkflowEventMessage)));
-        row.IsProcessed.Should().BeFalse("no bridge was available to dispatch the message synchronously");
+        entity.WorkflowStatus.Should().Be(WorkflowStatus.InProgress);
+        (await harness.Context.OutboxMessages.ToListAsync()).Should().BeEmpty();
     }
 
-    [Fact(DisplayName = "9: A DbContext whose model does not map OutboxMessage is unaffected (back-compat with WorkflowInterceptorE2ETests-style contexts)")]
+    [Fact(DisplayName = "9: A DbContext without OutboxMessage mapping still saves when IOutbox is absent")]
     public async Task ContextWithoutOutboxMapping_DoesNotThrow()
     {
-        // Uses the real TestWorkflowDbContext (no Outbox mapping) directly — the exact shape
-        // WorkflowInterceptorE2ETests already relies on. Must behave exactly as before.
         var services = new ServiceCollection();
         services.AddLogging();
         var configuration = new ConfigurationBuilder()
@@ -228,7 +220,12 @@ public sealed class OutboxWorkflowBridgeTests
         services.AddSingleton<IWorkflowTriggerBridge>(bridge);
         services.AddSingleton<ITenantModuleAccessService>(new FakeTenantModuleAccessService());
         services.AddSingleton<IWorkflowService, WorkflowService>();
-        services.Configure<SystemOptions>(o => { o.DefaultUserId = "test-user"; o.DefaultSystemEmail = "t@q.com"; o.DefaultUserName = "T"; });
+        services.Configure<SystemOptions>(o =>
+        {
+            o.DefaultUserId = "test-user";
+            o.DefaultSystemEmail = "t@q.com";
+            o.DefaultUserName = "T";
+        });
 
         await using var sp = services.BuildServiceProvider();
         var interceptor = new AuditEntitySaveChangesInterceptor(
@@ -247,8 +244,10 @@ public sealed class OutboxWorkflowBridgeTests
         context.Add(entity);
 
         var act = async () => await context.SaveChangesAsync();
-        await act.Should().NotThrowAsync("contexts without an OutboxMessage mapping must be unaffected by the backstop");
+        await act.Should().NotThrowAsync(
+            "contexts without OutboxMessage mapping and without IOutbox must still save");
 
-        bridge.Messages.Should().ContainSingle("the pre-commit Temporal trigger must still fire normally");
+        bridge.Messages.Should().BeEmpty("Temporal hand-off is outbox/relay only");
+        entity.WorkflowStatus.Should().Be(WorkflowStatus.InProgress);
     }
 }

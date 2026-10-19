@@ -51,7 +51,9 @@ public sealed class OutboxMessageMappingTests
         var mapped = entityType!;
         mapped.GetTableName().Should().Be("OutboxMessages");
         mapped.FindPrimaryKey().Should().NotBeNull();
-        mapped.FindProperty(nameof(OutboxMessage.IsProcessed)).Should().NotBeNull();
+        mapped.FindProperty(nameof(OutboxMessage.IsProcessed)).Should().BeNull(
+            "IsProcessed is a shim; EF maps ProcessedAt only");
+        mapped.FindProperty(nameof(OutboxMessage.ProcessedAt)).Should().NotBeNull();
         mapped.FindProperty(nameof(OutboxMessage.OccurredAt)).Should().NotBeNull();
     }
 

@@ -27,7 +27,8 @@ public sealed class OutboxBackstopIntegrityCheck<TContext> : IIntegrityCheck
     public async Task<IntegrityCheckResult> RunAsync(CancellationToken cancellationToken)
     {
         var cutoff = DateTime.UtcNow - _staleAfter;
-        var stuck = _context.Set<OutboxMessage>().Where(m => !m.IsProcessed && m.OccurredAt < cutoff);
+        var stuck = _context.Set<OutboxMessage>()
+            .Where(m => m.ProcessedAt == null && m.DeadAt == null && m.OccurredAt < cutoff);
 
         var count = await stuck.LongCountAsync(cancellationToken);
         if (count == 0)
