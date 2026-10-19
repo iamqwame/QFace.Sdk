@@ -56,6 +56,12 @@ public abstract class ApplicationDbContext<TContext>(
     public DbSet<TenantPluginFlag> TenantPluginFlags { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
 
+    /// <summary>
+    /// Durable outbox rows (DATA-09). Written in the same transaction as business changes;
+    /// the Akka relay delivers them after commit.
+    /// </summary>
+    public DbSet<OutboxMessage> OutboxMessages { get; set; }
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         base.ConfigureConventions(configurationBuilder);

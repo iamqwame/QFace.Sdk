@@ -95,12 +95,17 @@ public static class SharedServiceCollectionExtensions
         return services;
     }
     /// <summary>
-    /// Registers DbContext with outbox support and audit interceptor.
+    /// Registers DbContext with a <b>durable transactional outbox</b> (DATA-09) and audit interceptor.
+    /// Domain events collected during <c>SaveChanges</c> are written as <see cref="OutboxMessage"/>
+    /// rows in the same transaction; an Akka poller → consistent-hash router → dispatch workers
+    /// relay delivers them via configured transports (in-process MediatR by default, Temporal for
+    /// workflow approval / module routing). Do <b>not</b> Tell actors or start Temporal after save.
     /// </summary>
     /// <param name="configuration">Optional. When provided, options bind from config; when null, default values are used.</param>
     /// <remarks>
     /// Requires ICurrentUserService. Registers DesignTimeCurrentUserService as fallback via TryAdd.
     /// Call AddCoreServices/AddAuth before or after to use UserContextService (HTTP-based user) instead.
+    /// Modules must add an EF migration for the <c>OutboxMessages</c> table — see docs/outbox-data-09.md.
     /// </remarks>
     public static IServiceCollection AddDbContextWithOutbox<TContext>(
         this IServiceCollection services, string connectionString, IConfiguration? configuration = null, bool enableVector = false) where TContext : ApplicationDbContext<TContext>
@@ -149,21 +154,7 @@ public static class SharedServiceCollectionExtensions
         services.AddScoped<IWorkflowAwareContext>(provider =>
             provider.GetRequiredService<TContext>());
 
-        if (configuration != null)
-            services.AddOptions<OutboxProcessorOptions>()
-                .Bind(configuration.GetSection(OutboxProcessorOptions.SectionName))
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
-        else
-            services.AddOptions<OutboxProcessorOptions>()
-                .Configure(_ => { })
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
-
-        // TryAddEnumerable: a module may call AddDbContextWithOutbox more than once (e.g. tests,
-        // composed hosts) — this keeps exactly one sweeper per TContext instead of duplicating it.
-        services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IHostedService, OutboxProcessorBackgroundService<TContext>>());
+        services.AddTransactionalOutbox<TContext>(configuration);
 
         return services;
     }
@@ -216,6 +207,8 @@ public static class SharedServiceCollectionExtensions
             });
         services.AddScoped<IWorkflowAwareContext>(provider =>
             provider.GetRequiredService<TContext>());
+
+        services.AddTransactionalOutbox<TContext>(configuration);
 
         return services;
     }

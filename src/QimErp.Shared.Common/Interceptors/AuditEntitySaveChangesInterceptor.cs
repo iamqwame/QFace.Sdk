@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Metadata;
 using System.Runtime.CompilerServices;
 using System.Transactions;
 using QimErp.Shared.Common.Outbox;
+using QimErp.Shared.Common.Outbox.Transports;
 using QimErp.Shared.Common.Services.MultiTenancy;
 using QimErp.Shared.Common.Services.Workflow;
 
@@ -16,22 +16,12 @@ public class AuditEntitySaveChangesInterceptor(
     IPublisher? publisher = null)
     : SaveChangesInterceptor
 {
-    private readonly ConditionalWeakTable<DbContext, List<(IDomainEvent Event, OutboxMessage Outbox)>> _contextEvents = [];
-
-    // Guards the nested SaveChanges call in PersistOutboxMarkersAsync (marking IsProcessed after a
-    // successful post-commit publish) so RunPreSaveAsync/SavedChangesAsync no-op on it — otherwise
-    // the just-published events would be captured and re-published a second time.
-    private bool _isPersistingOutboxMarkers;
+    private readonly ConditionalWeakTable<DbContext, List<IDomainEvent>> _contextEvents = [];
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
         CancellationToken cancellationToken = default)
     {
-        if (_isPersistingOutboxMarkers)
-        {
-            return await base.SavingChangesAsync(eventData, result, cancellationToken);
-        }
-
         DbContext? context = eventData.Context;
         if (context == null)
         {
@@ -62,11 +52,6 @@ public class AuditEntitySaveChangesInterceptor(
         int result,
         CancellationToken cancellationToken = default)
     {
-        if (_isPersistingOutboxMarkers)
-        {
-            return await base.SavedChangesAsync(eventData, result, cancellationToken);
-        }
-
         var context = eventData.Context;
         if (context == null)
         {
@@ -83,20 +68,18 @@ public class AuditEntitySaveChangesInterceptor(
                 return await base.SavedChangesAsync(eventData, result, cancellationToken);
             }
 
-            if (result > 0 && _contextEvents.TryGetValue(context, out var trackedEvents))
+            // DATA-09: delivery is owned by the durable outbox + Akka relay.
+            // Events were written as OutboxMessage rows during SavingChanges (same transaction).
+            // Never Tell / MediatR-publish / Temporal-start here — that recreates the save-then-publish gap.
+            if (_contextEvents.TryGetValue(context, out var leftover) && leftover.Count > 0)
             {
-                logger.LogDebug("Publishing {EventCount} workflow events after successful save ({RowsAffected} rows affected)",
-                    trackedEvents.Count, result);
-                await PublishWorkflowEventsWithTransactionAsync(trackedEvents, context, cancellationToken);
-                await PersistOutboxMarkersAsync(trackedEvents, context, cancellationToken);
-                _contextEvents.Remove(context);
-            }
-            else if (result == 0)
-            {
-                logger.LogDebug("No changes saved (result=0), skipping event publication");
-                _contextEvents.Remove(context);
+                logger.LogWarning(
+                    "Discarding {EventCount} in-memory event(s) after SaveChanges — they should have been " +
+                    "persisted to OutboxMessages during SavingChanges. Ensure IOutbox is registered via AddDbContextWithOutbox.",
+                    leftover.Count);
             }
 
+            _contextEvents.Remove(context);
             return await base.SavedChangesAsync(eventData, result, cancellationToken);
         }
         catch (Exception ex)
@@ -111,11 +94,6 @@ public class AuditEntitySaveChangesInterceptor(
         DbContextEventData eventData,
         InterceptionResult<int> result)
     {
-        if (_isPersistingOutboxMarkers)
-        {
-            return base.SavingChanges(eventData, result);
-        }
-
         var context = eventData.Context;
         if (context == null)
         {
@@ -142,11 +120,6 @@ public class AuditEntitySaveChangesInterceptor(
 
     public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
     {
-        if (_isPersistingOutboxMarkers)
-        {
-            return base.SavedChanges(eventData, result);
-        }
-
         var context = eventData.Context;
         if (context == null)
         {
@@ -162,19 +135,14 @@ public class AuditEntitySaveChangesInterceptor(
                 return base.SavedChanges(eventData, result);
             }
 
-            if (result > 0 && _contextEvents.TryGetValue(context, out var trackedEvents))
+            if (_contextEvents.TryGetValue(context, out var leftover) && leftover.Count > 0)
             {
-                logger.LogDebug("Publishing {EventCount} workflow events after successful save (sync)", trackedEvents.Count);
-                PublishWorkflowEventsWithTransactionAsync(trackedEvents, context, CancellationToken.None).GetAwaiter().GetResult();
-                PersistOutboxMarkersAsync(trackedEvents, context, CancellationToken.None).GetAwaiter().GetResult();
-                _contextEvents.Remove(context);
-            }
-            else if (result == 0)
-            {
-                logger.LogDebug("No changes saved (result=0), skipping event publication");
-                _contextEvents.Remove(context);
+                logger.LogWarning(
+                    "Discarding {EventCount} in-memory event(s) after SaveChanges (sync) — expected outbox persistence during SavingChanges.",
+                    leftover.Count);
             }
 
+            _contextEvents.Remove(context);
             return base.SavedChanges(eventData, result);
         }
         catch (Exception ex)
@@ -187,13 +155,13 @@ public class AuditEntitySaveChangesInterceptor(
 
 
     private async Task PublishWorkflowEventsWithTransactionAsync(
-        List<(IDomainEvent Event, OutboxMessage Outbox)> trackedEvents,
+        List<IDomainEvent> events,
         DbContext context,
         CancellationToken cancellationToken)
     {
-        if (publisher == null || trackedEvents.Count == 0) return;
+        if (publisher == null || events.Count == 0) return;
 
-        logger.LogDebug("Publishing {EventCount} workflow events with transaction", trackedEvents.Count);
+        logger.LogDebug("Publishing {EventCount} workflow events with transaction", events.Count);
 
         using var transactionScope = new TransactionScope(
             TransactionScopeOption.Required,
@@ -206,9 +174,9 @@ public class AuditEntitySaveChangesInterceptor(
 
         try
         {
-            await PublishWorkflowEventsAsync(trackedEvents, cancellationToken);
+            await PublishWorkflowEventsAsync(events, cancellationToken);
             transactionScope.Complete();
-            logger.LogDebug("Successfully published {EventCount} workflow events with transaction", trackedEvents.Count);
+            logger.LogDebug("Successfully published {EventCount} workflow events with transaction", events.Count);
         }
         catch (Exception ex)
         {
@@ -217,66 +185,32 @@ public class AuditEntitySaveChangesInterceptor(
         }
     }
 
-    /// <summary>
-    /// Flips <see cref="OutboxMessage.IsProcessed"/> on the rows whose event just published
-    /// successfully above and persists it in a dedicated SaveChanges call — the original
-    /// transaction already committed, so this is a best-effort follow-up, not atomic with it.
-    /// If it fails, the row stays unprocessed and <see cref="OutboxProcessorBackgroundService{TContext}"/>
-    /// redelivers it later — log-only, matching <see cref="StoreFailedEventsAsync"/>.
-    /// </summary>
-    private async Task PersistOutboxMarkersAsync(
-        List<(IDomainEvent Event, OutboxMessage Outbox)> trackedEvents,
-        DbContext context,
-        CancellationToken cancellationToken)
-    {
-        if (!trackedEvents.Any(t => t.Outbox.IsProcessed))
-            return;
 
-        _isPersistingOutboxMarkers = true;
-        try
-        {
-            await context.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex,
-                "Failed to persist OutboxMessage.IsProcessed markers; the backstop processor will redeliver these events.");
-        }
-        finally
-        {
-            _isPersistingOutboxMarkers = false;
-        }
-    }
 
-    private async Task PublishWorkflowEventsAsync(
-        List<(IDomainEvent Event, OutboxMessage Outbox)> trackedEvents, CancellationToken cancellationToken)
+    private async Task PublishWorkflowEventsAsync(List<IDomainEvent> events, CancellationToken cancellationToken)
     {
-        if (trackedEvents.Count == 0) return;
+        if (events.Count == 0) return;
 
         var failedEvents = new List<(IDomainEvent Event, Exception Exception)>();
 
-        foreach (var (domainEvent, outbox) in trackedEvents)
+        foreach (var domainEvent in events)
         {
             try
             {
                 if (publisher != null)
                 {
                     await publisher.Publish(domainEvent, cancellationToken);
-                    outbox.IsProcessed = true;
-                    OutboxMetrics.RecordPublished();
                     logger.LogDebug("Successfully published {EventType} using IPublisher", domainEvent.GetType().Name);
                 }
                 else
                 {
                     logger.LogWarning("No IPublisher registered. Event {EventType} will not be dispatched in-process.",
                         domainEvent.GetType().Name);
-                    OutboxMetrics.RecordFailed();
                     failedEvents.Add((domainEvent, new InvalidOperationException("No IPublisher registered")));
                 }
             }
             catch (Exception ex)
             {
-                OutboxMetrics.RecordFailed();
                 logger.LogError(ex, "Failed to publish workflow event {EventType}", domainEvent.GetType().Name);
                 failedEvents.Add((domainEvent, ex));
             }
@@ -286,7 +220,7 @@ public class AuditEntitySaveChangesInterceptor(
         {
             var failedEventTypes = string.Join(", ", failedEvents.Select(f => f.Event.GetType().Name));
             logger.LogError("Failed to publish {FailedCount} out of {TotalCount} events: {EventTypes}",
-                failedEvents.Count, trackedEvents.Count, failedEventTypes);
+                failedEvents.Count, events.Count, failedEventTypes);
 
             if (failedEvents.Any(f => IsCriticalEvent(f.Event)))
             {
@@ -336,84 +270,56 @@ public class AuditEntitySaveChangesInterceptor(
         var workflowEvents = new List<IDomainEvent>();
         await ProcessWorkflowEntitiesAsync(workflowEvents, cancellationToken, context);
         await CaptureWorkflowEventsAsync(workflowEvents, context, cancellationToken);
-        var trackedEvents = EnqueueOutboxMessages(workflowEvents, context);
-        _contextEvents.AddOrUpdate(context, trackedEvents);
+        var leftovers = PersistCapturedEventsToOutbox(workflowEvents);
+        _contextEvents.AddOrUpdate(context, leftovers);
         AddAuditMetadata(context);
     }
 
     /// <summary>
-    /// Writes one <see cref="OutboxMessage"/> row per captured domain event into the SAME
-    /// SaveChanges batch (SavingChanges, pre-commit) so the row is durable in the same transaction
-    /// as the business data — the backstop guarantee the Outbox pattern exists for.
-    /// No-ops when <paramref name="context"/>'s model doesn't map <see cref="OutboxMessage"/> (e.g.
-    /// hand-built test <see cref="DbContext"/>s that aren't <see cref="Database.ApplicationDbContext{TContext}"/>).
+    /// Writes captured domain / workflow events as <see cref="OutboxMessage"/> rows on the same
+    /// <see cref="DbContext"/> so they commit with the business change (DATA-09).
+    /// Returns any events that could not be persisted (IOutbox missing) for SavedChanges diagnostics.
     /// </summary>
-    private static List<(IDomainEvent Event, OutboxMessage Outbox)> EnqueueOutboxMessages(
-        List<IDomainEvent> events, DbContext context)
+    private List<IDomainEvent> PersistCapturedEventsToOutbox(List<IDomainEvent> events)
     {
-        if (events.Count == 0 || !SupportsOutbox(context))
-            return [];
+        if (events.Count == 0) return [];
 
-        var companyId = ResolveCompanyIdForOutbox(context);
-
-        var tracked = new List<(IDomainEvent Event, OutboxMessage Outbox)>(events.Count);
-        foreach (var domainEvent in events)
+        var outbox = serviceProvider.GetService<IOutbox>();
+        if (outbox is null)
         {
-            var outbox = BuildOutboxMessage(domainEvent, domainEvent.TenantId, companyId);
-            context.Set<OutboxMessage>().Add(outbox);
-            tracked.Add((domainEvent, outbox));
+            logger.LogError(
+                "IOutbox is not registered — {EventCount} event(s) cannot be durably handed off. " +
+                "Call AddDbContextWithOutbox (or AddTransactionalOutbox) so DATA-09 outbox rows are written.",
+                events.Count);
+            return events;
         }
 
-        OutboxMetrics.RecordEnqueued(tracked.Count);
-        return tracked;
+        foreach (var domainEvent in events)
+        {
+            var entityId = TryResolveEntityIdFromEvent(domainEvent);
+            outbox.Add(domainEvent, entityId, entityVersion: 0);
+        }
+
+        logger.LogDebug(
+            "Persisted {EventCount} event(s) to OutboxMessages in the current SaveChanges transaction",
+            events.Count);
+        return [];
     }
 
-    private static void EnqueueOutboxMessage(DbContext context, object message, string tenantId, bool isProcessed)
+    private static Guid TryResolveEntityIdFromEvent(IDomainEvent domainEvent)
     {
-        if (!SupportsOutbox(context))
-            return;
+        var type = domainEvent.GetType();
+        foreach (var name in new[] { "EntityId", "Id", "AggregateId" })
+        {
+            var prop = type.GetProperty(name);
+            if (prop is null) continue;
+            var value = prop.GetValue(domainEvent);
+            if (value is Guid g) return g;
+            if (value is string s && Guid.TryParse(s, out var parsed)) return parsed;
+            if (value is long or int) return OutboxEntityId.FromValue(value);
+        }
 
-        var companyId = ResolveCompanyIdForOutbox(context);
-        var outbox = BuildOutboxMessage(message, tenantId, companyId);
-        outbox.IsProcessed = isProcessed;
-        context.Set<OutboxMessage>().Add(outbox);
-        OutboxMetrics.RecordEnqueued();
-        if (isProcessed)
-            OutboxMetrics.RecordPublished();
-    }
-
-    private static OutboxMessage BuildOutboxMessage(object message, string tenantId, string? companyId = null)
-    {
-        var eventType = message.GetType().AssemblyQualifiedName
-            ?? message.GetType().FullName
-            ?? message.GetType().Name;
-        var payload = OutboxEnvelope.Wrap(message, tenantId ?? string.Empty, companyId);
-        return OutboxMessage.Create(eventType, payload);
-    }
-
-    private static bool SupportsOutbox(DbContext context) =>
-        context.Model.FindEntityType(typeof(OutboxMessage)) is not null;
-
-    /// <summary>
-    /// Resolves the company to seed on the outbox envelope so backstop redelivery
-    /// (<see cref="OutboxProcessorBackgroundService{TContext}"/>) applies the same company
-    /// isolation the original save did. Ambient scope first (what actually drove
-    /// <see cref="SetCompanyIdOnEntities"/> for this batch); falls back to an entity this same
-    /// SaveChanges call already stamped with a CompanyId, mirroring the TenantId sibling
-    /// fallback above. Empty means tenant-shared — the processor must not fabricate a company.
-    /// </summary>
-    private static string? ResolveCompanyIdForOutbox(DbContext context)
-    {
-        var companyId = CompanyContext.CurrentScope.EffectiveCompanyId;
-        if (!string.IsNullOrEmpty(companyId))
-            return companyId;
-
-        return context.ChangeTracker
-            .Entries<AuditableEntity>()
-            .Where(e => e.State is EntityState.Added or EntityState.Modified
-                        && !string.IsNullOrWhiteSpace(e.Entity.CompanyId))
-            .Select(e => e.Entity.CompanyId)
-            .FirstOrDefault();
+        return Guid.CreateVersion7();
     }
 
     private void SetTenantIdOnEntities(DbContext context)
@@ -784,8 +690,6 @@ public class AuditEntitySaveChangesInterceptor(
                         entry.Entity
                             .AddAuditMetadata(userId, email, name, timestamp);
 
-                        TryIncrementOptimisticVersion(entry);
-
                         if (entry.Entity.DataStatus != entry.Entity.PreviousDataStatus)
                         {
                             entry.Entity.OnDataStatusChange(entry.Entity.DataStatus ?? DataState.Active);
@@ -812,22 +716,6 @@ public class AuditEntitySaveChangesInterceptor(
                 throw;
             }
         }
-    }
-
-    private static void TryIncrementOptimisticVersion(EntityEntry<AuditableEntity> entry)
-    {
-        var versionProperty = entry.Property(nameof(AuditableEntity.Version));
-        // Only AuditableEntity.Version (long optimistic token). Skip EF row-versions / uint shadows.
-        if (versionProperty.Metadata.ClrType != typeof(long)
-            || versionProperty.Metadata.ValueGenerated == ValueGenerated.OnAddOrUpdate)
-        {
-            return;
-        }
-
-        var originalVersion = versionProperty.OriginalValue is long original
-            ? original
-            : 1L;
-        versionProperty.CurrentValue = originalVersion + 1;
     }
 
 
@@ -978,7 +866,7 @@ public class AuditEntitySaveChangesInterceptor(
                     logger.LogWarning("[CaptureWorkflowEvents] CurrentWorkflowHistoryId is not set for {EntityType} {EntityId}. Workflow history may not be recorded correctly. WorkflowCode={WorkflowCode}",
                         entity.EntityType, GetEntityId(entity), workflowCode);
 
-                    var fallbackWorkflowHistoryId = Guid.CreateVersion7();
+                    var fallbackWorkflowHistoryId = Guid.NewGuid();
                     entity.CurrentWorkflowHistoryId = fallbackWorkflowHistoryId;
                     workflowHistoryId = fallbackWorkflowHistoryId.ToString();
 
@@ -1016,45 +904,38 @@ public class AuditEntitySaveChangesInterceptor(
                 logger.LogDebug("[CaptureWorkflowEvents] Created WorkflowEventMessage for {EntityType} {EntityId}. WorkflowId={WorkflowId}, WorkflowCode={WorkflowCode}, TenantId={TenantId} (source: {TenantIdSource})",
                     entity.EntityType, GetEntityId(entity), workflowHistoryId, workflowCode, resolvedTenantId, tenantIdSource);
 
-                var bridge = serviceProvider.GetService<IWorkflowTriggerBridge>();
                 var approvalGate = serviceProvider.GetService<IWorkflowModuleApprovalGate>();
                 if (approvalGate is not null
                     && !await approvalGate.IsApprovalModuleEnabledAsync(resolvedTenantId, cancellationToken))
                 {
                     logger.LogDebug(
-                        "[CaptureWorkflowEvents] Workflow module not installed for tenant {TenantId} — skipping Temporal trigger for {EntityType} {EntityId}",
+                        "[CaptureWorkflowEvents] Workflow module not installed for tenant {TenantId} — skipping outbox Temporal hand-off for {EntityType} {EntityId}",
                         resolvedTenantId, entity.EntityType, GetEntityId(entity));
                     continue;
                 }
 
-                var dispatched = false;
-                if (bridge == null)
+                // DATA-09: enqueue WorkflowApprovalRequired in the same transaction — never start Temporal here.
+                var approvalOutbox = serviceProvider.GetService<IOutbox>();
+                if (approvalOutbox is null)
                 {
-                    logger.LogWarning("[CaptureWorkflowEvents] IWorkflowTriggerBridge is not registered. Workflow approval-required event will not be triggered for {EntityType} {EntityId}.",
+                    logger.LogError(
+                        "[CaptureWorkflowEvents] IOutbox is not registered. Cannot durably enqueue WorkflowApprovalRequired for {EntityType} {EntityId}.",
                         entity.EntityType, GetEntityId(entity));
                 }
                 else
                 {
-                    try
-                    {
-                        dispatched = await bridge.TryTriggerTemporalWorkflowAsync(workflowMessage, cancellationToken);
-                        if (dispatched)
-                            logger.LogInformation("[CaptureWorkflowEvents] Temporal workflow triggered for {EntityType} {EntityId}", entity.EntityType, GetEntityId(entity));
-                        else
-                            logger.LogWarning("[CaptureWorkflowEvents] WorkflowTriggerBridge returned false for {EntityType} {EntityId}. No workflow was started.",
-                                entity.EntityType, GetEntityId(entity));
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "[CaptureWorkflowEvents] WorkflowTriggerBridge failed for {EntityType} {EntityId}. Error: {ErrorMessage}",
-                            entity.EntityType, GetEntityId(entity), ex.Message);
-                    }
-                }
+                    var entityGuid = OutboxEntityId.FromValue(GetEntityId(entity));
+                    approvalOutbox.Add(
+                        WorkflowApprovalOutboxTemporalHandler.EventTypeName,
+                        resolvedTenantId,
+                        entityGuid,
+                        entityVersion: 0,
+                        workflowMessage);
 
-                // Pre-commit timing: by this point the bridge attempt already happened, so the
-                // outcome (dispatched) is known and recorded directly — no second SaveChanges
-                // needed, unlike the post-commit MediatR path marked in PersistOutboxMarkersAsync.
-                EnqueueOutboxMessage(context, workflowMessage, resolvedTenantId, dispatched);
+                    logger.LogInformation(
+                        "[CaptureWorkflowEvents] Enqueued WorkflowApprovalRequired outbox row for {EntityType} {EntityId} (Temporal delivery via relay)",
+                        entity.EntityType, GetEntityId(entity));
+                }
             }
             else
             {
@@ -1078,20 +959,37 @@ public class AuditEntitySaveChangesInterceptor(
             }
         }
 
-        // Collect domain events from all AuditableEntity instances (e.g., WorkflowTemplate, WorkflowConfiguration)
-        // so AddDomainEvent() events flow through MediatR's IPublisher in-process.
+        // Collect domain events from AuditableEntity instances and write them to the outbox
+        // in this SaveChanges transaction (DATA-09). Delivery is via the Akka relay — not
+        // post-commit MediatR/Tell.
         var auditableEntities = context.ChangeTracker.Entries<AuditableEntity>()
             .Where(e => e.State is EntityState.Added or EntityState.Modified)
             .ToList();
 
+        var domainOutbox = serviceProvider.GetService<IOutbox>();
         foreach (var entry in auditableEntities)
         {
-            var domainEvents = entry.Entity.PullDomainEvents();
-            if (domainEvents.Any())
+            var domainEvents = entry.Entity.PullDomainEvents().ToList();
+            if (domainEvents.Count == 0)
+                continue;
+
+            if (domainOutbox is not null)
+            {
+                var entityId = OutboxEntityId.FromEntity(entry.Entity);
+                var version = OutboxEntityId.ReadVersion(entry.Entity);
+                foreach (var domainEvent in domainEvents)
+                    domainOutbox.Add(domainEvent, entityId, version);
+
+                logger.LogDebug(
+                    "Enqueued {EventCount} domain event(s) from {EntityType} to OutboxMessages",
+                    domainEvents.Count, entry.Entity.GetType().Name);
+            }
+            else
             {
                 events.AddRange(domainEvents);
-                logger.LogDebug("Collected {EventCount} domain event(s) from {EntityType}",
-                    domainEvents.Count(), entry.Entity.GetType().Name);
+                logger.LogDebug(
+                    "Collected {EventCount} domain event(s) from {EntityType} (IOutbox missing — deferred)",
+                    domainEvents.Count, entry.Entity.GetType().Name);
             }
         }
     }

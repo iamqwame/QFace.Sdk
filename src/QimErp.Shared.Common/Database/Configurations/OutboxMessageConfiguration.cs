@@ -1,25 +1,28 @@
 namespace QimErp.Shared.Common.Database.Configurations;
 
-public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage>
+public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage>
 {
     public void Configure(EntityTypeBuilder<OutboxMessage> builder)
     {
         builder.ToTable("OutboxMessages");
+        builder.HasKey(x => x.Id);
 
-        builder.HasKey(e => e.Id);
+        builder.Property(x => x.TenantId).IsRequired().HasMaxLength(64);
+        builder.Property(x => x.EventType).IsRequired().HasMaxLength(256);
+        builder.Property(x => x.Transport).IsRequired().HasMaxLength(32);
+        builder.Property(x => x.Payload).IsRequired().HasColumnType("jsonb");
+        builder.Property(x => x.LockedBy).HasMaxLength(128);
+        builder.Property(x => x.LastError).HasMaxLength(2000);
 
-        builder.Property(e => e.EventType);
+#pragma warning disable CS0618 // IsProcessed is obsolete; ignore so EF does not map it.
+        builder.Ignore(x => x.IsProcessed);
+#pragma warning restore CS0618
 
-        builder.Property(e => e.Payload);
+        builder.HasIndex(x => x.NextAttemptAt)
+            .HasDatabaseName("ix_outbox_ready")
+            .HasFilter("\"ProcessedAt\" IS NULL AND \"DeadAt\" IS NULL");
 
-        builder.Property(e => e.OccurredAt)
-            .IsRequired();
-
-        builder.Property(e => e.IsProcessed)
-            .IsRequired()
-            .HasDefaultValue(false);
-
-        builder.HasIndex(e => new { e.IsProcessed, e.OccurredAt })
-            .HasDatabaseName("IX_OutboxMessages_IsProcessed_OccurredAt");
+        builder.HasIndex(x => new { x.EntityId, x.OccurredAt })
+            .HasDatabaseName("ix_outbox_entity_order");
     }
 }
