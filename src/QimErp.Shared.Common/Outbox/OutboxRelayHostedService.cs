@@ -58,11 +58,19 @@ internal sealed class OutboxRelayHostedService(
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        if (_system is null) return;
-
-        logger.LogInformation("Stopping outbox relay actor system.");
-        await _system.Terminate();
-        await _system.WhenTerminated;
+        var system = _system;
         _system = null;
+        if (system is null) return;
+
+        try
+        {
+            logger?.LogInformation("Stopping outbox relay actor system.");
+            await system.Terminate();
+            await system.WhenTerminated;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Outbox relay actor system shutdown failed; continuing host dispose.");
+        }
     }
 }

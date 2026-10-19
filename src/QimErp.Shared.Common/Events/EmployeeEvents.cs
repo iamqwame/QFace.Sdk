@@ -134,6 +134,15 @@ public class EmployeeChangedEvent : DomainEvent
     public EmployeeChangedEvent WithTaxIdentificationNumber(string? tin) { TaxIdentificationNumber = tin; return this; }
     public EmployeeChangedEvent WithNhilNumber(string? nhil) { NhilNumber = nhil; return this; }
     public EmployeeChangedEvent WithGhanaCardNumber(string? card) { GhanaCardNumber = card; return this; }
+
+    public EmployeeChangedEvent StripGovernmentIds()
+    {
+        SsnitNumber = null;
+        TaxIdentificationNumber = null;
+        NhilNumber = null;
+        GhanaCardNumber = null;
+        return this;
+    }
     
     public EmployeeChangedEvent WithOrganizationalUnit(Guid? id, string? name, string? code = null) 
     { 

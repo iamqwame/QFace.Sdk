@@ -5,7 +5,7 @@ namespace QimErp.Shared.Common.Activities.Benefit;
 public class MedicalClaimConsumptionSyncRequest
 {
     public string Action { get; set; } = string.Empty;
-    public string? TenantId { get; set; }
+    public string TenantId { get; set; } = string.Empty;
     public string? TriggeredBy { get; set; }
 
     public Guid EmployeeId { get; set; }
