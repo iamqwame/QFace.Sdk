@@ -19,5 +19,6 @@ The analyzer infers a module from the first three segments of a `QimErp.*` assem
 | QFS004 | DATA-02 | HttpClient calls from a request handler |
 | QFS005 | DATA-20 | `IgnoreQueryFilters` tenant-filter bypass |
 | QFS006 | DATA-20 | Raw SQL requiring tenant review |
+| QFS007 | DATA-25 | Sensitive structured-log placeholders, including request/response bodies, credentials, and personal or financial identifiers |
 
 Diagnostics are errors by default. A suppression needs an explicit review and QFace rule citation; do not use global `NoWarn` entries. The checks intentionally prefer a false positive over silently allowing a tenant or module boundary bypass.

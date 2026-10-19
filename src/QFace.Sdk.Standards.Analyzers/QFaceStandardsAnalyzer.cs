@@ -24,9 +24,17 @@ public sealed class QFaceStandardsAnalyzer : DiagnosticAnalyzer
         "QFS005", "Tenant filter bypass", "IgnoreQueryFilters bypasses tenant isolation and requires a reviewed tenant-scoped repository operation", "DATA-20");
     private static readonly DiagnosticDescriptor RawSql = Rule(
         "QFS006", "Raw SQL requires tenant review", "{0} bypasses query-shape protections; use a tenant-scoped repository operation or an explicitly reviewed query", "DATA-20");
+    private static readonly DiagnosticDescriptor SensitiveDataLogging = Rule(
+        "QFS007", "Sensitive data in structured log", "Structured log template contains sensitive field '{0}'; log an identifier or a redacted value instead", "DATA-25");
+
+    private static readonly string[] SensitiveLogFields =
+    [
+        "Password", "Token", "Secret", "Authorization", "Cookie", "ApiKey", "Body", "Payload",
+        "Email", "Phone", "Tin", "AccountName", "Payee", "CheckNumber"
+    ];
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [CrossModule, CrossModuleRelationship, HandlerDbContext, HandlerHttpClient, IgnoreQueryFilters, RawSql];
+        [CrossModule, CrossModuleRelationship, HandlerDbContext, HandlerHttpClient, IgnoreQueryFilters, RawSql, SensitiveDataLogging];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -116,6 +124,8 @@ public sealed class QFaceStandardsAnalyzer : DiagnosticAnalyzer
         if (method.Name is "FromSqlRaw" or "ExecuteSqlRaw" or "ExecuteSqlRawAsync" or "SqlQueryRaw")
             context.ReportDiagnostic(Diagnostic.Create(RawSql, invocation.GetLocation(), method.Name));
 
+        AnalyzeSensitiveLogTemplate(context, invocation, method);
+
         if (method.Name is "HasForeignKey" or "HasOne" && method.TypeArguments.Length > 0)
         {
             var owner = ModuleBoundary.FromNamespace(context.ContainingSymbol?.ContainingType?.ContainingNamespace.ToDisplayString()) ?? module;
@@ -130,6 +140,32 @@ public sealed class QFaceStandardsAnalyzer : DiagnosticAnalyzer
                 ? HandlerHttpClient
                 : HandlerDbContext;
             context.ReportDiagnostic(Diagnostic.Create(descriptor, invocation.GetLocation()));
+        }
+    }
+
+    private static void AnalyzeSensitiveLogTemplate(
+        SyntaxNodeAnalysisContext context,
+        InvocationExpressionSyntax invocation,
+        IMethodSymbol method)
+    {
+        if (!method.Name.StartsWith("Log", StringComparison.Ordinal) || invocation.ArgumentList.Arguments.Count == 0)
+            return;
+
+        var template = invocation.ArgumentList.Arguments
+            .Select(argument => argument.Expression)
+            .OfType<LiteralExpressionSyntax>()
+            .Select(literal => literal.Token.ValueText)
+            .FirstOrDefault();
+        if (string.IsNullOrEmpty(template))
+            return;
+
+        foreach (var field in SensitiveLogFields)
+        {
+            if (template.IndexOf($"{{{field}}}", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(SensitiveDataLogging, invocation.GetLocation(), field));
+                return;
+            }
         }
     }
 
