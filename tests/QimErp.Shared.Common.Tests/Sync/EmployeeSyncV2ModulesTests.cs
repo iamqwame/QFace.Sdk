@@ -13,6 +13,7 @@ public sealed class EmployeeSyncV2ModulesTests
     [InlineData("WorkforcePlanning")]
     [InlineData("Payroll")]
     [InlineData("TenantBilling")]
+    [InlineData("Leave")]
     [InlineData("learning")]
     public void UsesV2_returns_true_for_migrated_modules(string suffix)
     {
@@ -21,7 +22,6 @@ public sealed class EmployeeSyncV2ModulesTests
 
     [Theory]
     [InlineData("IAM")]
-    [InlineData("Leave")]
     [InlineData("Surveys")]
     [InlineData("")]
     [InlineData("   ")]
