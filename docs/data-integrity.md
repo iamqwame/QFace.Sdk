@@ -32,7 +32,9 @@ if (app.RunDataIntegrityLinkReportIfRequested(args)) return;
     `qimerp-{moduleKey}-data-integrity-nightly{suffix}` (cron UTC, jitter, `Overlap=Skip`,
     catch-up window 2 h). The schedule starts workflow `DataIntegrityWorkflow`, which runs
     activity `RunIntegrityChecks:DataIntegrity`.
-- `DataIntegrity:Enabled=false` registers no worker and pauses the schedule.
+- `DataIntegrity:Enabled=false` registers no worker and pauses the schedule. Setting
+  `DataIntegrity__Enabled=false` and redeploying is the only supported way to pause: the registrar
+  reconciles the schedule on every start, so a pause made by hand in Temporal is undone on restart.
 - The meters `QimErp.Shared.DataIntegrity` and `QimErp.Shared.Common.Outbox` are added to the host's
   OpenTelemetry MeterProvider. They are exported only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 
@@ -80,12 +82,14 @@ public static class PayrollDataIntegrityLinks
   rooted at that table. Use it when the table's primary key acts as a secret (access tokens, share
   links, reset codes).
 - Every key must name a table column in the model, every `NoSamples` table must exist and every
-  target must be an entity with a table and a single-column primary key. Every `Map`, `Exclude` and
-  `Alias` must also be applied during discovery: a `Map` or `Exclude` on a column that is not a link
-  candidate (primary key, foreign key, shadow, unsupported type) or that a built-in rule excludes
-  first, and an `Alias` that no stem lookup reaches, are reported as unused. Otherwise
+  target must be an entity with a table and a single-column primary key. Otherwise
   `DataIntegrityConfigurationException` lists all problems: the printer exits with code 1 and the
   activity fails without retrying. The host still starts.
+- A `Map` or `Exclude` on a column that is not a link candidate (primary key, foreign key, shadow,
+  unsupported type) or that a built-in rule excludes first, and an `Alias` that no stem lookup
+  reaches, are unused. The printer lists unused overrides as problems and exits with code 1. At
+  runtime (activity and schedule registrar) they are not fatal: the run logs a warning
+  `data_integrity_override_unused module context overrides` with the override keys and continues.
 
 ## Discovery rules
 
@@ -110,7 +114,8 @@ integer key, or the reverse, is excluded as type-incompatible.
 
 Check names are `{moduleKey}[.{contextKey}].{table_snake}.{column_snake}_{kind}` with kind
 `orphan`, `tenant_mismatch` (both sides have a string `TenantId`) or `deleted_target` (the target
-has a `DataStatus` enum with a `Deleted` member, stored as integer or text). Local copies get
+has a `DataStatus` enum with a `Deleted` member, stored as integer or text; any other store type is
+listed under Excluded with the reason and disables deleted filters for that table). Local copies get
 `{moduleKey}.{table_snake}.source_version_unversioned`. The context key is added only when the host
 registers more than one context.
 
@@ -143,7 +148,8 @@ low-confidence matches, unverifiable and unresolved columns, ambiguous columns a
   continues. Lost connections fail the activity with a retryable `DataIntegrityConnectionFailure`
   whose message holds only the check prefix and SQLSTATE; the activity retries from the last
   heartbeat. When the run exceeds `MaxRunMinutes` (clamped to 10–600) the remaining checks are
-  skipped. When every executed check fails the activity fails without retrying.
+  skipped. The budget is checked between checks and between batches; a batched check stopped
+  mid-scan reports nothing and counts as skipped. When every executed check fails the activity fails without retrying.
 - Error logs carry the SQLSTATE or the exception type name only, never exception messages or stack
   traces.
 - Batch boundaries are found with `ORDER BY pk LIMIT n` and `ORDER BY ... DESC LIMIT 1`, never
@@ -160,11 +166,13 @@ Logs (the signal that works without an OTLP collector):
 - `data_integrity_check_failed check status reason runId`
 - `data_integrity_run module context checks withFindings failed timedOut skipped totalFindings durationSeconds runId`
 - `data_integrity_discovered module context links unindexed unresolved ambiguous excluded` (once per
-  context after the schedule is reconciled)
+  context at startup, whether or not the schedule can be reconciled)
+- `data_integrity_override_unused module context overrides` (Warning, unused `Map`/`Exclude`/`Alias`
+  keys)
 
 Metrics (meter `QimErp.Shared.DataIntegrity`): `data_integrity_found{check}`,
 `data_integrity_check_failures{check,reason}`, `data_integrity_run_duration_seconds{module}`,
-`data_integrity_last_run_unixtime{module}`. Tenant ids are never metric tags. Sample ids are root
+`data_integrity_last_run_unixtime{module}` (set only when the run did not fail overall). Tenant ids are never metric tags. Sample ids are root
 primary keys only; reference values and row contents are never logged.
 
 ## Extension points
@@ -173,9 +181,11 @@ primary keys only; reference values and row contents are never logged.
   `IntegrityRunInfo` and `IntegrityFinding` carry RunId, RunAt, TenantId, Check, Count and SampleIds.
 - `DataIntegrityBuilder.AddCheck<TCheck>()` registers a custom `IDataIntegrityCheck`, run after the
   discovered links with kind `Custom`. Its output is validated before it reaches a sink:
-  - `Name` must match `^{moduleKey}\.[a-z0-9_.]+$`; otherwise the check is recorded as `Failed`
-    with reason `configuration` under `{moduleKey}.custom.{type_snake}` and the run continues;
-  - `TenantId` must be empty or Guid-shaped; otherwise the check fails the same way;
+  - `Name` must match `^{moduleKey}\.[a-z0-9_.]+$` (a throwing getter counts as invalid); otherwise
+    the check is recorded as `Failed` with reason `configuration` under
+    `{moduleKey}.custom.{type_snake}` and the run continues;
+  - `TenantId` must be empty or Guid-shaped; other findings are dropped and logged as
+    `data_integrity_check_config_error problem=invalid_tenant_id dropped=<n>` without the value;
   - `SampleIds` keeps only uuid- or integer-shaped values, de-duplicated and capped at
     `SampleSize`; findings with `Count <= 0` are dropped.
 

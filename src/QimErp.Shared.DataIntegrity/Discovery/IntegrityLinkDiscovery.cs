@@ -122,7 +122,11 @@ internal static partial class IntegrityLinkDiscovery
         => NamedColumn(entityType, "IsGlobal", table, t => Unwrap(t) == typeof(bool));
 
     private static IntegrityStatusColumn? StatusColumn(IEntityType entityType, IntegrityTableRef table)
+        => StatusColumn(entityType, table, out _);
+
+    private static IntegrityStatusColumn? StatusColumn(IEntityType entityType, IntegrityTableRef table, out (string Column, string StoreType)? unsupported)
     {
+        unsupported = null;
         var property = entityType.FindProperty("DataStatus");
         if (property is null)
             return null;
@@ -133,8 +137,15 @@ internal static partial class IntegrityLinkDiscovery
 
         var storeObject = StoreObjectIdentifier.Table(table.Name, table.Schema);
         var column = property.GetColumnName(storeObject);
-        if (column is null || Family(StoreType(property, storeObject)) is not (StoreFamily.Text or StoreFamily.Integer))
+        if (column is null)
             return null;
+
+        var storeType = StoreType(property, storeObject);
+        if (Family(storeType) is not (StoreFamily.Text or StoreFamily.Integer))
+        {
+            unsupported = (column, storeType ?? "unknown");
+            return null;
+        }
 
         var deleted = Enum.Parse(enumType, "Deleted");
         var converter = property.GetTypeMapping().Converter;
@@ -195,6 +206,8 @@ internal static partial class IntegrityLinkDiscovery
         private readonly HashSet<string> _usedAliases = new(StringComparer.Ordinal);
         private readonly HashSet<string> _tableNamesInSeveralSchemas = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _seenColumns = new(StringComparer.Ordinal);
+        private readonly HashSet<IntegrityTableRef> _reportedStatusTables = [];
+        private readonly List<IntegrityUnusedOverride> _unusedOverrides = [];
         private readonly List<IntegrityColumnReport> _columns = [];
         private readonly List<IntegrityScan> _scans = [];
 
@@ -220,7 +233,7 @@ internal static partial class IntegrityLinkDiscovery
             foreach (var entityType in _model.GetEntityTypes().Where(e => !e.IsOwned()).OrderBy(e => e.Name, StringComparer.Ordinal))
                 WalkRoot(entityType);
 
-            ValidateOverridesUsed();
+            CollectUnusedOverrides();
 
             var scans = _scans
                 .OrderBy(s => s is IntegrityLink l ? l.SourceTable.Schema ?? string.Empty : s.Root.Table.Schema ?? string.Empty, StringComparer.Ordinal)
@@ -239,7 +252,8 @@ internal static partial class IntegrityLinkDiscovery
                 _registration.ContextType,
                 IntegrityNaming.ContextKey(_registration.ContextType),
                 scans,
-                columns);
+                columns,
+                _unusedOverrides);
         }
 
         private void BuildCatalogue()
@@ -336,32 +350,28 @@ internal static partial class IntegrityLinkDiscovery
                 throw new DataIntegrityConfigurationException(problems);
         }
 
-        private void ValidateOverridesUsed()
+        private void CollectUnusedOverrides()
         {
             var contextName = _registration.ContextType.Name;
             var links = _registration.Links;
-            var problems = new List<string>();
 
             foreach (var (key, target) in links.Maps)
             {
                 if (!_usedMaps.Contains(ResolveKey(key)!))
-                    problems.Add($"{contextName}: Map '{key}' -> '{target}' was not applied; the column is not a link candidate or is excluded first.");
+                    _unusedOverrides.Add(new($"Map:{key}", $"{contextName}: Map '{key}' -> '{target}' was not applied; the column is not a link candidate or is excluded first."));
             }
 
             foreach (var (key, _) in links.Excludes)
             {
                 if (!_usedExcludes.Contains(ResolveKey(key)!))
-                    problems.Add($"{contextName}: Exclude key '{key}' was not applied; the column is not a link candidate or is excluded by a built-in rule first.");
+                    _unusedOverrides.Add(new($"Exclude:{key}", $"{contextName}: Exclude key '{key}' was not applied; the column is not a link candidate or is excluded by a built-in rule first."));
             }
 
             foreach (var (stem, target) in links.Aliases)
             {
                 if (!_usedAliases.Contains(stem))
-                    problems.Add($"{contextName}: Alias '{stem}' -> '{target}' was not applied by any stem lookup.");
+                    _unusedOverrides.Add(new($"Alias:{stem}", $"{contextName}: Alias '{stem}' -> '{target}' was not applied by any stem lookup."));
             }
-
-            if (problems.Count > 0)
-                throw new DataIntegrityConfigurationException(problems);
         }
 
         private ITable? ResolveTable(string? schema, string tableName)
@@ -437,7 +447,15 @@ internal static partial class IntegrityLinkDiscovery
         {
             var primaryKey = entityType.FindPrimaryKey()!;
             var key = primaryKey.Properties.Count == 1 ? KeyColumn(primaryKey.Properties[0], table) : null;
-            return new IntegrityRoot(table, name, key, TenantColumn(entityType, table), StatusColumn(entityType, table), !_noSampleTables.Contains(table));
+            var status = StatusColumn(entityType, table, out var unsupported);
+            if (unsupported is { } u && _reportedStatusTables.Add(table))
+            {
+                _columns.Add(new IntegrityColumnReport(
+                    table, u.Column, $"{name}.DataStatus", IntegrityColumnStatus.Excluded, null, null, null,
+                    $"DataStatus store type {u.StoreType} unsupported: deleted filters disabled", IndexCoverage.None, [], null));
+            }
+
+            return new IntegrityRoot(table, name, key, TenantColumn(entityType, table), status, !_noSampleTables.Contains(table));
         }
 
         private void AddEntityExclusion(IntegrityTableRef table, string path, string reason)

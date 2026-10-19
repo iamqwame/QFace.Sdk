@@ -28,8 +28,10 @@ internal sealed class DataIntegrityScheduleRegistrar(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         var settings = options.Value;
         await Task.Delay(TimeSpan.FromSeconds(settings.ScheduleStartupDelaySeconds), stoppingToken);
+        LogDiscoverySummary();
 
         var scheduleId = IntegrityNaming.ScheduleId(contextSet.ModuleKey, TaskQueueSuffix());
         for (var attempt = 0; ; attempt++)
@@ -68,8 +70,6 @@ internal sealed class DataIntegrityScheduleRegistrar(
                 await Task.Delay(RetryDelays[attempt], stoppingToken);
             }
         }
-
-        LogDiscoverySummary();
     }
 
     private string TaskQueueSuffix() => configuration[$"{TemporalOptions.SectionName}:TaskQueueSuffix"] ?? string.Empty;
@@ -150,6 +150,7 @@ internal sealed class DataIntegrityScheduleRegistrar(
                 }
 
                 var result = catalog.Get(registration, context);
+                IntegrityLinkCatalog.WarnUnusedOverrides(logger, contextSet.ModuleKey, result);
                 logger.LogInformation(
                     "data_integrity_discovered module={Module} context={Context} links={Links} unindexed={Unindexed} unresolved={Unresolved} ambiguous={Ambiguous} excluded={Excluded}",
                     contextSet.ModuleKey, contextKey, result.CheckedLinks, result.Unindexed, result.Unresolved, result.Ambiguous, result.Excluded);

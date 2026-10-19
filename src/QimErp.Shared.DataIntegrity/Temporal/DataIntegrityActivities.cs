@@ -89,11 +89,14 @@ public sealed partial class DataIntegrityActivities
             if (!exhausted)
                 exhausted = await RunCustomChecksAsync(progress, run, total, cancellationToken);
 
-            var duration = run.Clock.Elapsed.TotalSeconds;
-            _metrics.RecordRun(_contextSet.ModuleKey, duration, DateTimeOffset.UtcNow);
+            _metrics.RecordRunDuration(_contextSet.ModuleKey, run.Clock.Elapsed.TotalSeconds);
 
             var executed = total.Checks - total.Skipped;
-            if (executed > 0 && total.Failed == executed)
+            var allFailed = executed > 0 && total.Failed == executed;
+            if (!allFailed)
+                _metrics.RecordRunCompleted(_contextSet.ModuleKey, DateTimeOffset.UtcNow);
+
+            if (allFailed)
             {
                 throw new ApplicationFailureException(
                     $"All {executed} executed data integrity checks failed for module '{_contextSet.ModuleKey}'.",
@@ -132,13 +135,22 @@ public sealed partial class DataIntegrityActivities
             return false;
         }
 
-        var scans = _catalog.Get(registration, context).Scans;
+        var discovery = _catalog.Get(registration, context);
+        IntegrityLinkCatalog.WarnUnusedOverrides(_logger, _contextSet.ModuleKey, discovery);
+        var scans = discovery.Scans;
         var executor = new IntegrityCheckExecutor(_options, _logger);
         var exhausted = false;
 
         for (var linkIndex = startIndex; linkIndex < scans.Count; linkIndex++)
         {
-            if (run.Clock.Elapsed >= run.Budget)
+            IReadOnlyList<IntegrityCheckOutcome>? outcomes = null;
+            if (!run.BudgetExhausted)
+            {
+                run.Progress = new DataIntegrityProgress(contextIndex, linkIndex);
+                outcomes = await executor.RunAsync(context, scans[linkIndex], info, () => run.BudgetExhausted, cancellationToken);
+            }
+
+            if (outcomes is null)
             {
                 var remaining = scans.Skip(linkIndex).Sum(s => s.Checks.Count) + CountRemainingAfter(contextIndex);
                 tally.Skip(remaining);
@@ -149,8 +161,6 @@ public sealed partial class DataIntegrityActivities
                 break;
             }
 
-            run.Progress = new DataIntegrityProgress(contextIndex, linkIndex);
-            var outcomes = await executor.RunAsync(context, scans[linkIndex], info, cancellationToken);
             foreach (var outcome in outcomes)
             {
                 await WriteAsync(info, outcome, cancellationToken);
@@ -182,7 +192,7 @@ public sealed partial class DataIntegrityActivities
 
         for (var index = start; index < _contextSet.Checks.Count; index++)
         {
-            if (run.Clock.Elapsed >= run.Budget)
+            if (run.BudgetExhausted)
             {
                 var remaining = _contextSet.Checks.Count - index;
                 tally.Skip(remaining);
@@ -212,7 +222,20 @@ public sealed partial class DataIntegrityActivities
                     ?? throw new DataIntegrityConfigurationException([$"{checkType.Name} is not registered in the service provider."]);
         var clock = Stopwatch.StartNew();
 
-        var name = check.Name;
+        string? name;
+        try
+        {
+            name = check.Name;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var fallback = FallbackCheckName(checkType);
+            _logger.LogError(
+                "data_integrity_check_config_error check={Check} checkType={CheckType} problem={Problem} errorType={ErrorType} runId={RunId}",
+                fallback, checkType.FullName, "name_error", ex.GetType().Name, info.RunId);
+            return new IntegrityCheckOutcome(fallback, IntegrityFindingKind.Custom, IntegrityCheckStatus.Failed, 0, [], clock.Elapsed.TotalSeconds, "configuration");
+        }
+
         if (name is null || !_customCheckName.IsMatch(name))
         {
             var fallback = FallbackCheckName(checkType);
@@ -251,6 +274,7 @@ public sealed partial class DataIntegrityActivities
         }
 
         var findings = new List<IntegrityFinding>();
+        var invalidTenantIds = 0;
         foreach (var finding in raw ?? [])
         {
             if (finding is null || finding.Count <= 0)
@@ -259,10 +283,8 @@ public sealed partial class DataIntegrityActivities
             var tenantId = string.IsNullOrWhiteSpace(finding.TenantId) ? string.Empty : finding.TenantId;
             if (tenantId.Length > 0 && !IntegritySqlBuilder.IsUuidShaped(tenantId))
             {
-                _logger.LogError(
-                    "data_integrity_check_config_error check={Check} checkType={CheckType} problem={Problem} runId={RunId}",
-                    name, checkType.FullName, "invalid_tenant_id", info.RunId);
-                return new IntegrityCheckOutcome(name, IntegrityFindingKind.Custom, IntegrityCheckStatus.Failed, 0, [], clock.Elapsed.TotalSeconds, "configuration");
+                invalidTenantIds++;
+                continue;
             }
 
             var samples = (finding.SampleIds ?? [])
@@ -271,6 +293,13 @@ public sealed partial class DataIntegrityActivities
                 .Take(_options.SampleSize)
                 .ToArray();
             findings.Add(new IntegrityFinding(name, tenantId, finding.Count, samples));
+        }
+
+        if (invalidTenantIds > 0)
+        {
+            _logger.LogError(
+                "data_integrity_check_config_error check={Check} checkType={CheckType} problem={Problem} dropped={Dropped} runId={RunId}",
+                name, checkType.FullName, "invalid_tenant_id", invalidTenantIds, info.RunId);
         }
 
         var count = findings.Sum(f => f.Count);
@@ -356,6 +385,8 @@ public sealed partial class DataIntegrityActivities
         public DateTimeOffset RunAt { get; } = runAt;
         public Stopwatch Clock { get; } = clock;
         public TimeSpan Budget { get; } = budget;
+
+        public bool BudgetExhausted => Clock.Elapsed >= Budget;
 
         public DataIntegrityProgress Progress
         {

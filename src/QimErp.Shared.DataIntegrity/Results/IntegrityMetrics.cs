@@ -25,8 +25,7 @@ internal sealed class IntegrityMetrics : IDisposable
         _meter.CreateObservableGauge(
             "data_integrity_last_run_unixtime",
             () => _lastRun.Select(r => new Measurement<long>(r.Value, new KeyValuePair<string, object?>("module", r.Key))),
-            unit: "s",
-            description: "Unix time of the last completed integrity run per module");
+            description: "Unix time of the last integrity run per module that did not fail overall");
     }
 
     public void SetFound(string check, long count) => _found[check] = count;
@@ -34,11 +33,10 @@ internal sealed class IntegrityMetrics : IDisposable
     public void RecordFailure(string check, string reason)
         => _failures.Add(1, new KeyValuePair<string, object?>("check", check), new KeyValuePair<string, object?>("reason", reason));
 
-    public void RecordRun(string module, double durationSeconds, DateTimeOffset completedAt)
-    {
-        _runDuration.Record(durationSeconds, new KeyValuePair<string, object?>("module", module));
-        _lastRun[module] = completedAt.ToUnixTimeSeconds();
-    }
+    public void RecordRunDuration(string module, double durationSeconds)
+        => _runDuration.Record(durationSeconds, new KeyValuePair<string, object?>("module", module));
+
+    public void RecordRunCompleted(string module, DateTimeOffset completedAt) => _lastRun[module] = completedAt.ToUnixTimeSeconds();
 
     public void Dispose() => _meter.Dispose();
 }

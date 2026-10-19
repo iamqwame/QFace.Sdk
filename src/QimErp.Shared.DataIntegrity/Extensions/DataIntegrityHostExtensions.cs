@@ -61,6 +61,7 @@ public static class DataIntegrityHostExtensions
             try
             {
                 var result = catalog.Get(registration, context);
+                problems.AddRange(result.UnusedOverrides.Select(o => o.Problem));
                 var sql = includeSql ? new IntegritySqlBuilder(context.GetService<ISqlGenerationHelper>()) : null;
                 reports.Add(new IntegrityContextReport(registration.ContextType.Name, context.Database.ProviderName ?? "unknown", result, sql));
             }

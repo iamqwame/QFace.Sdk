@@ -14,21 +14,26 @@ namespace QimErp.Shared.DataIntegrity.Sql;
 // Cross-tenant by design: read-only aggregate over model-derived identifiers; no request or tenant input reaches this SQL.
 internal sealed class IntegrityCheckExecutor(DataIntegrityOptions options, ILogger logger)
 {
-    public async Task<IReadOnlyList<IntegrityCheckOutcome>> RunAsync(
+    /// <summary>Returns null when <paramref name="budgetExhausted"/> stopped the scan between batches; nothing about that scan is reported.</summary>
+    public async Task<IReadOnlyList<IntegrityCheckOutcome>?> RunAsync(
         DbContext context,
         IntegrityScan scan,
         IntegrityRunInfo run,
+        Func<bool> budgetExhausted,
         CancellationToken cancellationToken)
     {
         var started = Stopwatch.GetTimestamp();
         var builder = new IntegritySqlBuilder(context.GetService<ISqlGenerationHelper>());
         var accumulator = new Accumulator(options.SampleSize);
         var connection = context.Database.GetDbConnection();
+        var opened = false;
 
-        await context.Database.OpenConnectionAsync(cancellationToken);
         try
         {
-            await ScanAsync(connection, builder, scan, accumulator, cancellationToken);
+            await context.Database.OpenConnectionAsync(cancellationToken);
+            opened = true;
+            if (!await ScanAsync(connection, builder, scan, accumulator, budgetExhausted, cancellationToken))
+                return null;
             return accumulator.ToOutcomes(scan, null, null, Stopwatch.GetElapsedTime(started).TotalSeconds);
         }
         catch (OperationCanceledException)
@@ -71,7 +76,8 @@ internal sealed class IntegrityCheckExecutor(DataIntegrityOptions options, ILogg
         }
         finally
         {
-            await context.Database.CloseConnectionAsync();
+            if (opened)
+                await context.Database.CloseConnectionAsync();
         }
     }
 
@@ -85,18 +91,19 @@ internal sealed class IntegrityCheckExecutor(DataIntegrityOptions options, ILogg
     private static bool IsConnectionFailure(string? sqlState, DbConnection connection)
         => (sqlState is not null && sqlState.StartsWith("08", StringComparison.Ordinal)) || connection.State != ConnectionState.Open;
 
-    private async Task ScanAsync(
+    private async Task<bool> ScanAsync(
         DbConnection connection,
         IntegritySqlBuilder builder,
         IntegrityScan scan,
         Accumulator accumulator,
+        Func<bool> budgetExhausted,
         CancellationToken cancellationToken)
     {
         var root = scan.Root;
         if (root.Key is null)
         {
             await InReadOnlyTransactionAsync(connection, builder, tx => QueryAsync(connection, tx, builder, scan, BatchRange.None, null, null, accumulator, cancellationToken), cancellationToken);
-            return;
+            return true;
         }
 
         var estimate = await InReadOnlyTransactionAsync(connection, builder, async tx =>
@@ -111,7 +118,7 @@ internal sealed class IntegrityCheckExecutor(DataIntegrityOptions options, ILogg
         if (estimate is null || (estimate >= 0 && estimate <= options.BatchThresholdRows))
         {
             await InReadOnlyTransactionAsync(connection, builder, tx => QueryAsync(connection, tx, builder, scan, BatchRange.None, null, null, accumulator, cancellationToken), cancellationToken);
-            return;
+            return true;
         }
 
         object? after = null;
@@ -138,7 +145,9 @@ internal sealed class IntegrityCheckExecutor(DataIntegrityOptions options, ILogg
             }, cancellationToken);
 
             if (finished)
-                return;
+                return true;
+            if (budgetExhausted())
+                return false;
         }
     }
 

@@ -99,11 +99,14 @@ internal sealed record IntegrityColumnReport(
     IReadOnlyList<string> Candidates,
     IntegrityLink? Link);
 
+internal sealed record IntegrityUnusedOverride(string Key, string Problem);
+
 internal sealed record IntegrityDiscoveryResult(
     Type ContextType,
     string ContextKey,
     IReadOnlyList<IntegrityScan> Scans,
-    IReadOnlyList<IntegrityColumnReport> Columns)
+    IReadOnlyList<IntegrityColumnReport> Columns,
+    IReadOnlyList<IntegrityUnusedOverride> UnusedOverrides)
 {
     public IEnumerable<IntegrityColumnReport> With(IntegrityColumnStatus status) => Columns.Where(c => c.Status == status);
 
