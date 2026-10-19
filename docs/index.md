@@ -40,6 +40,11 @@ A generic AI/ML SDK library supporting multiple LLM providers (OpenAI, Anthropic
 Durable same-transaction outbox + Akka relay used by `AddDbContextWithOutbox*`. Module migration
 notes for removing post-save `Tell` / Temporal starts.
 
+### [Nightly loose-link integrity checks (DATA-06)](data-integrity.md)
+
+`QimErp.Shared.DataIntegrity`: EF-model link discovery, the `--data-integrity-links` inventory
+printer, and the Temporal-scheduled read-only orphan / tenant-mismatch / deleted-target checks.
+
 ## Getting Started
 
 For all SDKs, see the [installation](shared/installation.md) guide to get started with adding QFace packages to your project.

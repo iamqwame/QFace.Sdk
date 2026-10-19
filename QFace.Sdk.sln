@@ -101,6 +101,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.Standards.Analyze
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QFace.Sdk.RedisCache.Tests", "tests\QFace.Sdk.RedisCache.Tests\QFace.Sdk.RedisCache.Tests.csproj", "{2BACB2F4-26BC-441D-B350-863BCE57BE96}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QimErp.Shared.DataIntegrity", "src\QimErp.Shared.DataIntegrity\QimErp.Shared.DataIntegrity.csproj", "{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -291,6 +293,18 @@ Global
 		{2BACB2F4-26BC-441D-B350-863BCE57BE96}.Release|x64.Build.0 = Release|Any CPU
 		{2BACB2F4-26BC-441D-B350-863BCE57BE96}.Release|x86.ActiveCfg = Release|Any CPU
 		{2BACB2F4-26BC-441D-B350-863BCE57BE96}.Release|x86.Build.0 = Release|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Debug|x64.Build.0 = Debug|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Debug|x86.Build.0 = Debug|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Release|x64.ActiveCfg = Release|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Release|x64.Build.0 = Release|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Release|x86.ActiveCfg = Release|Any CPU
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -334,5 +348,6 @@ Global
 		{23FBEDA6-F607-49DF-919A-50871BC9FC20} = {69C5394F-80E3-40E0-9037-836A716C3E9A}
 		{F59C3F25-6C78-4592-A4B7-503A5B0846C1} = {69C5394F-80E3-40E0-9037-836A716C3E9A}
 		{2BACB2F4-26BC-441D-B350-863BCE57BE96} = {69C5394F-80E3-40E0-9037-836A716C3E9A}
+		{1D957213-34C8-4D96-8E6C-0A8C7F6DACD9} = {7BEE4B5C-A063-4EB1-B09A-74751B8DD92E}
 	EndGlobalSection
 EndGlobal
