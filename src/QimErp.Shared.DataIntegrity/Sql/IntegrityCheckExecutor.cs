@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using QimErp.Shared.DataIntegrity.Discovery;
+using Temporalio.Exceptions;
 
 namespace QimErp.Shared.DataIntegrity.Sql;
 
@@ -36,7 +37,7 @@ internal sealed class IntegrityCheckExecutor(DataIntegrityOptions options, ILogg
         }
         catch (DbException ex) when (IsConnectionFailure(ex.SqlState, connection))
         {
-            throw;
+            throw ConnectionFailure(scan, ex.SqlState);
         }
         catch (DbException ex)
         {
@@ -59,14 +60,27 @@ internal sealed class IntegrityCheckExecutor(DataIntegrityOptions options, ILogg
         }
         catch (Exception ex) when (!IsConnectionFailure(null, connection))
         {
-            logger.LogError(ex, "data_integrity_check_error check={Check} runId={RunId}", scan.CheckPrefix, run.RunId);
+            logger.LogError(
+                "data_integrity_check_error check={Check} errorType={ErrorType} runId={RunId}",
+                scan.CheckPrefix, ex.GetType().Name, run.RunId);
             return accumulator.ToOutcomes(scan, IntegrityCheckStatus.Failed, "error", Stopwatch.GetElapsedTime(started).TotalSeconds);
+        }
+        catch (Exception ex) when (ex is not ApplicationFailureException)
+        {
+            throw ConnectionFailure(scan, null);
         }
         finally
         {
             await context.Database.CloseConnectionAsync();
         }
     }
+
+    /// <summary>Lands in Temporal history: carries only the SQLSTATE and check prefix, never server text or the inner exception.</summary>
+    private static ApplicationFailureException ConnectionFailure(IntegrityScan scan, string? sqlState)
+        => new(
+            $"Data integrity check {scan.CheckPrefix} lost its database connection (sqlState={sqlState ?? "none"}).",
+            errorType: "DataIntegrityConnectionFailure",
+            nonRetryable: false);
 
     private static bool IsConnectionFailure(string? sqlState, DbConnection connection)
         => (sqlState is not null && sqlState.StartsWith("08", StringComparison.Ordinal)) || connection.State != ConnectionState.Open;

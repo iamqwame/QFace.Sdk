@@ -131,8 +131,9 @@ internal static partial class IntegrityLinkDiscovery
         if (!enumType.IsEnum || !Enum.GetNames(enumType).Contains("Deleted", StringComparer.Ordinal))
             return null;
 
-        var column = property.GetColumnName(StoreObjectIdentifier.Table(table.Name, table.Schema));
-        if (column is null)
+        var storeObject = StoreObjectIdentifier.Table(table.Name, table.Schema);
+        var column = property.GetColumnName(storeObject);
+        if (column is null || Family(StoreType(property, storeObject)) is not (StoreFamily.Text or StoreFamily.Integer))
             return null;
 
         var deleted = Enum.Parse(enumType, "Deleted");
@@ -188,6 +189,10 @@ internal static partial class IntegrityLinkDiscovery
         private readonly Dictionary<string, CatalogueEntry> _maps = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _excludes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, CatalogueEntry> _aliases = new(StringComparer.Ordinal);
+        private readonly HashSet<IntegrityTableRef> _noSampleTables = [];
+        private readonly HashSet<string> _usedMaps = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _usedExcludes = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _usedAliases = new(StringComparer.Ordinal);
         private readonly HashSet<string> _tableNamesInSeveralSchemas = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _seenColumns = new(StringComparer.Ordinal);
         private readonly List<IntegrityColumnReport> _columns = [];
@@ -214,6 +219,8 @@ internal static partial class IntegrityLinkDiscovery
 
             foreach (var entityType in _model.GetEntityTypes().Where(e => !e.IsOwned()).OrderBy(e => e.Name, StringComparer.Ordinal))
                 WalkRoot(entityType);
+
+            ValidateOverridesUsed();
 
             var scans = _scans
                 .OrderBy(s => s is IntegrityLink l ? l.SourceTable.Schema ?? string.Empty : s.Root.Table.Schema ?? string.Empty, StringComparer.Ordinal)
@@ -309,8 +316,64 @@ internal static partial class IntegrityLinkDiscovery
                     problems.Add($"{contextName}: Alias '{stem}' is declared more than once.");
             }
 
+            foreach (var key in links.NoSampleTables)
+            {
+                var parts = key.Split('.');
+                var table = parts.Length is 1 or 2 && !parts.Any(string.IsNullOrWhiteSpace)
+                    ? ResolveTable(parts.Length == 2 ? parts[0] : null, parts[^1])
+                    : null;
+                if (table is null)
+                {
+                    problems.Add($"{contextName}: NoSamples table '{key}' does not name a table in the model.");
+                    continue;
+                }
+
+                if (!_noSampleTables.Add(new IntegrityTableRef(table.Name, table.Schema)))
+                    problems.Add($"{contextName}: NoSamples table '{key}' is declared more than once.");
+            }
+
             if (problems.Count > 0)
                 throw new DataIntegrityConfigurationException(problems);
+        }
+
+        private void ValidateOverridesUsed()
+        {
+            var contextName = _registration.ContextType.Name;
+            var links = _registration.Links;
+            var problems = new List<string>();
+
+            foreach (var (key, target) in links.Maps)
+            {
+                if (!_usedMaps.Contains(ResolveKey(key)!))
+                    problems.Add($"{contextName}: Map '{key}' -> '{target}' was not applied; the column is not a link candidate or is excluded first.");
+            }
+
+            foreach (var (key, _) in links.Excludes)
+            {
+                if (!_usedExcludes.Contains(ResolveKey(key)!))
+                    problems.Add($"{contextName}: Exclude key '{key}' was not applied; the column is not a link candidate or is excluded by a built-in rule first.");
+            }
+
+            foreach (var (stem, target) in links.Aliases)
+            {
+                if (!_usedAliases.Contains(stem))
+                    problems.Add($"{contextName}: Alias '{stem}' -> '{target}' was not applied by any stem lookup.");
+            }
+
+            if (problems.Count > 0)
+                throw new DataIntegrityConfigurationException(problems);
+        }
+
+        private ITable? ResolveTable(string? schema, string tableName)
+        {
+            var tables = _relational.Tables
+                .Where(t => string.Equals(t.Name, tableName, StringComparison.OrdinalIgnoreCase)
+                            && (schema is null || string.Equals(t.Schema, schema, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            return tables.Count == 1
+                ? tables[0]
+                : tables.SingleOrDefault(t => t.Schema is null);
         }
 
         private string? ResolveKey(string key)
@@ -319,21 +382,11 @@ internal static partial class IntegrityLinkDiscovery
             if (parts.Length is < 2 or > 3 || parts.Any(string.IsNullOrWhiteSpace))
                 return null;
 
-            var schema = parts.Length == 3 ? parts[0] : null;
-            var tableName = parts[^2];
-            var columnName = parts[^1];
-
-            var tables = _relational.Tables
-                .Where(t => string.Equals(t.Name, tableName, StringComparison.OrdinalIgnoreCase)
-                            && (schema is null || string.Equals(t.Schema, schema, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-
-            var table = tables.Count == 1
-                ? tables[0]
-                : tables.SingleOrDefault(t => t.Schema is null);
+            var table = ResolveTable(parts.Length == 3 ? parts[0] : null, parts[^2]);
             if (table is null)
                 return null;
 
+            var columnName = parts[^1];
             var column = table.Columns.FirstOrDefault(c => string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase));
             return column is null ? null : Canonical(new IntegrityTableRef(table.Name, table.Schema), column.Name);
         }
@@ -380,11 +433,11 @@ internal static partial class IntegrityLinkDiscovery
             AddVersionCheck(entityType, root);
         }
 
-        private static IntegrityRoot BuildRoot(IEntityType entityType, IntegrityTableRef table, string name)
+        private IntegrityRoot BuildRoot(IEntityType entityType, IntegrityTableRef table, string name)
         {
             var primaryKey = entityType.FindPrimaryKey()!;
             var key = primaryKey.Properties.Count == 1 ? KeyColumn(primaryKey.Properties[0], table) : null;
-            return new IntegrityRoot(table, name, key, TenantColumn(entityType, table), StatusColumn(entityType, table));
+            return new IntegrityRoot(table, name, key, TenantColumn(entityType, table), StatusColumn(entityType, table), !_noSampleTables.Contains(table));
         }
 
         private void AddEntityExclusion(IntegrityTableRef table, string path, string reason)
@@ -557,7 +610,11 @@ internal static partial class IntegrityLinkDiscovery
         private Resolution? Exclusion(string canonical, string column, bool isVoCandidate)
         {
             if (_excludes.TryGetValue(canonical, out var reason))
+            {
+                _usedExcludes.Add(canonical);
                 return new Resolution(IntegrityColumnStatus.Excluded, Rule: "override", Reason: reason);
+            }
+
             if (InfrastructureColumns.Contains(column))
                 return new Resolution(IntegrityColumnStatus.Excluded, Reason: "infrastructure");
             if (isVoCandidate)
@@ -574,7 +631,10 @@ internal static partial class IntegrityLinkDiscovery
         private Resolution Resolve(IEntityType rootEntity, IEntityType sourceType, string canonical, string column, bool isVoCandidate)
         {
             if (_maps.TryGetValue(canonical, out var mapped))
+            {
+                _usedMaps.Add(canonical);
                 return new Resolution(IntegrityColumnStatus.Checked, mapped, "override", "high");
+            }
 
             if (isVoCandidate)
             {
@@ -708,7 +768,11 @@ internal static partial class IntegrityLinkDiscovery
                 if (_byShort.TryGetValue(form, out var entries))
                     return FromEntries(entries);
                 if (_aliases.TryGetValue(form, out var alias))
+                {
+                    _usedAliases.Add(form);
                     return new Lookup(alias, null);
+                }
+
                 if (BuiltInAliases.TryGetValue(form, out var builtIn) && _byShort.TryGetValue(builtIn, out var builtInEntries))
                     return FromEntries(builtInEntries);
             }

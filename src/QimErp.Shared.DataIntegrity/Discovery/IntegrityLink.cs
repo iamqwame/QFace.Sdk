@@ -38,7 +38,8 @@ internal sealed record IntegrityRoot(
     string EntityName,
     IntegrityKeyColumn? Key,
     string? TenantColumn,
-    IntegrityStatusColumn? Status);
+    IntegrityStatusColumn? Status,
+    bool Samples);
 
 internal sealed record IntegrityOwnerJoin(
     IntegrityTableRef Table,

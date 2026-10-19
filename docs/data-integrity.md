@@ -64,7 +64,8 @@ public static class PayrollDataIntegrityLinks
     public static void Configure(DataIntegrityLinkOptions links) => links
         .Map("Projects.TypeId", "ProjectType")
         .Exclude("AssignmentHistoryRecords.AssignmentId", "polymorphic")
-        .Alias("User", "UserIdentity");
+        .Alias("User", "UserIdentity")
+        .NoSamples("PayslipAccessTokens");
 }
 ```
 
@@ -75,10 +76,16 @@ public static class PayrollDataIntegrityLinks
 - `Exclude(tableColumn, reason)` skips a column. Reason convention:
   `cross-service: <Module>.<Entity>`, `polymorphic`, `external`, `business-key`.
 - `Alias(idStem, targetEntity)` applies to every stem lookup in the context.
-- Every key must name a table column in the model and every target must be an entity with a table
-  and a single-column primary key. Otherwise `DataIntegrityConfigurationException` lists all
-  problems: the printer exits with code 1 and the activity fails without retrying. The host still
-  starts.
+- `NoSamples(table)` (`Table` or `schema.Table`) keeps counts but drops sample ids for every check
+  rooted at that table. Use it when the table's primary key acts as a secret (access tokens, share
+  links, reset codes).
+- Every key must name a table column in the model, every `NoSamples` table must exist and every
+  target must be an entity with a table and a single-column primary key. Every `Map`, `Exclude` and
+  `Alias` must also be applied during discovery: a `Map` or `Exclude` on a column that is not a link
+  candidate (primary key, foreign key, shadow, unsupported type) or that a built-in rule excludes
+  first, and an `Alias` that no stem lookup reaches, are reported as unused. Otherwise
+  `DataIntegrityConfigurationException` lists all problems: the printer exits with code 1 and the
+  activity fails without retrying. The host still starts.
 
 ## Discovery rules
 
@@ -103,7 +110,7 @@ integer key, or the reverse, is excluded as type-incompatible.
 
 Check names are `{moduleKey}[.{contextKey}].{table_snake}.{column_snake}_{kind}` with kind
 `orphan`, `tenant_mismatch` (both sides have a string `TenantId`) or `deleted_target` (the target
-has a `DataStatus` enum with a `Deleted` member). Local copies get
+has a `DataStatus` enum with a `Deleted` member, stored as integer or text). Local copies get
 `{moduleKey}.{table_snake}.source_version_unversioned`. The context key is added only when the host
 registers more than one context.
 
@@ -133,9 +140,14 @@ low-confidence matches, unverifiable and unresolved columns, ambiguous columns a
 - The checks read across tenants on purpose. A tenant-scoped run cannot see other tenants' rows, so
   it would misreport mismatches as orphans, and an unscoped EF query sees only global rows.
 - Timeouts and missing tables or columns mark one check `TimedOut` or `Failed` and the run
-  continues. Lost connections fail the activity, which retries from the last heartbeat. When the run
-  exceeds `MaxRunMinutes` the remaining checks are skipped. When every executed check fails the
-  activity fails without retrying.
+  continues. Lost connections fail the activity with a retryable `DataIntegrityConnectionFailure`
+  whose message holds only the check prefix and SQLSTATE; the activity retries from the last
+  heartbeat. When the run exceeds `MaxRunMinutes` (clamped to 10–600) the remaining checks are
+  skipped. When every executed check fails the activity fails without retrying.
+- Error logs carry the SQLSTATE or the exception type name only, never exception messages or stack
+  traces.
+- Batch boundaries are found with `ORDER BY pk LIMIT n` and `ORDER BY ... DESC LIMIT 1`, never
+  `max()`, so uuid, text and integer keys are all supported.
 
 ## Signals
 
@@ -160,7 +172,12 @@ primary keys only; reference values and row contents are never logged.
 - `IIntegrityResultSink` receives every outcome. A future IntegrityRuns table is one more sink:
   `IntegrityRunInfo` and `IntegrityFinding` carry RunId, RunAt, TenantId, Check, Count and SampleIds.
 - `DataIntegrityBuilder.AddCheck<TCheck>()` registers a custom `IDataIntegrityCheck`, run after the
-  discovered links with kind `Custom`.
+  discovered links with kind `Custom`. Its output is validated before it reaches a sink:
+  - `Name` must match `^{moduleKey}\.[a-z0-9_.]+$`; otherwise the check is recorded as `Failed`
+    with reason `configuration` under `{moduleKey}.custom.{type_snake}` and the run continues;
+  - `TenantId` must be empty or Guid-shaped; otherwise the check fails the same way;
+  - `SampleIds` keeps only uuid- or integer-shaped values, de-duplicated and capped at
+    `SampleSize`; findings with `Count <= 0` are dropped.
 
 ## Relationship to `AddIntegrityCheckRunner`
 

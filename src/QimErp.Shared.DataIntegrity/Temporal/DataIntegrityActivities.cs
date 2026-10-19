@@ -1,4 +1,6 @@
+using System.Data.Common;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -11,7 +13,7 @@ using Temporalio.Exceptions;
 
 namespace QimErp.Shared.DataIntegrity.Temporal;
 
-public sealed class DataIntegrityActivities
+public sealed partial class DataIntegrityActivities
 {
     internal const string NpgsqlProvider = "Npgsql.EntityFrameworkCore.PostgreSQL";
 
@@ -24,6 +26,7 @@ public sealed class DataIntegrityActivities
     private readonly IReadOnlyList<IIntegrityResultSink> _sinks;
     private readonly IntegrityMetrics _metrics;
     private readonly ILogger<DataIntegrityActivities> _logger;
+    private readonly Regex _customCheckName;
 
     internal DataIntegrityActivities(
         IServiceScopeFactory scopeFactory,
@@ -41,6 +44,7 @@ public sealed class DataIntegrityActivities
         _sinks = sinks.ToList();
         _metrics = metrics;
         _logger = logger;
+        _customCheckName = new Regex($"^{Regex.Escape(contextSet.ModuleKey)}\\.[a-z0-9_.]+\\z", RegexOptions.CultureInvariant);
     }
 
     [Activity(IntegrityNaming.ActivityName)]
@@ -65,7 +69,7 @@ public sealed class DataIntegrityActivities
             activity.Info.WorkflowRunId ?? activity.Info.ActivityId,
             DateTimeOffset.UtcNow,
             Stopwatch.StartNew(),
-            TimeSpan.FromMinutes(input.MaxRunMinutes > 0 ? input.MaxRunMinutes : _options.MaxRunMinutes),
+            TimeSpan.FromMinutes(DataIntegrityOptions.ClampRunMinutes(input.MaxRunMinutes, _options.MaxRunMinutes)),
             progress);
 
         using var heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -208,18 +212,20 @@ public sealed class DataIntegrityActivities
                     ?? throw new DataIntegrityConfigurationException([$"{checkType.Name} is not registered in the service provider."]);
         var clock = Stopwatch.StartNew();
 
+        var name = check.Name;
+        if (name is null || !_customCheckName.IsMatch(name))
+        {
+            var fallback = FallbackCheckName(checkType);
+            _logger.LogError(
+                "data_integrity_check_config_error check={Check} checkType={CheckType} problem={Problem} runId={RunId}",
+                fallback, checkType.FullName, "invalid_name", info.RunId);
+            return new IntegrityCheckOutcome(fallback, IntegrityFindingKind.Custom, IntegrityCheckStatus.Failed, 0, [], clock.Elapsed.TotalSeconds, "configuration");
+        }
+
+        IReadOnlyList<IntegrityFinding> raw;
         try
         {
-            var findings = await check.RunAsync(cancellationToken);
-            var count = findings.Sum(f => f.Count);
-            return new IntegrityCheckOutcome(
-                check.Name,
-                IntegrityFindingKind.Custom,
-                count > 0 ? IntegrityCheckStatus.Findings : IntegrityCheckStatus.Clean,
-                count,
-                findings,
-                clock.Elapsed.TotalSeconds,
-                null);
+            raw = await check.RunAsync(cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -227,9 +233,72 @@ public sealed class DataIntegrityActivities
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "data_integrity_check_error check={Check} runId={RunId}", check.Name, info.RunId);
-            return new IntegrityCheckOutcome(check.Name, IntegrityFindingKind.Custom, IntegrityCheckStatus.Failed, 0, [], clock.Elapsed.TotalSeconds, "error");
+            var sqlState = FindDbException(ex)?.SqlState;
+            if (sqlState is not null)
+            {
+                _logger.LogError(
+                    "data_integrity_check_db_error check={Check} sqlState={SqlState} runId={RunId}",
+                    name, sqlState, info.RunId);
+            }
+            else
+            {
+                _logger.LogError(
+                    "data_integrity_check_error check={Check} errorType={ErrorType} runId={RunId}",
+                    name, ex.GetType().Name, info.RunId);
+            }
+
+            return new IntegrityCheckOutcome(name, IntegrityFindingKind.Custom, IntegrityCheckStatus.Failed, 0, [], clock.Elapsed.TotalSeconds, "error");
         }
+
+        var findings = new List<IntegrityFinding>();
+        foreach (var finding in raw ?? [])
+        {
+            if (finding is null || finding.Count <= 0)
+                continue;
+
+            var tenantId = string.IsNullOrWhiteSpace(finding.TenantId) ? string.Empty : finding.TenantId;
+            if (tenantId.Length > 0 && !IntegritySqlBuilder.IsUuidShaped(tenantId))
+            {
+                _logger.LogError(
+                    "data_integrity_check_config_error check={Check} checkType={CheckType} problem={Problem} runId={RunId}",
+                    name, checkType.FullName, "invalid_tenant_id", info.RunId);
+                return new IntegrityCheckOutcome(name, IntegrityFindingKind.Custom, IntegrityCheckStatus.Failed, 0, [], clock.Elapsed.TotalSeconds, "configuration");
+            }
+
+            var samples = (finding.SampleIds ?? [])
+                .Where(id => id is not null && IntegritySqlBuilder.IsSampleIdShaped(id))
+                .Distinct(StringComparer.Ordinal)
+                .Take(_options.SampleSize)
+                .ToArray();
+            findings.Add(new IntegrityFinding(name, tenantId, finding.Count, samples));
+        }
+
+        var count = findings.Sum(f => f.Count);
+        return new IntegrityCheckOutcome(
+            name,
+            IntegrityFindingKind.Custom,
+            count > 0 ? IntegrityCheckStatus.Findings : IntegrityCheckStatus.Clean,
+            count,
+            findings,
+            clock.Elapsed.TotalSeconds,
+            null);
+    }
+
+    private string FallbackCheckName(Type checkType)
+        => $"{_contextSet.ModuleKey}.{IntegrityNaming.CustomContextKey}.{InvalidNameCharacters().Replace(IntegrityNaming.Snake(checkType.Name), "_")}";
+
+    [GeneratedRegex("[^a-z0-9_]", RegexOptions.CultureInvariant)]
+    private static partial Regex InvalidNameCharacters();
+
+    private static DbException? FindDbException(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is DbException db)
+                return db;
+        }
+
+        return null;
     }
 
     private int CountRemainingAfter(int contextIndex)

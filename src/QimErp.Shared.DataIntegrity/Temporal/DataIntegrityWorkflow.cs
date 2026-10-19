@@ -12,7 +12,7 @@ public sealed class DataIntegrityWorkflow
             (DataIntegrityActivities a) => a.RunIntegrityChecksAsync(input),
             new ActivityOptions
             {
-                StartToCloseTimeout = TimeSpan.FromMinutes(input.MaxRunMinutes + 15),
+                StartToCloseTimeout = TimeSpan.FromMinutes(DataIntegrityOptions.ClampRunMinutes(input.MaxRunMinutes, DataIntegrityOptions.MaxRunMinutesLimit) + 15),
                 HeartbeatTimeout = TimeSpan.FromMinutes(2),
                 RetryPolicy = new RetryPolicy
                 {

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using QimErp.Shared.DataIntegrity.Discovery;
 
@@ -11,7 +12,7 @@ internal enum BatchRange
     AfterAndUpTo
 }
 
-internal sealed class IntegritySqlBuilder(ISqlGenerationHelper sql)
+internal sealed partial class IntegritySqlBuilder(ISqlGenerationHelper sql)
 {
     public const string SampleSizeParameter = "sample_size";
     public const string DeletedTargetParameter = "deleted_target";
@@ -24,8 +25,10 @@ internal sealed class IntegritySqlBuilder(ISqlGenerationHelper sql)
     public const string StatementTimeoutParameter = "statement_timeout_ms";
     public const string LockTimeoutParameter = "lock_timeout_ms";
 
-    private const string UuidPattern = "'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'";
-    private const string IntegerPattern = "'^-?[0-9]{1,18}$'";
+    private const string UuidShape = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+    private const string IntegerShape = "-?[0-9]{1,18}";
+    private const string UuidPattern = "'^" + UuidShape + "$'";
+    private const string IntegerPattern = "'^" + IntegerShape + "$'";
     private const string EmptyUuid = "'00000000-0000-0000-0000-000000000000'::uuid";
 
     public string ReadOnly => "SET TRANSACTION READ ONLY";
@@ -41,8 +44,18 @@ internal sealed class IntegritySqlBuilder(ISqlGenerationHelper sql)
     {
         var key = Q(root.Key!.Column);
         var where = hasLowerBound ? $" WHERE r.{key} > {P(AfterParameter)}" : string.Empty;
-        return $"SELECT max(b.k) FROM (SELECT r.{key} AS k FROM {T(root.Table)} AS r{where} ORDER BY r.{key} LIMIT {P(BatchSizeParameter)}) AS b";
+        return $"SELECT b.k FROM (SELECT r.{key} AS k FROM {T(root.Table)} AS r{where} ORDER BY r.{key} LIMIT {P(BatchSizeParameter)}) AS b ORDER BY b.k DESC LIMIT 1";
     }
+
+    public static bool IsUuidShaped(string value) => UuidRegex().IsMatch(value);
+
+    public static bool IsSampleIdShaped(string value) => UuidRegex().IsMatch(value) || IntegerRegex().IsMatch(value);
+
+    [GeneratedRegex("^" + UuidShape + @"\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex UuidRegex();
+
+    [GeneratedRegex("^" + IntegerShape + @"\z", RegexOptions.CultureInvariant)]
+    private static partial Regex IntegerRegex();
 
     public string Link(IntegrityLink link, BatchRange range)
     {
@@ -124,6 +137,9 @@ internal sealed class IntegritySqlBuilder(ISqlGenerationHelper sql)
 
     private string Sample(IntegrityRoot root)
     {
+        if (!root.Samples)
+            return "NULL::text";
+
         var key = $"r.{Q(root.Key!.Column)}";
         return root.Key.Family == StoreFamily.Text
             ? $"CASE WHEN {key} ~* {UuidPattern} THEN {key} END"
