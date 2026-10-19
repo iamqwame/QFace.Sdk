@@ -54,7 +54,6 @@ public abstract class ApplicationDbContext<TContext>(
     public DbSet<EntityCodeConfig> EntityCodeConfigs { get; set; }
     public DbSet<EntityCodeReservation> EntityCodeReservations { get; set; }
     public DbSet<TenantPluginFlag> TenantPluginFlags { get; set; }
-    public DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     /// <summary>
     /// Durable outbox rows (DATA-09). Written in the same transaction as business changes;
