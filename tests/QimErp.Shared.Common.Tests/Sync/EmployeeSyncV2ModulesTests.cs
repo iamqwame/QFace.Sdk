@@ -14,6 +14,7 @@ public sealed class EmployeeSyncV2ModulesTests
     [InlineData("Payroll")]
     [InlineData("TenantBilling")]
     [InlineData("Leave")]
+    [InlineData("Benefit")]
     [InlineData("learning")]
     public void UsesV2_returns_true_for_migrated_modules(string suffix)
     {
