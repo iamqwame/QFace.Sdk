@@ -15,7 +15,8 @@ public static class EmployeeSyncV2Modules
         "Payroll",
         "TenantBilling",
         "Leave",
-        "Benefit"
+        "Benefit",
+        "Surveys"
     };
 
     public static bool UsesV2(string activitySuffix) =>
