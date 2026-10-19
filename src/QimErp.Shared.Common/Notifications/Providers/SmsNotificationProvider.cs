@@ -37,7 +37,7 @@ public sealed class SmsNotificationProvider(
             logger.LogInformation(
                 "[Sms] Stub send (no gateway URL configured): {Title} via {SenderId}",
                 payload.Title, senderId);
-            return SendResult.Succeeded(ProviderId, $"sms-stub-{Guid.NewGuid():N}");
+            return SendResult.Succeeded(ProviderId, $"sms-stub-{Guid.CreateVersion7():N}");
         }
 
         try
@@ -58,7 +58,7 @@ public sealed class SmsNotificationProvider(
                 return SendResult.Failed(ProviderId, $"HTTP {(int)response.StatusCode}: {error}");
             }
 
-            return SendResult.Succeeded(ProviderId, $"sms-{Guid.NewGuid():N}");
+            return SendResult.Succeeded(ProviderId, $"sms-{Guid.CreateVersion7():N}");
         }
         catch (Exception ex)
         {

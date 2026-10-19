@@ -25,7 +25,7 @@ public abstract class ConferencingProviderBase(ILogger logger) : INotificationCh
         IReadOnlyDictionary<string, string> config,
         CancellationToken cancellationToken = default)
     {
-        var meetingId = Guid.NewGuid().ToString("N")[..12];
+        var meetingId = Guid.CreateVersion7().ToString("N")[..12];
         var meetingUrl = BuildStubMeetingUrl(meetingId);
         logger.LogInformation(
             "[{Provider}] Stub meeting created: {Title} -> {MeetingUrl}",

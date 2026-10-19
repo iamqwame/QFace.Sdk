@@ -30,7 +30,7 @@
 //         if (missingEntityTypes.Contains("Employee"))
 //         {
 //             WorkflowConfiguration? configuration = new WorkflowConfiguration();
-//             configuration.Id = Guid.NewGuid();
+//             configuration.Id = Guid.CreateVersion7();
 //             configuration.EntityType = "Employee";
 //             configuration.Version = 1;
 //             configuration.Description = "Employee approval workflow for create and update operations";
@@ -92,7 +92,7 @@
 //         if (missingEntityTypes.Contains("Department"))
 //         {
 //             WorkflowConfiguration? configuration = new WorkflowConfiguration();
-//             configuration.Id = Guid.NewGuid();
+//             configuration.Id = Guid.CreateVersion7();
 //             configuration.EntityType = "Department";
 //             configuration.Version = 1;
 //             configuration.Description = "Department approval workflow";
@@ -116,7 +116,7 @@
 //         if (missingEntityTypes.Contains("Rank"))
 //         {
 //             WorkflowConfiguration? configuration = new WorkflowConfiguration();
-//             configuration.Id = Guid.NewGuid();
+//             configuration.Id = Guid.CreateVersion7();
 //             configuration.EntityType = "Rank";
 //             configuration.Version = 1;
 //             configuration.Description = "Rank approval workflow";
@@ -153,7 +153,7 @@
 //             // Employee Create Approval Template
 //             (new WorkflowTemplate
 //             {
-//                 Id = Guid.NewGuid(),
+//                 Id = Guid.CreateVersion7(),
 //                 Name = "Employee Create Approval",
 //                 WorkflowCode = "employee-create-approval",
 //                 Description = "Approval workflow for new employee creation",
@@ -253,7 +253,7 @@
 //             // Employee Update Approval Template
 //             (new WorkflowTemplate
 //             {
-//                 Id = Guid.NewGuid(),
+//                 Id = Guid.CreateVersion7(),
 //                 Name = "Employee Update Approval",
 //                 WorkflowCode = "employee-update-approval",
 //                 Description = "Approval workflow for employee information updates",
@@ -311,7 +311,7 @@
 //             // Department Approval Template
 //             (new WorkflowTemplate
 //             {
-//                 Id = Guid.NewGuid(),
+//                 Id = Guid.CreateVersion7(),
 //                 Name = "Department Management Approval",
 //                 WorkflowCode = "department-management-approval",
 //                 Description = "Approval workflow for department changes",

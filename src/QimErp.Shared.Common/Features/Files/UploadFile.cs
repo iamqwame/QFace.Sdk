@@ -81,7 +81,7 @@ public static class UploadFile
 
                 // Determine folder based on file type
                 var folder = GetFolderPath(request.FileType, request.Context);
-                var fileName = $"{request.FileType}_{DateTime.UtcNow.Ticks}_{Guid.NewGuid():N}";
+                var fileName = $"{request.FileType}_{DateTime.UtcNow.Ticks}_{Guid.CreateVersion7():N}";
 
                 // Upload to S3 or blob storage
                 var uploadResult = await fileUploadService.UploadPublicFileAsync(

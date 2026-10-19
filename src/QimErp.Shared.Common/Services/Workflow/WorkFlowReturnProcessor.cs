@@ -378,7 +378,7 @@ public class WorkflowReturnProcessor(
                     Subject = $"Returned for Edit: {entityDisplayName}",
                     TemplateCode = "WorkflowReturned",
                     Replacements = replacements,
-                    MessageId = Guid.NewGuid().ToString(),
+                    MessageId = Guid.CreateVersion7().ToString(),
                     CorrelationId = @event.WorkflowId,
                     Metadata = new Dictionary<string, string>
                     {

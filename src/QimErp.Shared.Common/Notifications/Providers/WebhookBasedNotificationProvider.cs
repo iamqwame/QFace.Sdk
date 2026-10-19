@@ -30,7 +30,7 @@ public abstract class WebhookBasedNotificationProvider(
             logger.LogInformation(
                 "[{Provider}] Stub send (no webhook URL configured): {Title}",
                 ProviderId, payload.Title);
-            return SendResult.Succeeded(ProviderId, $"stub-{Guid.NewGuid():N}");
+            return SendResult.Succeeded(ProviderId, $"stub-{Guid.CreateVersion7():N}");
         }
 
         try
@@ -48,7 +48,7 @@ public abstract class WebhookBasedNotificationProvider(
                 return SendResult.Failed(ProviderId, $"HTTP {(int)response.StatusCode}: {error}");
             }
 
-            return SendResult.Succeeded(ProviderId, $"webhook-{Guid.NewGuid():N}");
+            return SendResult.Succeeded(ProviderId, $"webhook-{Guid.CreateVersion7():N}");
         }
         catch (Exception ex)
         {

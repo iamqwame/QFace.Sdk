@@ -494,7 +494,7 @@ public class WorkflowApprovalProcessor(
             PhoneNumber = phoneNumbers.Count == 1 ? phoneNumbers[0] : string.Empty,
             PhoneNumbers = phoneNumbers.Count > 1 ? phoneNumbers : [],
             Message = $"Workflow {notificationType}: {@event.EntityType} at step {stepName}. Please review.",
-            MessageId = Guid.NewGuid().ToString(),
+            MessageId = Guid.CreateVersion7().ToString(),
             CorrelationId = @event.WorkflowId,
             Metadata = new Dictionary<string, string>
             {
@@ -614,7 +614,7 @@ public class WorkflowApprovalProcessor(
             Subject = $"Workflow {notificationType}: {entityDisplayName}",
             TemplateCode = templateName,
             Replacements = replacements,
-            MessageId = Guid.NewGuid().ToString(),
+            MessageId = Guid.CreateVersion7().ToString(),
             CorrelationId = @event.WorkflowId,
             Metadata = new Dictionary<string, string>
             {
@@ -723,7 +723,7 @@ public class WorkflowApprovalProcessor(
                     Subject = $"Action Required: {entityDisplayName} - Review Request",
                     TemplateCode = "WorkflowStarted",
                     Replacements = replacements,
-                    MessageId = Guid.NewGuid().ToString(),
+                    MessageId = Guid.CreateVersion7().ToString(),
                     CorrelationId = @event.WorkflowId,
                     Metadata = new Dictionary<string, string>
                     {
@@ -872,7 +872,7 @@ public class WorkflowApprovalProcessor(
                 Subject = $"Workflow {notificationType}: {entityDisplayName}",
                 TemplateCode = templateName,
                 Replacements = replacements,
-                MessageId = Guid.NewGuid().ToString(),
+                MessageId = Guid.CreateVersion7().ToString(),
                 CorrelationId = @event.WorkflowId,
                 Metadata = new Dictionary<string, string>
                 {

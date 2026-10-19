@@ -389,7 +389,7 @@ public sealed class Microsoft365GraphClient(
             }
 
             using var client = httpClientFactory.CreateClient("microsoft365-graph");
-            var sessionId = Guid.NewGuid().ToString("N");
+            var sessionId = Guid.CreateVersion7().ToString("N");
             var remaining = endUtcExclusive.ToUniversalTime() - DateTime.UtcNow;
             if (remaining < TimeSpan.FromMinutes(5))
                 remaining = TimeSpan.FromHours(8);

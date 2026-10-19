@@ -85,6 +85,8 @@ public sealed class OutboxProcessorBackgroundService<TContext> : BackgroundServi
                 .ToListAsync(cancellationToken);
         }
 
+        OutboxMetrics.RecordSweepBatch(pendingIds.Count);
+
         var processedCount = 0;
         foreach (var id in pendingIds)
         {
@@ -134,14 +136,19 @@ public sealed class OutboxProcessorBackgroundService<TContext> : BackgroundServi
         {
             var dispatched = await DispatchAsync(message, envelope, scope.ServiceProvider, cancellationToken);
             if (!dispatched)
+            {
+                OutboxMetrics.RecordFailed();
                 return false;
+            }
 
             message.IsProcessed = true;
             await context.SaveChangesAsync(cancellationToken);
+            OutboxMetrics.RecordProcessed();
             return true;
         }
         catch (Exception ex)
         {
+            OutboxMetrics.RecordFailed();
             _logger.LogError(ex,
                 "Failed to dispatch outbox message {MessageId} ({EventType})", messageId, message.EventType);
             return false;

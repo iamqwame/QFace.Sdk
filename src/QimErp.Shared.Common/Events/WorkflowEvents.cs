@@ -2,7 +2,7 @@ namespace QimErp.Shared.Common.Events;
 
 public class WorkflowStatusChangedEvent : IDomainEvent
 {
-    public Guid EventId { get; } = Guid.NewGuid();
+    public Guid EventId { get; } = Guid.CreateVersion7();
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
     public string EntityType { get; set; } = "";
     public string EntityId { get; set; } = "";
@@ -19,7 +19,7 @@ public class WorkflowStatusChangedEvent : IDomainEvent
 
 public class WorkflowApprovalRequiredEvent : DomainEvent
 {
-    public Guid EventId { get; } = Guid.NewGuid();
+    public Guid EventId { get; } = Guid.CreateVersion7();
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
     public string EntityType { get; set; } = "";
     public string EntityId { get; set; } = "";
@@ -49,7 +49,7 @@ public class WorkflowApprovalRequiredEvent : DomainEvent
 
 public class WorkflowCompletedEvent : IDomainEvent
 {
-    public Guid EventId { get; } = Guid.NewGuid();
+    public Guid EventId { get; } = Guid.CreateVersion7();
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
     public string EntityType { get; set; } = "";
     public string EntityId { get; set; } = "";
@@ -66,7 +66,7 @@ public class WorkflowCompletedEvent : IDomainEvent
 
 public class WorkflowTimeoutEvent : IDomainEvent
 {
-    public Guid EventId { get; } = Guid.NewGuid();
+    public Guid EventId { get; } = Guid.CreateVersion7();
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
     public string EntityType { get; set; } = "";
     public string EntityId { get; set; } = "";
@@ -82,7 +82,7 @@ public class WorkflowTimeoutEvent : IDomainEvent
 
 public class WorkflowApprovalRequestEvent : DomainEvent
 {
-    public Guid EventId { get; } = Guid.NewGuid();
+    public Guid EventId { get; } = Guid.CreateVersion7();
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
     public string WorkflowId { get; set; } = "";
     public string EntityType { get; set; } = "";
@@ -116,7 +116,7 @@ public class WorkflowApprovalRequestEvent : DomainEvent
 
 public class WorkflowApprovalProcessedEvent : DomainEvent
 {
-    public Guid EventId { get; } = Guid.NewGuid();
+    public Guid EventId { get; } = Guid.CreateVersion7();
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
     public string WorkflowId { get; set; } = "";
     public string EntityType { get; set; } = "";
@@ -140,7 +140,7 @@ public class WorkflowApprovalProcessedEvent : DomainEvent
 
 public class WorkflowRejectionRequestEvent : DomainEvent
 {
-    public Guid EventId { get; } = Guid.NewGuid();
+    public Guid EventId { get; } = Guid.CreateVersion7();
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
     public string WorkflowId { get; set; } = "";
     public string EntityType { get; set; } = "";
@@ -172,7 +172,7 @@ public class WorkflowRejectionRequestEvent : DomainEvent
 
 public class WorkflowReturnRequestEvent : DomainEvent
 {
-    public Guid EventId { get; } = Guid.NewGuid();
+    public Guid EventId { get; } = Guid.CreateVersion7();
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
     public string WorkflowId { get; set; } = "";
     public string EntityType { get; set; } = "";

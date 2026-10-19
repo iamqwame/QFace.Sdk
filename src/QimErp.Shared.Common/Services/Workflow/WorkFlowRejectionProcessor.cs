@@ -383,7 +383,7 @@ public class WorkflowRejectionProcessor(
                     Subject = $"Request Needs Attention: {entityDisplayName} - Rejected",
                     TemplateCode = "WorkflowRejection",
                     Replacements = replacements,
-                    MessageId = Guid.NewGuid().ToString(),
+                    MessageId = Guid.CreateVersion7().ToString(),
                     CorrelationId = @event.WorkflowId,
                     Metadata = new Dictionary<string, string>
                     {

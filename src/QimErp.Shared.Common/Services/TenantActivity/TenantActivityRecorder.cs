@@ -12,7 +12,7 @@ public class TenantActivityRecorder(
     public void Record(RecordTenantActivityRequest request)
     {
         var correlationId = string.IsNullOrWhiteSpace(request.CorrelationId)
-            ? Guid.NewGuid().ToString("N")
+            ? Guid.CreateVersion7().ToString("N")
             : request.CorrelationId;
 
         var requestContext = AuditRequestContext.TryCapture(httpContextAccessor);

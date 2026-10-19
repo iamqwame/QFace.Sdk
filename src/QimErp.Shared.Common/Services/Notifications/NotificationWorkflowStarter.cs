@@ -25,7 +25,7 @@ public class NotificationWorkflowStarter(
 
     public Task SendAsync(UnifiedMessageModel model)
     {
-        model.MessageId ??= Guid.NewGuid().ToString();
+        model.MessageId ??= Guid.CreateVersion7().ToString();
         StampTenant(model);
         return starter.StartOrIgnoreAsync<INotificationWorkflow>(
             $"notification-{model.MessageId}",

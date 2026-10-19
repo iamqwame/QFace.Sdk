@@ -20,7 +20,7 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next)
         }
         else
         {
-            correlationId = Guid.NewGuid().ToString("N");
+            correlationId = Guid.CreateVersion7().ToString("N");
         }
 
         context.Items[HttpContextItemKey] = correlationId;

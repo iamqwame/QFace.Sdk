@@ -263,17 +263,20 @@ public class AuditEntitySaveChangesInterceptor(
                 {
                     await publisher.Publish(domainEvent, cancellationToken);
                     outbox.IsProcessed = true;
+                    OutboxMetrics.RecordPublished();
                     logger.LogDebug("Successfully published {EventType} using IPublisher", domainEvent.GetType().Name);
                 }
                 else
                 {
                     logger.LogWarning("No IPublisher registered. Event {EventType} will not be dispatched in-process.",
                         domainEvent.GetType().Name);
+                    OutboxMetrics.RecordFailed();
                     failedEvents.Add((domainEvent, new InvalidOperationException("No IPublisher registered")));
                 }
             }
             catch (Exception ex)
             {
+                OutboxMetrics.RecordFailed();
                 logger.LogError(ex, "Failed to publish workflow event {EventType}", domainEvent.GetType().Name);
                 failedEvents.Add((domainEvent, ex));
             }
@@ -361,6 +364,7 @@ public class AuditEntitySaveChangesInterceptor(
             tracked.Add((domainEvent, outbox));
         }
 
+        OutboxMetrics.RecordEnqueued(tracked.Count);
         return tracked;
     }
 
@@ -373,6 +377,9 @@ public class AuditEntitySaveChangesInterceptor(
         var outbox = BuildOutboxMessage(message, tenantId, companyId);
         outbox.IsProcessed = isProcessed;
         context.Set<OutboxMessage>().Add(outbox);
+        OutboxMetrics.RecordEnqueued();
+        if (isProcessed)
+            OutboxMetrics.RecordPublished();
     }
 
     private static OutboxMessage BuildOutboxMessage(object message, string tenantId, string? companyId = null)
@@ -971,7 +978,7 @@ public class AuditEntitySaveChangesInterceptor(
                     logger.LogWarning("[CaptureWorkflowEvents] CurrentWorkflowHistoryId is not set for {EntityType} {EntityId}. Workflow history may not be recorded correctly. WorkflowCode={WorkflowCode}",
                         entity.EntityType, GetEntityId(entity), workflowCode);
 
-                    var fallbackWorkflowHistoryId = Guid.NewGuid();
+                    var fallbackWorkflowHistoryId = Guid.CreateVersion7();
                     entity.CurrentWorkflowHistoryId = fallbackWorkflowHistoryId;
                     workflowHistoryId = fallbackWorkflowHistoryId.ToString();
 

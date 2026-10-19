@@ -99,7 +99,7 @@ public class WorkflowService(
             string currentUser = currentUserService?.GetUserId() ?? _systemOptions.DefaultUserId;
             string currentUserEmail = currentUserService?.GetUserEmail() ?? _systemOptions.DefaultSystemEmail;
             string currentUserName = currentUserService?.GetUserName() ?? _systemOptions.DefaultUserName;
-            Guid workflowHistoryId = Guid.NewGuid();
+            Guid workflowHistoryId = Guid.CreateVersion7();
 
             logger.LogDebug("Setting CurrentWorkflowHistoryId={WorkflowHistoryId} for {EntityType} before initiating workflow", 
                 workflowHistoryId, entity.EntityType);
