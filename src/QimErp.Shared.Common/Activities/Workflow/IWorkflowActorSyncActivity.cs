@@ -10,28 +10,24 @@ namespace QimErp.Shared.Common.Activities.Workflow;
 /// <c>qimerp-platform-workflow-actor-sync</c> and a scoped implementation of this
 /// interface.
 ///
-/// Producer modules (today: QimErp.CoreHr.People for employee actors; later:
-/// Customers/Vendors/External modules for their respective actors) schedule these
-/// activities on Workflow's task queue with a mapped <see cref="WorkflowActorChangedEvent"/>
-/// payload. Upserts are keyed by (TenantId, SourceType, SourceId).
+/// Producer modules schedule V2 methods with <see cref="WorkflowActorSyncEnvelope"/>
+/// (ids-only). Legacy fat <see cref="WorkflowActorChangedEvent"/> methods remain for
+/// backfill / unmigrated callers.
 /// </summary>
 public interface IWorkflowActorSyncActivity
 {
-    /// <summary>Upsert a newly created actor.</summary>
     [Activity]
     Task SyncActorCreatedAsync(WorkflowActorChangedEvent actor);
 
-    /// <summary>Update an existing actor (idempotent — creates if missing).</summary>
     [Activity]
     Task SyncActorUpdatedAsync(WorkflowActorChangedEvent actor);
 
-    /// <summary>
-    /// Mark an actor as inactive in Workflow's projection.
-    /// </summary>
-    /// <param name="sourceType">Origin system of the actor being deleted.</param>
-    /// <param name="sourceId">Source-system primary key.</param>
-    /// <param name="tenantId">Tenant scope.</param>
-    /// <param name="email">Optional email — fallback identifier for diagnostics.</param>
+    [Activity]
+    Task SyncActorCreatedV2Async(WorkflowActorSyncEnvelope envelope);
+
+    [Activity]
+    Task SyncActorUpdatedV2Async(WorkflowActorSyncEnvelope envelope);
+
     [Activity]
     Task SyncActorDeletedAsync(
         WorkflowActorSourceType sourceType,
