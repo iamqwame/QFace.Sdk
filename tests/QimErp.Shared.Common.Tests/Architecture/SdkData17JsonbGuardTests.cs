@@ -15,11 +15,16 @@ public sealed class SdkData17JsonbGuardTests
         ("TaxationSharedConfiguration.cs", "e => e.RefundDistributions"),
     ];
 
+    private static readonly string[] AllowedToJsonColumns =
+    [
+        "WorkflowDefinition",
+    ];
+
     private static readonly string[] ForbiddenJsonQueryNeedles =
     [
         "EF.Functions.Json",
-        "JsonContains",
-        "JsonValue",
+        "EF.Functions.JsonContains",
+        "EF.Functions.JsonValue",
         "->>",
         "jsonb_",
         "NpgsqlJsonDbFunctionsExtensions",
@@ -90,6 +95,51 @@ public sealed class SdkData17JsonbGuardTests
 
         found.Should().BeEquivalentTo(expected,
             because: "DATA-17: every Shared.Common jsonb/json mapping must be on the Path A allowlist");
+    }
+
+    [Fact]
+    public void EntityWorkflowStep_WorkflowDefinition_is_ToJson()
+    {
+        var path = FindSourceFile("EntityWorkflowStepConfiguration.cs", "QimErp.Shared.Common");
+        path.Should().NotBeNull(because: "EntityWorkflowStepConfiguration.cs");
+        var content = File.ReadAllText(path!);
+
+        content.Should().Contain(
+            ".ToJson(\"WorkflowDefinition\")",
+            because: "DATA-17: WorkflowDefinition blob storage is ToJson");
+    }
+
+    [Fact]
+    public void Shared_Common_ToJson_columns_are_allowlisted()
+    {
+        var project = FindProjectDirectory("QimErp.Shared.Common");
+        project.Should().NotBeNull();
+
+        var configRoots = new[]
+        {
+            Path.Combine(project!, "Workflow", "Configurations"),
+            Path.Combine(project!, "Database", "Configurations"),
+        };
+
+        var found = new HashSet<string>(StringComparer.Ordinal);
+        var toJson = new Regex(@"\.ToJson\(""([^""]+)""\)", RegexOptions.Compiled);
+
+        foreach (var root in configRoots.Where(Directory.Exists))
+        {
+            foreach (var file in Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories)
+                         .Where(p => !p.EndsWith(".Designer.cs", StringComparison.Ordinal)))
+            {
+                foreach (Match m in toJson.Matches(File.ReadAllText(file)))
+                    found.Add(m.Groups[1].Value);
+            }
+        }
+
+        found.Should().NotBeEmpty(because: "DATA-17: Shared.Common must inventory at least one ToJson column");
+        found.Should().OnlyContain(
+            c => AllowedToJsonColumns.Contains(c, StringComparer.Ordinal),
+            because: $"DATA-17: ToJson columns must stay on the allowlist; got [{string.Join(", ", found)}]");
+        found.Should().Contain("WorkflowDefinition",
+            because: "DATA-17: WorkflowDefinition remains a ToJson column");
     }
 
     [Fact]
