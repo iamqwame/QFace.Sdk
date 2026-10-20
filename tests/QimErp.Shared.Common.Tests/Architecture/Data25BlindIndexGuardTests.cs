@@ -31,6 +31,29 @@ public class Data25BlindIndexGuardTests
         content.Should().Contain("Sensitive");
     }
 
+    [Fact]
+    public void PiiFieldProtector_ships_AesGcm_protect_unprotect()
+    {
+        var path = FindSourceFile("PiiFieldProtector.cs", "QimErp.Shared.Common");
+        path.Should().NotBeNull();
+        var content = File.ReadAllText(path!);
+        content.Should().Contain("DATA-25");
+        content.Should().Contain("AesGcm");
+        content.Should().Contain("Protect");
+        content.Should().Contain("Unprotect");
+    }
+
+    [Fact]
+    public void AddPiiFieldProtector_fails_closed_in_Production()
+    {
+        var path = FindSourceFile("PiiFieldProtectorServiceCollectionExtensions.cs", "QimErp.Shared.Common");
+        path.Should().NotBeNull();
+        var content = File.ReadAllText(path!);
+        content.Should().Contain("AddPiiFieldProtector");
+        content.Should().Contain("IsProduction");
+        content.Should().Contain("PiiFieldProtector:KeyBase64");
+    }
+
     private static string? FindSourceFile(string fileName, string projectFolder)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
