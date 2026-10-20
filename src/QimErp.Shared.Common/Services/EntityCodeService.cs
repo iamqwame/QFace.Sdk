@@ -88,6 +88,8 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
 
     public async Task<string[]> GenerateBatchAsync(string tenantId, string entityType, int count, CancellationToken ct = default)
     {
+        // DATA-24: fail closed before IgnoreQueryFilters — never probe all tenants.
+        EnsureTenantId(tenantId);
         if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count), "Count must be ≥ 1.");
 
         var companyId = EffectiveCompanyId;
@@ -117,6 +119,8 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
 
     public async Task<string> SuggestAsync(string tenantId, string entityType, CancellationToken ct = default)
     {
+        EnsureTenantId(tenantId);
+
         var companyId = EffectiveCompanyId;
         var config = await GetOrCreateConfigAsync(tenantId, companyId, entityType, ct);
         var seq = config.LastSequence + 1;
@@ -136,6 +140,8 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
 
     private async Task<EntityCodeConfig?> GetConfigAsync(string tenantId, string companyId, string entityType, CancellationToken ct)
     {
+        EnsureTenantId(tenantId);
+
         var key = CacheKey(tenantId, companyId, entityType);
         var cached = await _cache.GetAsync<EntityCodeConfig>(key);
         if (cached is not null) return cached;
@@ -158,6 +164,8 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         CodeGenerationMode mode, CodeResetPeriod resetPeriod,
         CancellationToken ct = default)
     {
+        EnsureTenantId(tenantId);
+
         var companyId = EffectiveCompanyId;
 
         // Bypass the cache here so the upsert path always sees the latest DB row;
@@ -247,6 +255,8 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         string tenantId, string entityType, string code, string reservationToken, TimeSpan ttl,
         bool validateFormat = true, string? metadata = null, CancellationToken ct = default)
     {
+        EnsureTenantId(tenantId);
+
         if (string.IsNullOrWhiteSpace(code))
             return (false, "Code cannot be empty.");
         if (string.IsNullOrWhiteSpace(reservationToken))
@@ -569,6 +579,13 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         _logger.LogInformation(
             "Sequence reset for {EntityType} on tenant {TenantId} — new period {Key}",
             config.EntityType, config.TenantId, currentKey);
+    }
+
+    // DATA-24: blank TenantId must never reach IgnoreQueryFilters probes.
+    private static void EnsureTenantId(string tenantId)
+    {
+        if (string.IsNullOrWhiteSpace(tenantId))
+            throw new ArgumentException("TenantId is required.", nameof(tenantId));
     }
 
     private static long? ExtractNumericSuffix(string code)
