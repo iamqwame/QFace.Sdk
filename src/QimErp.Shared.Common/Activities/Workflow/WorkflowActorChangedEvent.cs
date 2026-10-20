@@ -31,6 +31,9 @@ public class WorkflowActorChangedEvent
     /// <summary>Optional avatar / logo URL.</summary>
     public string? ProfilePictureUrl { get; set; }
 
+    /// <summary>DATA-18: optional avatar / logo file-service id.</summary>
+    public Guid? ProfilePictureFileId { get; set; }
+
     /// <summary>Whether the actor is currently active in the source system.</summary>
     public bool IsActive { get; set; } = true;
 

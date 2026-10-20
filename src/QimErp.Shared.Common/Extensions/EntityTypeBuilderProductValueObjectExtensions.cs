@@ -6,9 +6,9 @@ namespace QimErp.Shared.Common.Extensions;
 public static class EntityTypeBuilderProductValueObjectExtensions
 {
     /// <summary>
-    /// Maps every column of ProductValueObject — all 10 properties (Id, Code, Name,
-    /// Sku, ImageUrl, Category, CategoryId, Brand, Measurement, BarcodeGtin). None are
-    /// marked required or max-length: these columns are retrofitted onto existing
+    /// Maps every column of ProductValueObject — all 11 properties (Id, Code, Name,
+    /// Sku, ImageUrl, ImageFileId, Category, CategoryId, Brand, Measurement, BarcodeGtin).
+    /// None are marked required or max-length: these columns are retrofitted onto existing
     /// nullable/text columns downstream, so no constraints are added here.
     /// </summary>
     private static void MapColumns<TEntity>(
@@ -21,6 +21,7 @@ public static class EntityTypeBuilderProductValueObjectExtensions
         product.Property(p => p.Code).HasColumnName($"{columnNamePrefix}Code");
         product.Property(p => p.Sku).HasColumnName($"{columnNamePrefix}Sku");
         product.Property(p => p.ImageUrl).HasColumnName($"{columnNamePrefix}ImageUrl");
+        product.Property(p => p.ImageFileId).HasColumnName($"{columnNamePrefix}ImageFileId");
         product.Property(p => p.Category).HasColumnName($"{columnNamePrefix}Category");
         product.Property(p => p.CategoryId).HasColumnName($"{columnNamePrefix}CategoryId");
         product.Property(p => p.Brand).HasColumnName($"{columnNamePrefix}Brand");
@@ -30,7 +31,7 @@ public static class EntityTypeBuilderProductValueObjectExtensions
 
     /// <summary>
     /// Configures a required ProductValueObject property as an owned entity
-    /// with consistent column naming for all 10 columns.
+    /// with consistent column naming for all 11 columns.
     /// </summary>
     public static EntityTypeBuilder<TEntity> ConfigureProduct<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
@@ -52,7 +53,7 @@ public static class EntityTypeBuilderProductValueObjectExtensions
 
     /// <summary>
     /// Configures an optional ProductValueObject property as an owned entity
-    /// with consistent column naming for all 10 columns.
+    /// with consistent column naming for all 11 columns.
     /// </summary>
     public static EntityTypeBuilder<TEntity> ConfigureOptionalProduct<TEntity>(
         this EntityTypeBuilder<TEntity> builder,

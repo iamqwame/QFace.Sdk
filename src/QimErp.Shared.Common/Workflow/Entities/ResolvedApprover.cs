@@ -21,6 +21,9 @@ public class ResolvedApprover
     /// <summary>URL of the employee's profile picture (nullable).</summary>
     public string? ProfilePictureUrl { get; set; }
 
+    /// <summary>DATA-18: file-service id for the employee's profile picture (nullable).</summary>
+    public Guid? ProfilePictureFileId { get; set; }
+
     /// <summary>
     /// The approver type that matched this resolution
     /// ("role", "department", "direct_employee", "rank", "ou").
