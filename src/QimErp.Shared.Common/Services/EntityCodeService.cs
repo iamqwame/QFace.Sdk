@@ -20,8 +20,9 @@ namespace QimErp.Shared.Common.Services;
 ///   entity-create across every module. Reads go through a tenant+company-scoped Redis
 ///   key (1h TTL) and writes (UpsertConfigAsync, ReconcileManualToAutoAsync,
 ///   CheckAndApplyResetAsync, GetOrCreateConfigAsync auto-create) invalidate
-///   it inline. The hot path GenerateBatchAsync still uses an atomic raw-SQL
-///   UPDATE … RETURNING for LastSequence — the cache only short-circuits the
+///   it inline. GenerateBatchAsync allocates via one atomic raw-SQL
+///   UPDATE … RETURNING when no reservations are active; the reservation-skip
+///   path is a documented DATA-27 residual. The cache only short-circuits the
 ///   format-and-mode lookup, never the sequence allocation itself.
 /// </summary>
 public abstract class EntityCodeService<TContext> : IEntityCodeService
@@ -96,6 +97,26 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
         var config = await GetOrCreateConfigAsync(tenantId, companyId, entityType, ct);
         await CheckAndApplyResetAsync(config, companyId, ct);
 
+        if (!await HasActiveReservationsAsync(tenantId, entityType, ct))
+        {
+            // DATA-27: one atomic sequence reservation for the full batch (no per-code UPDATE).
+            var finalSeq = await IncrementSequenceAsync(tenantId, companyId, entityType, count, ct);
+            var startSeq = finalSeq - count + 1;
+            var now = DateTimeOffset.UtcNow;
+            var batch = new string[count];
+            for (var i = 0; i < count; i++)
+                batch[i] = config.FormatCode(startSeq + i, now);
+            return batch;
+        }
+
+        return await GenerateBatchWithReservationSkipAsync(tenantId, companyId, entityType, count, config, ct);
+    }
+
+    // DATA-27 residual: active reservations require per-code skip checks; sequence bumps stay single-step.
+    private async Task<string[]> GenerateBatchWithReservationSkipAsync(
+        string tenantId, string companyId, string entityType, int count,
+        EntityCodeConfig config, CancellationToken ct)
+    {
         const int maxSkipAttempts = 100;
         var codes = new List<string>(count);
         var attempts = 0;
@@ -115,6 +136,26 @@ public abstract class EntityCodeService<TContext> : IEntityCodeService
                 $"Could not allocate {count} free {entityType} code(s) after skipping reserved values (cap {maxSkipAttempts}).");
 
         return codes.ToArray();
+    }
+
+    private async Task<bool> HasActiveReservationsAsync(string tenantId, string entityType, CancellationToken ct)
+    {
+        var companyId = ReservationCompanyId(entityType);
+        var now = DateTimeOffset.UtcNow;
+
+        // IgnoreQueryFilters: explicit tenant+company scope below.
+        var expiries = await _context.Set<EntityCodeReservation>()
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(r => r.TenantId == tenantId
+                        && r.CompanyId == companyId
+                        && r.EntityType == entityType
+                        && r.DataStatus == DataState.Active)
+            .Select(r => r.ExpiresAt)
+            .ToListAsync(ct);
+
+        // DateTimeOffset ordering does not translate on SQLite; expiry is compared in memory.
+        return expiries.Any(e => e > now);
     }
 
     public async Task<string> SuggestAsync(string tenantId, string entityType, CancellationToken ct = default)
