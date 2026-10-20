@@ -286,6 +286,8 @@ public static class ModuleSyncRegistry
         new(SyncType.PersonErasure, ModuleKeys.CoreHR, ModuleSyncWorkflowQueues.PersonErasureParent, "CoreHR"),
         // DATA-23: CashManagement local Employee copy participates in PersonErasure fan-out.
         new(SyncType.PersonErasure, ModuleKeys.CashManagement, "qimerp-accounting-cash-management-employee-sync", "CashManagement"),
+        // DATA-23: IAM always receives PersonErasure (account identity pseudonymisation).
+        new(SyncType.PersonErasure, null, "qimerp-iam-employee-sync", "IAM", RequiresModuleSelection: false),
     ];
 
     private static readonly Dictionary<string, ModuleSyncDefinition> ByItemKey =
