@@ -23,6 +23,23 @@ public class ModuleSyncRegistryTests
     }
 
     [Fact]
+    public void FilterByInstalled_Employee_IncludesCashManagementWhenSelected()
+    {
+        var withCash = ModuleSyncRegistry.FilterByInstalled(
+            SyncType.Employee,
+            [ModuleKeys.CoreAccounting, ModuleKeys.CashManagement]);
+        withCash.Should().Contain(s => s.ModuleKey == ModuleKeys.CashManagement);
+        withCash.Should().Contain(s =>
+            s.TaskQueue == "qimerp-accounting-cash-management-employee-sync"
+            && s.ActivitySuffix == "CashManagement");
+
+        var withoutCash = ModuleSyncRegistry.FilterByInstalled(
+            SyncType.Employee,
+            [ModuleKeys.CoreAccounting]);
+        withoutCash.Should().NotContain(s => s.ModuleKey == ModuleKeys.CashManagement);
+    }
+
+    [Fact]
     public void FilterByInstalled_GlReference_RequiresModuleInstall()
     {
         var modules = new List<string> { ModuleKeys.CoreAccounting, ModuleKeys.Project };

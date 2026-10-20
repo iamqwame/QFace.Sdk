@@ -19,7 +19,8 @@ public static class EmployeeSyncV2Modules
         "Surveys",
         "Recruitment",
         "EmployeeEngagement",
-        "Project"
+        "Project",
+        "CashManagement"
     };
 
     public static bool UsesV2(string activitySuffix) =>

@@ -82,7 +82,8 @@ public static class ModuleSyncRegistry
         new("cash-management", ModuleKeys.CashManagement,
             ["SetupCashManagementTenant"],
             RequiresItemKey: "core-accounting",
-            PrerequisiteItemKeys: ["core-accounting"]),
+            PrerequisiteItemKeys: ["core-accounting"],
+            EmployeeBackfillStep: "EnsureEmployeeInCashManagement"),
         new("inventory", ModuleKeys.Inventory, ["SetupOperationsInventoryTenant"], SampleSeedStep: "SeedSampleInventory"),
         new("pos", ModuleKeys.POS, ["SetupPosTenant"], RequiresItemKey: "inventory", PrerequisiteItemKeys: ["inventory"], SampleSeedStep: "SeedSamplePos"),
         new("project", ModuleKeys.Project,
@@ -199,6 +200,7 @@ public static class ModuleSyncRegistry
         new("EnsureEmployeeInRecruitment", "qimerp-recruitment-tenant-setup"),
         new("EnsureEmployeeInSurveys", "qimerp-surveys-tenant-setup"),
         new("EnsureEmployeeInProject", "qimerp-operations-project-employee-sync"),
+        new("EnsureEmployeeInCashManagement", "qimerp-accounting-cash-management-employee-sync"),
 
         // Plugin enable/disable — dispatched to the owning module's existing setup queue,
         // no new worker process.
@@ -250,6 +252,7 @@ public static class ModuleSyncRegistry
         new(SyncType.Employee, ModuleKeys.Surveys, "qimerp-surveys-employee-sync", "Surveys"),
         new(SyncType.Employee, null, "qimerp-iam-employee-sync", "IAM", RequiresModuleSelection: false),
         new(SyncType.Employee, ModuleKeys.Project, "qimerp-operations-project-employee-sync", "Project"),
+        new(SyncType.Employee, ModuleKeys.CashManagement, "qimerp-accounting-cash-management-employee-sync", "CashManagement"),
         new(SyncType.Employee, null, "qimerp-iam-tenantbilling-employee-sync", "TenantBilling", RequiresModuleSelection: false),
 
         new(SyncType.AdminData, ModuleKeys.CoreHR, "qimerp-corehr-employee-admin-sync", "Employee"),

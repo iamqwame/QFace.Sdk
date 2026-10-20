@@ -19,6 +19,7 @@ public sealed class EmployeeSyncV2ModulesTests
     [InlineData("Recruitment")]
     [InlineData("EmployeeEngagement")]
     [InlineData("Project")]
+    [InlineData("CashManagement")]
     [InlineData("learning")]
     public void UsesV2_returns_true_for_migrated_modules(string suffix)
     {
