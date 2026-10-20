@@ -5,6 +5,7 @@ namespace QimErp.Shared.Common.Sync;
 /// <see cref="Entities.EmployeeBase"/> mirror. Used by module sync activities after
 /// fetching from the owner (DATA-11) — never from a Temporal event payload.
 /// </summary>
+// DATA-07: updates EmployeeBase live mirror only; never apply to owned VOs on transactional work rows.
 public static class EmployeeSyncProjectionApplier
 {
     public static void Apply(EmployeeBase target, EmployeeSyncProjection projection)
