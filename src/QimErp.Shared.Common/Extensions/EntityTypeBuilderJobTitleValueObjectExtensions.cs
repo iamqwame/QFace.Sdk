@@ -21,7 +21,8 @@ public static class EntityTypeBuilderJobTitleValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureJobTitle<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, JobTitleValueObject>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
 #pragma warning disable CS8620
@@ -43,6 +44,8 @@ public static class EntityTypeBuilderJobTitleValueObjectExtensions
             jobTitle.Property(p => p.Description)
                 .HasColumnName($"{columnNamePrefix}Description")
                 .HasMaxLength(500);
+
+            if (includeIndex) jobTitle.HasIndex(p => p.Id);
         });
 #pragma warning restore CS8620
 
@@ -65,7 +68,8 @@ public static class EntityTypeBuilderJobTitleValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureOptionalJobTitle<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, JobTitleValueObject?>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
         builder.OwnsOne(navigationExpression, jobTitle =>
@@ -86,6 +90,8 @@ public static class EntityTypeBuilderJobTitleValueObjectExtensions
             jobTitle.Property(p => p.Description)
                 .HasColumnName($"{columnNamePrefix}Description")
                 .HasMaxLength(500);
+
+            if (includeIndex) jobTitle.HasIndex(p => p.Id);
         });
         
         return builder;

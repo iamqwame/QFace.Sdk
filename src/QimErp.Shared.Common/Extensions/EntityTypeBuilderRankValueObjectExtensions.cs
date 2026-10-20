@@ -11,7 +11,8 @@ public static class EntityTypeBuilderRankValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureRank<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, RankValueObject>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
 #pragma warning disable CS8620
@@ -29,6 +30,8 @@ public static class EntityTypeBuilderRankValueObjectExtensions
                 .HasColumnName($"{columnNamePrefix}Name")
                 .HasMaxLength(200)
                 .IsRequired();
+
+            if (includeIndex) rank.HasIndex(p => p.Id);
         });
 #pragma warning restore CS8620
 
@@ -41,7 +44,8 @@ public static class EntityTypeBuilderRankValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureOptionalRank<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, RankValueObject?>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
         builder.OwnsOne(navigationExpression, rank =>
@@ -58,6 +62,8 @@ public static class EntityTypeBuilderRankValueObjectExtensions
                 .HasColumnName($"{columnNamePrefix}Name")
                 .HasMaxLength(200)
                 .IsRequired();
+
+            if (includeIndex) rank.HasIndex(p => p.Id);
         });
 
         return builder;

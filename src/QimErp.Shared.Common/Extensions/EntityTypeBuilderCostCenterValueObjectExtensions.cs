@@ -22,7 +22,8 @@ public static class EntityTypeBuilderCostCenterValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureCostCenter<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, CostCenterValueObject>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
 #pragma warning disable CS8620
@@ -45,6 +46,8 @@ public static class EntityTypeBuilderCostCenterValueObjectExtensions
             costCenter.Property(p => p.Description)
                 .HasColumnName($"{columnNamePrefix}Description")
                 .HasMaxLength(500);
+
+            if (includeIndex) costCenter.HasIndex(p => p.Id);
         });
 #pragma warning restore CS8620
 
@@ -73,7 +76,8 @@ public static class EntityTypeBuilderCostCenterValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureOptionalCostCenter<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, CostCenterValueObject?>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
         builder.OwnsOne(navigationExpression, costCenter =>
@@ -95,6 +99,8 @@ public static class EntityTypeBuilderCostCenterValueObjectExtensions
             costCenter.Property(p => p.Description)
                 .HasColumnName($"{columnNamePrefix}Description")
                 .HasMaxLength(500);
+
+            if (includeIndex) costCenter.HasIndex(p => p.Id);
         });
 
         return builder;

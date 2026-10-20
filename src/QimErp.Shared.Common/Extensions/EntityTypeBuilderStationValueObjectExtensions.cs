@@ -22,7 +22,8 @@ public static class EntityTypeBuilderStationValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureStation<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, StationValueObject>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
 #pragma warning disable CS8620
@@ -40,6 +41,8 @@ public static class EntityTypeBuilderStationValueObjectExtensions
                 .HasColumnName($"{columnNamePrefix}Name")
                 .HasMaxLength(200)
                 .IsRequired();
+
+            if (includeIndex) station.HasIndex(p => p.Id);
         });
 #pragma warning restore CS8620
 
@@ -63,7 +66,8 @@ public static class EntityTypeBuilderStationValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureOptionalStation<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, StationValueObject?>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
         builder.OwnsOne(navigationExpression, station =>
@@ -80,6 +84,8 @@ public static class EntityTypeBuilderStationValueObjectExtensions
                 .HasColumnName($"{columnNamePrefix}Name")
                 .HasMaxLength(200)
                 .IsRequired();
+
+            if (includeIndex) station.HasIndex(p => p.Id);
         });
         
         return builder;

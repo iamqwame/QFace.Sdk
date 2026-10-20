@@ -22,7 +22,8 @@ public static class EntityTypeBuilderChartOfAccountValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureChartOfAccount<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, ChartOfAccountValueObject>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
 #pragma warning disable CS8620
@@ -61,6 +62,8 @@ public static class EntityTypeBuilderChartOfAccountValueObjectExtensions
             account.Property(p => p.AccountCategoryName)
                 .HasColumnName($"{columnNamePrefix}CategoryName")
                 .HasMaxLength(200);
+
+            if (includeIndex) account.HasIndex(p => p.Id);
         });
 #pragma warning restore CS8620
 
@@ -89,7 +92,8 @@ public static class EntityTypeBuilderChartOfAccountValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureOptionalChartOfAccount<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, ChartOfAccountValueObject?>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
         builder.OwnsOne(navigationExpression, account =>
@@ -127,6 +131,8 @@ public static class EntityTypeBuilderChartOfAccountValueObjectExtensions
             account.Property(p => p.AccountCategoryName)
                 .HasColumnName($"{columnNamePrefix}CategoryName")
                 .HasMaxLength(200);
+
+            if (includeIndex) account.HasIndex(p => p.Id);
         });
 
         return builder;

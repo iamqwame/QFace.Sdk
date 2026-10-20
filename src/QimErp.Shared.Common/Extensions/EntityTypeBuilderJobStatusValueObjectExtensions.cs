@@ -21,7 +21,8 @@ public static class EntityTypeBuilderJobStatusValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureJobStatus<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, JobStatusValueObject>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
 #pragma warning disable CS8620
@@ -43,6 +44,8 @@ public static class EntityTypeBuilderJobStatusValueObjectExtensions
             jobStatus.Property(p => p.Description)
                 .HasColumnName($"{columnNamePrefix}Description")
                 .HasMaxLength(500);
+
+            if (includeIndex) jobStatus.HasIndex(p => p.Id);
         });
 #pragma warning restore CS8620
 
@@ -65,7 +68,8 @@ public static class EntityTypeBuilderJobStatusValueObjectExtensions
     public static EntityTypeBuilder<TEntity> ConfigureOptionalJobStatus<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, JobStatusValueObject?>> navigationExpression,
-        string columnNamePrefix)
+        string columnNamePrefix,
+        bool includeIndex = false)
         where TEntity : class
     {
         builder.OwnsOne(navigationExpression, jobStatus =>
@@ -86,6 +90,8 @@ public static class EntityTypeBuilderJobStatusValueObjectExtensions
             jobStatus.Property(p => p.Description)
                 .HasColumnName($"{columnNamePrefix}Description")
                 .HasMaxLength(500);
+
+            if (includeIndex) jobStatus.HasIndex(p => p.Id);
         });
         
         return builder;
