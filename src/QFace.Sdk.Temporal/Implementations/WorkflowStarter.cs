@@ -22,6 +22,7 @@ internal sealed class WorkflowStarter(
         Expression<Func<TWorkflow, Task>> startExpression,
         CancellationToken cancellationToken = default)
     {
+        // DATA-10: deterministic workflow Id + UseExisting — safe to start twice.
         // Callers pass the BASE queue name; the SDK appends Temporal:TaskQueueSuffix
         // so each environment routes to its own workers without coordination.
         var resolvedTaskQueue = _opts.WithTaskQueueSuffix(taskQueue);
