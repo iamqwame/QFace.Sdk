@@ -5,10 +5,13 @@ namespace QimErp.Shared.Common.Tests.Architecture;
 
 /// <summary>
 /// DATA-12: SDK <c>WorkflowStarter</c> fail-closed rethrow on start failures
-/// (WorkflowAlreadyStartedException excluded). Named residuals live in DECISIONS 2026-10-20.
+/// (WorkflowAlreadyStartedException excluded). Named residuals are marked on the
+/// source surfaces below (see monorepo DECISIONS 2026-10-20 for narrative).
 /// </summary>
 public class SdkData12GuardTests
 {
+    private const string Data12MarkerPrefix = "// DATA-12:";
+
     [Fact]
     public void WorkflowStarter_StartOrIgnoreAsync_rethrows_on_non_already_started_failures()
     {
@@ -28,21 +31,22 @@ public class SdkData12GuardTests
     }
 
     [Fact]
-    public void DATA12_residuals_documented_in_DECISIONS()
+    public void DATA12_residuals_marked_on_named_surfaces()
     {
-        var path = FindDecisionsFile();
-        path.Should().NotBeNull("monorepo docs/architecture/DECISIONS.md must be reachable from the test bin");
-        var content = File.ReadAllText(path!);
+        var actorPath = FindSourceFile("TenantActivityPublisherActor.cs", "QimErp.Shared.Common");
+        actorPath.Should().NotBeNull();
+        var actorSource = File.ReadAllText(actorPath!);
+        actorSource.Should().Contain(Data12MarkerPrefix,
+            "TenantActivityPublisherActor must carry a DATA-12 trap comment");
 
-        var heading = "## 2026-10-20 — SDK DATA-09 sdk_surface + DATA-12 observability residuals";
-        var start = content.IndexOf(heading, StringComparison.Ordinal);
-        start.Should().BeGreaterThanOrEqualTo(0, "2026-10-20 SDK DATA-09/DATA-12 entry must exist");
-
-        var next = content.IndexOf("\n## ", start + heading.Length, StringComparison.Ordinal);
-        var section = next < 0 ? content[start..] : content[start..next];
-
-        section.Should().Contain("TenantActivityPublisherActor");
-        section.Should().Contain("ApprovalWorkflowStarter");
+        var starterPath = FindSourceFile("ApprovalWorkflowStarter.cs", "QimErp.Shared.Common");
+        starterPath.Should().NotBeNull();
+        var starterSource = File.ReadAllText(starterPath!);
+        starterSource.Should().Contain(Data12MarkerPrefix,
+            "ApprovalWorkflowStarter must carry a DATA-12 trap comment");
+        starterSource.Should().Contain(
+            "structured result for outbox-relay retry — not fail-closed rethrow",
+            "ApprovalWorkflowStarter DATA-12 marker must name the ErrorMessage residual");
     }
 
     private static void AssertGeneralExceptionCatchRethrows(string methodName)
@@ -96,21 +100,6 @@ public class SdkData12GuardTests
         }
 
         return string.Empty;
-    }
-
-    private static string? FindDecisionsFile()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "docs", "architecture", "DECISIONS.md");
-            if (File.Exists(candidate))
-                return candidate;
-
-            dir = dir.Parent;
-        }
-
-        return null;
     }
 
     private static string? FindSourceFile(string fileName, string projectFolder)

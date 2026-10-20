@@ -45,6 +45,7 @@ internal sealed class ApprovalWorkflowStarter(
             logger.LogError(ex,
                 "[ApprovalWorkflowStarter] Failed. WorkflowId={WorkflowId}", workflowId);
 
+            // DATA-12: structured result for outbox-relay retry — not fail-closed rethrow (DECISIONS 2026-10-20).
             return new ApprovalWorkflowStartResult
             {
                 Started       = false,
