@@ -31,6 +31,7 @@ internal sealed class EfOutbox(
     public void Add(string eventType, string tenantId, Guid entityId, long entityVersion, object payload)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         ArgumentNullException.ThrowIfNull(payload);
 
         var now = clock.GetUtcNow();

@@ -22,6 +22,12 @@ public sealed class EmployeeSyncProjectionClient(
     };
 
     public async Task<EmployeeSyncProjection?> GetAsync(Guid employeeId, CancellationToken cancellationToken = default)
+        => await GetProjectionAsync(employeeId, "sync-projection", cancellationToken);
+
+    public async Task<string?> GetDeletionEmailAsync(Guid employeeId, CancellationToken cancellationToken = default)
+        => (await GetProjectionAsync(employeeId, "deletion-identity", cancellationToken))?.Email;
+
+    private async Task<EmployeeSyncProjection?> GetProjectionAsync(Guid employeeId, string resource, CancellationToken cancellationToken)
     {
         var baseUrl = configuration["People:BaseUrl"];
         if (string.IsNullOrWhiteSpace(baseUrl))
@@ -50,7 +56,7 @@ public sealed class EmployeeSyncProjectionClient(
         client.DefaultRequestHeaders.Add("X-Internal-Api-Key", apiKey);
 
         var path =
-            $"internal/employees/{employeeId:D}/sync-projection?tenantId={Uri.EscapeDataString(tenantId.Trim())}";
+            $"internal/employees/{employeeId:D}/{resource}?tenantId={Uri.EscapeDataString(tenantId.Trim())}";
         var response = await client.GetAsync(path, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             return null;

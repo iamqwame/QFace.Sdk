@@ -12,6 +12,22 @@ namespace QimErp.Shared.Common.Tests.Outbox;
 
 public class TransactionalOutboxTests
 {
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Missing_tenant_is_rejected_before_tracking_outbox_rows(string tenantId)
+    {
+        using var provider = BuildProvider(out _);
+        using var scope = provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<TestApplicationDbContext>();
+        var outbox = scope.ServiceProvider.GetRequiredService<IOutbox>();
+
+        Action enqueue = () => outbox.Add("SampleDomainEvent", tenantId, Guid.CreateVersion7(), 0, new { });
+
+        enqueue.Should().Throw<ArgumentException>();
+        db.ChangeTracker.Entries<OutboxMessage>().Should().BeEmpty();
+    }
+
     private sealed class SampleDomainEvent : DomainEvent
     {
         public Guid EntityId { get; set; }

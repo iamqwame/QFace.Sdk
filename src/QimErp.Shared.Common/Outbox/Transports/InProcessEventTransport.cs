@@ -19,6 +19,7 @@ internal sealed class InProcessEventTransport(
 
     public async Task SendAsync(EventEnvelope envelope, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(envelope.TenantId);
         using var scope = scopes.CreateScope();
         var publisher = scope.ServiceProvider.GetService<IPublisher>();
         if (publisher is null)
@@ -28,8 +29,20 @@ internal sealed class InProcessEventTransport(
                 "before using the in-process outbox transport.");
         }
 
-        var notification = ResolveNotification(scope.ServiceProvider, envelope);
-        await publisher.Publish(notification, cancellationToken);
+        var tenantScope = scope.ServiceProvider.GetService<QFace.Sdk.Temporal.Interceptors.ITenantScopeSetter>();
+        var userContext = scope.ServiceProvider.GetService<ICurrentUserService>();
+        tenantScope?.SetTenantScope(envelope.TenantId);
+        userContext?.SetContext(envelope.TenantId, "outbox-relay@system", "Outbox Relay", "system");
+        try
+        {
+            var notification = ResolveNotification(scope.ServiceProvider, envelope);
+            await publisher.Publish(notification, cancellationToken);
+        }
+        finally
+        {
+            userContext?.ClearContext();
+            tenantScope?.ClearTenantScope();
+        }
 
         logger.LogDebug(
             "In-process outbox delivery. EventType={EventType}, OutboxId={OutboxId}, EntityId={EntityId}",

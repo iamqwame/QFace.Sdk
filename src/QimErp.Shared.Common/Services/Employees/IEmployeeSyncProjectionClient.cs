@@ -9,4 +9,7 @@ namespace QimErp.Shared.Common.Services.Employees;
 public interface IEmployeeSyncProjectionClient
 {
     Task<EmployeeSyncProjection?> GetAsync(Guid employeeId, CancellationToken cancellationToken = default);
+
+    Task<string?> GetDeletionEmailAsync(Guid employeeId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("Employee deletion identity lookup is not implemented.");
 }

@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using QFace.Sdk.Temporal.Options;
@@ -11,7 +13,7 @@ namespace QimErp.Shared.Common.Outbox.Transports;
 
 /// <summary>
 /// Level-S default bus: starts a Temporal workflow with a deterministic Id
-/// (<c>{EventType}-{EntityId}-v{EntityVersion}</c>). Duplicate starts are treated as success.
+/// scoped by tenant, entity and persisted event identity. Duplicate starts are treated as success.
 /// Workflow approval triggers use <see cref="IOutboxTemporalHandler"/> when registered.
 /// </summary>
 internal sealed class TemporalEventTransport(
@@ -23,9 +25,26 @@ internal sealed class TemporalEventTransport(
 
     public async Task SendAsync(EventEnvelope envelope, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(envelope.TenantId);
         using var scope = scopes.CreateScope();
         var sp = scope.ServiceProvider;
+        var tenantScope = sp.GetService<QFace.Sdk.Temporal.Interceptors.ITenantScopeSetter>();
+        var userContext = sp.GetService<ICurrentUserService>();
+        try
+        {
+            tenantScope?.SetTenantScope(envelope.TenantId);
+            userContext?.SetContext(envelope.TenantId, "outbox-relay@system", "Outbox Relay", "system");
+            await DispatchAsync(envelope, sp, cancellationToken);
+        }
+        finally
+        {
+            userContext?.ClearContext();
+            tenantScope?.ClearTenantScope();
+        }
+    }
 
+    private async Task DispatchAsync(EventEnvelope envelope, IServiceProvider sp, CancellationToken cancellationToken)
+    {
         var handlers = sp.GetServices<IOutboxTemporalHandler>().ToList();
         foreach (var handler in handlers)
         {
@@ -50,8 +69,12 @@ internal sealed class TemporalEventTransport(
                          "ITemporalClient is not registered. Call AddTemporalWorkflow / AddTemporalClient.");
 
         var taskQueue = ResolveTaskQueue(sp, route.TaskQueue);
+        var tenantKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(envelope.TenantId)));
+        var eventId = envelope.EventId != Guid.Empty ? envelope.EventId : envelope.OutboxId;
+        if (eventId == Guid.Empty)
+            throw new ArgumentException("A persisted event or outbox identity is required.", nameof(envelope));
         var workflowId =
-            $"{envelope.EventType}-{envelope.EntityId}-v{envelope.EntityVersion}".ToLowerInvariant();
+            $"{tenantKey}-{envelope.EventType}-{envelope.EntityId}-v{envelope.EntityVersion}-{eventId:N}";
 
         IReadOnlyCollection<object> args = [envelope.Payload];
 

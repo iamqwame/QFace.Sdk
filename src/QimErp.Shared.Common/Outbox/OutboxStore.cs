@@ -25,8 +25,8 @@ public sealed class OutboxStore(DbContext db, ILogger<OutboxStore> logger)
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex,
-                    "PostgreSQL outbox claim failed; falling back to LINQ claim. Node={Node}", node);
+                logger.LogError(ex, "PostgreSQL outbox claim failed. Node={Node}", node);
+                throw;
             }
         }
 
