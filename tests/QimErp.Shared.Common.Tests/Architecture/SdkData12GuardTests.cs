@@ -3,11 +3,6 @@ using Xunit;
 
 namespace QimErp.Shared.Common.Tests.Architecture;
 
-/// <summary>
-/// DATA-12: SDK <c>WorkflowStarter</c> fail-closed rethrow on start failures
-/// (WorkflowAlreadyStartedException excluded). Named residuals are marked on the
-/// source surfaces below (see monorepo DECISIONS 2026-10-20 for narrative).
-/// </summary>
 public class SdkData12GuardTests
 {
     private const string Data12MarkerPrefix = "// DATA-12:";

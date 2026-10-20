@@ -3,10 +3,6 @@ using Xunit;
 
 namespace QimErp.Shared.Common.Tests.Architecture;
 
-/// <summary>
-/// DATA-09: SDK durable outbox Appendix-1 shape and SaveChanges → outbox (not Temporal) hand-off.
-/// Behaviour coverage: <c>OutboxWorkflowBridgeTests</c>; migration guide: <c>docs/outbox-data-09.md</c>.
-/// </summary>
 public class OutboxData09SdkGuardTests
 {
     [Fact]
@@ -41,6 +37,7 @@ public class OutboxData09SdkGuardTests
         var content = File.ReadAllText(path!);
 
         content.Should().Contain("OutboxMessages");
+        content.Should().Contain("Transport");
         content.Should().Contain("ix_outbox_ready");
         content.Should().Contain("ProcessedAt");
         content.Should().Contain("DeadAt");
