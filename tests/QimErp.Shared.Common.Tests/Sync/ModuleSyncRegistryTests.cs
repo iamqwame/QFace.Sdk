@@ -113,17 +113,24 @@ public class ModuleSyncRegistryTests
     }
 
     [Fact]
-    public void FilterByInstalled_PersonErasure_CoreHrBeachhead()
+    public void FilterByInstalled_PersonErasure_CoreHrAndCashManagement()
     {
         ModuleSyncRegistry.GetRuntimeSubscribers(SyncType.PersonErasure)
-            .Should().ContainSingle(s => s.ModuleKey == ModuleKeys.CoreHR);
+            .Select(s => s.ModuleKey)
+            .Should().BeEquivalentTo([ModuleKeys.CoreHR, ModuleKeys.CashManagement]);
 
         var subscribers = ModuleSyncRegistry.FilterByInstalled(
             SyncType.PersonErasure,
-            [ModuleKeys.CoreHR]);
-        subscribers.Should().ContainSingle(s => s.ModuleKey == ModuleKeys.CoreHR);
-        subscribers[0].TaskQueue.Should().Be(ModuleSyncWorkflowQueues.PersonErasureParent);
-        subscribers[0].ActivitySuffix.Should().Be("CoreHR");
+            [ModuleKeys.CoreHR, ModuleKeys.CashManagement]);
+        subscribers.Should().HaveCount(2);
+        subscribers.Should().Contain(s =>
+            s.ModuleKey == ModuleKeys.CoreHR
+            && s.TaskQueue == ModuleSyncWorkflowQueues.PersonErasureParent
+            && s.ActivitySuffix == "CoreHR");
+        subscribers.Should().Contain(s =>
+            s.ModuleKey == ModuleKeys.CashManagement
+            && s.TaskQueue == "qimerp-accounting-cash-management-employee-sync"
+            && s.ActivitySuffix == "CashManagement");
     }
 
     [Fact]

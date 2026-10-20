@@ -185,5 +185,23 @@ public abstract class EmployeeBase : GuidAuditableEntity
         base.Deactivate();
         return this;
     }
+
+    /// <summary>DATA-23: clear identifying fields; keep Id for decided-record integrity.</summary>
+    public EmployeeBase Pseudonymise()
+    {
+        var label = $"Former employee {Id.ToString()[..8]}";
+        FirstName = label;
+        LastName = string.Empty;
+        MiddleName = null;
+        Email = null;
+        ProfilePicture = null;
+        Gender = null;
+        CurrentSupervisorName = null;
+        CurrentSupervisorCode = null;
+        CurrentSupervisorTitle = null;
+        CurrentSupervisorEmail = null;
+        CurrentSupervisorPhone = null;
+        return this;
+    }
 }
 

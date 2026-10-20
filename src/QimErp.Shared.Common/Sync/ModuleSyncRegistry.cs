@@ -284,6 +284,8 @@ public static class ModuleSyncRegistry
         new(SyncType.Vendor, ModuleKeys.Inventory, "qimerp-inventory-vendor-sync", "Inventory"),
 
         new(SyncType.PersonErasure, ModuleKeys.CoreHR, ModuleSyncWorkflowQueues.PersonErasureParent, "CoreHR"),
+        // DATA-23: CashManagement local Employee copy participates in PersonErasure fan-out.
+        new(SyncType.PersonErasure, ModuleKeys.CashManagement, "qimerp-accounting-cash-management-employee-sync", "CashManagement"),
     ];
 
     private static readonly Dictionary<string, ModuleSyncDefinition> ByItemKey =
