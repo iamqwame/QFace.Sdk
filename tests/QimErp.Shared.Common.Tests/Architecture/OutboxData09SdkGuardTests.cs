@@ -16,6 +16,7 @@ public class OutboxData09SdkGuardTests
         path.Should().NotBeNull();
         var content = File.ReadAllText(path!);
 
+        content.Should().Contain("Id");
         content.Should().Contain("TenantId");
         content.Should().Contain("EventType");
         content.Should().Contain("Transport");
@@ -69,7 +70,9 @@ public class OutboxData09SdkGuardTests
         content.Should().NotContain("StartWorkflowAsync");
         content.Should().NotContain("ITemporalClient");
         content.Should().NotContain("SignalWithStartAsync");
-        content.Should().Contain("IOutbox");
+        content.Should().Contain("GetService<IOutbox>()");
+        content.Should().Contain("PersistCapturedEventsToOutbox");
+        content.Should().Contain("IOutbox is not registered");
     }
 
     [Fact]
@@ -80,6 +83,7 @@ public class OutboxData09SdkGuardTests
         var content = File.ReadAllText(path!);
 
         content.Should().Contain("AddDbContextWithOutbox");
+        content.Should().Contain("AddTransactionalOutbox");
     }
 
     private static string? FindSourceFile(string fileName, string projectFolder)
