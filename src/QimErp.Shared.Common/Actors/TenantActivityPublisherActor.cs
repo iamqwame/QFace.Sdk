@@ -32,6 +32,7 @@ public class TenantActivityPublisherActor : BaseActor
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                // DATA-12: observability fire-and-forget — failure must not fail the caller (DECISIONS 2026-10-20).
                 logger.LogWarning(ex,
                     "Failed to start tenant activity workflow {WorkflowId} for tenant {TenantId}",
                     message.WorkflowId,
