@@ -8,7 +8,7 @@ namespace QimErp.Shared.Common.Sync;
 /// <list type="bullet">
 /// <item><b>IAM</b> — <see cref="SyncType.Employee"/> subscriber with <c>RequiresModuleSelection=false</c>; invitation/password flags only.</item>
 /// <item><b>TenantBilling</b> — employee seat count; always runs when employee sync fires.</item>
-/// <item><b>Workflow</b> — actor sync when <see cref="ModuleKeys.Workflow"/> is selected; handled in <c>EmployeeSyncWorkflow</c>, not this table.</item>
+/// <item><b>Workflow</b> — <see cref="SyncType.Employee"/> actor sync when selected is handled in <c>EmployeeSyncWorkflow</c>; <see cref="SyncType.PersonErasure"/> fans out via this table.</item>
 /// </list>
 /// Cross-module business events (AP↔Inventory, AR↔Project) stay on dedicated per-contract workflows — not install fan-out.
 /// </summary>
@@ -284,9 +284,10 @@ public static class ModuleSyncRegistry
         new(SyncType.Vendor, ModuleKeys.Inventory, "qimerp-inventory-vendor-sync", "Inventory"),
 
         new(SyncType.PersonErasure, ModuleKeys.CoreHR, ModuleSyncWorkflowQueues.PersonErasureParent, "CoreHR"),
-        // DATA-23: CashManagement local Employee copy participates in PersonErasure fan-out.
         new(SyncType.PersonErasure, ModuleKeys.CashManagement, "qimerp-accounting-cash-management-employee-sync", "CashManagement"),
-        // DATA-23: IAM always receives PersonErasure (account identity pseudonymisation).
+        new(SyncType.PersonErasure, ModuleKeys.Workflow, "qimerp-platform-workflow-actor-sync", "Workflow"),
+        new(SyncType.PersonErasure, ModuleKeys.Leave, "qimerp-leave-employee-sync", "Leave"),
+        new(SyncType.PersonErasure, ModuleKeys.Payroll, "qimerp-payroll-employee-sync", "Payroll"),
         new(SyncType.PersonErasure, null, "qimerp-iam-employee-sync", "IAM", RequiresModuleSelection: false),
     ];
 

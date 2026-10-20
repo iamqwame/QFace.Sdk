@@ -113,17 +113,26 @@ public class ModuleSyncRegistryTests
     }
 
     [Fact]
-    public void FilterByInstalled_PersonErasure_includes_CoreHr_CashManagement_and_IAM()
+    public void FilterByInstalled_PersonErasure_includes_CoreHr_CashManagement_Workflow_Leave_Payroll_and_IAM()
     {
         var runtime = ModuleSyncRegistry.GetRuntimeSubscribers(SyncType.PersonErasure);
         runtime.Should().Contain(s => s.ModuleKey == ModuleKeys.CoreHR);
         runtime.Should().Contain(s => s.ModuleKey == ModuleKeys.CashManagement);
+        runtime.Should().Contain(s => s.ModuleKey == ModuleKeys.Workflow);
+        runtime.Should().Contain(s => s.ModuleKey == ModuleKeys.Leave);
+        runtime.Should().Contain(s => s.ModuleKey == ModuleKeys.Payroll);
         runtime.Should().Contain(s => s.ActivitySuffix == "IAM" && !s.RequiresModuleSelection);
 
         var subscribers = ModuleSyncRegistry.FilterByInstalled(
             SyncType.PersonErasure,
-            [ModuleKeys.CoreHR, ModuleKeys.CashManagement]);
-        subscribers.Should().HaveCount(3);
+            [
+                ModuleKeys.CoreHR,
+                ModuleKeys.CashManagement,
+                ModuleKeys.Workflow,
+                ModuleKeys.Leave,
+                ModuleKeys.Payroll,
+            ]);
+        subscribers.Should().HaveCount(6);
         subscribers.Should().Contain(s =>
             s.ModuleKey == ModuleKeys.CoreHR
             && s.TaskQueue == ModuleSyncWorkflowQueues.PersonErasureParent
@@ -132,6 +141,18 @@ public class ModuleSyncRegistryTests
             s.ModuleKey == ModuleKeys.CashManagement
             && s.TaskQueue == "qimerp-accounting-cash-management-employee-sync"
             && s.ActivitySuffix == "CashManagement");
+        subscribers.Should().Contain(s =>
+            s.ModuleKey == ModuleKeys.Workflow
+            && s.TaskQueue == "qimerp-platform-workflow-actor-sync"
+            && s.ActivitySuffix == "Workflow");
+        subscribers.Should().Contain(s =>
+            s.ModuleKey == ModuleKeys.Leave
+            && s.TaskQueue == "qimerp-leave-employee-sync"
+            && s.ActivitySuffix == "Leave");
+        subscribers.Should().Contain(s =>
+            s.ModuleKey == ModuleKeys.Payroll
+            && s.TaskQueue == "qimerp-payroll-employee-sync"
+            && s.ActivitySuffix == "Payroll");
         subscribers.Should().Contain(s =>
             s.ActivitySuffix == "IAM"
             && s.TaskQueue == "qimerp-iam-employee-sync"
