@@ -20,6 +20,8 @@ public class TaxationShared : GuidAuditableEntity
     public string LegalNotes { get; set; } = string.Empty;
     public string IncludedInPrice { get; set; } = string.Empty;
     public bool AffectsSubsequentTaxes { get; set; } // Defaults to false
+    public DateOnly? ValidFrom { get; set; }
+    public DateOnly? ValidTo { get; set; }
 
     // Public read-only access to distributions
     public IReadOnlyList<TaxDistributionLineShared> InvoiceDistributions => _invoiceDistributions.AsReadOnly();
@@ -123,6 +125,36 @@ public class TaxationShared : GuidAuditableEntity
         return this;
     }
 
+    public TaxationShared WithValidFrom(DateOnly? validFrom)
+    {
+        ValidFrom = validFrom;
+        return this;
+    }
+
+    public TaxationShared WithValidTo(DateOnly? validTo)
+    {
+        ValidTo = validTo;
+        return this;
+    }
+
+    public bool AppliesOn(DateOnly documentDate)
+    {
+        if (!IsActive)
+            return false;
+
+        if (ValidFrom is { } from && ValidTo is { } to && from > to)
+            return false;
+
+        if (ValidFrom is { } validFrom && documentDate < validFrom)
+            return false;
+
+        // ValidTo is inclusive.
+        if (ValidTo is { } validTo && documentDate > validTo)
+            return false;
+
+        return true;
+    }
+
     public TaxationShared AddInvoiceDistribution(string baseOn, decimal? percentage, string taxGrid, string? accountId,
         string? accountName, string? accountCode = "")
     {
@@ -185,6 +217,7 @@ public class TaxationShared : GuidAuditableEntity
                 .WithTaxGroup("COVID")
                 .WithSequence(3)
                 .WithDescription("COVID-19 Health Recovery Levy at 1%")
+                .WithValidTo(new DateOnly(2025, 12, 31))
                 .AddDistribution("20304", "COVID Health Recovery Levy Payable"),
 
             Create("CST", 5m)
@@ -234,6 +267,7 @@ public class TaxationShared : GuidAuditableEntity
                 .WithTaxGroup("COVID")
                 .WithSequence(7)
                 .WithDescription("Input COVID-19 Health Recovery Levy at 1%")
+                .WithValidTo(new DateOnly(2025, 12, 31))
                 .AddDistribution("50700", "Purchase Tax"),
 
             Create("CST (Purchase)", 5m)

@@ -53,6 +53,25 @@ public class WorkflowInterceptorE2ETests
     }
 
     [Fact]
+    public async Task StatusChangedOutboxRow_CarriesResolvedTenant()
+    {
+        await using var harness = CreateHarness();
+        harness.ConfigCache.SetConfig(ModuleName, CreateConfig(enableCreate: true, createCode: "CREATE-WF"));
+        harness.DefinitionProvider.SetDefinition("CREATE-WF", ActiveDefinition("CREATE-STEP"));
+
+        var entity = NewEntity();
+        harness.Context.Add(entity);
+        await harness.Context.SaveChangesAsync();
+
+        var status = await harness.Context.OutboxMessages
+            .Where(r => r.EventType == nameof(WorkflowStatusChangedEvent))
+            .ToListAsync();
+
+        status.Should().ContainSingle();
+        status[0].TenantId.Should().Be(TenantId);
+    }
+
+    [Fact]
     public async Task E2E2_UpdateRouteA_MatchesAmountField()
     {
         await using var harness = CreateHarness();

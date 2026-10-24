@@ -789,7 +789,8 @@ public class AuditEntitySaveChangesInterceptor(
                 Comments = entity.WorkflowComments,
                 ChangedBy = currentUser,
                 Module = moduleName,
-                EntityData = GetEntityData(entry)
+                EntityData = GetEntityData(entry),
+                TenantId = ResolveTenantIdForEntity(entity)
             };
 
             events.Add(statusChangeEvent);
@@ -972,7 +973,8 @@ public class AuditEntitySaveChangesInterceptor(
                     CompletedBy = currentUser,
                     Comments = entity.WorkflowComments,
                     Module = moduleName,
-                    EntityData = GetEntityData(entry)
+                    EntityData = GetEntityData(entry),
+                    TenantId = ResolveTenantIdForEntity(entity)
                 });
             }
         }
@@ -996,7 +998,12 @@ public class AuditEntitySaveChangesInterceptor(
                 var entityId = OutboxEntityId.FromEntity(entry.Entity);
                 var version = OutboxEntityId.ReadVersion(entry.Entity);
                 foreach (var domainEvent in domainEvents)
+                {
+                    // The event is built before SaveChanges stamps the row.
+                    if (domainEvent is DomainEvent settable && string.IsNullOrWhiteSpace(settable.TenantId))
+                        settable.TenantId = entry.Entity.TenantId;
                     domainOutbox.Add(domainEvent, entityId, version);
+                }
 
                 logger.LogDebug(
                     "Enqueued {EventCount} domain event(s) from {EntityType} to OutboxMessages",
