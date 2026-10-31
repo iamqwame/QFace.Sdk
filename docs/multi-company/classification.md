@@ -92,7 +92,7 @@ violate the new constraint.
 | `TaxStatutory` | TenantId, CertificateNumber | WIDEN |
 | `TaxStatutory` | TenantId, Code | WIDEN |
 
-#### QimErp.Accounting — 30 sites   ☐ signed off by ______
+#### QimErp.Finance — 30 sites   ☐ signed off by ______
 
 | Entity | Columns | Default |
 |---|---|---|

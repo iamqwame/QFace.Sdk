@@ -4,13 +4,13 @@ namespace QimErp.Shared.Common.Sync;
 public static class ModuleSyncWorkflowQueues
 {
     public const string EmployeeSyncParent = "qimerp-corehr-employee-sync";
-    public const string GlReferenceDataSyncParent = "qimerp-accounting-gl-reference-sync";
+    public const string GlReferenceDataSyncParent = "qimerp-finance-gl-reference-sync";
     public const string AssignmentChangedParent = "qimerp-corehr-assignment-changed";
-    public const string JournalEntryPostedParent = "qimerp-accounting-journal-entry-posted-sync";
+    public const string JournalEntryPostedParent = "qimerp-finance-journal-entry-posted-sync";
     public const string TenantReferenceSyncParent = "qimerp-iam-tenant-reference-sync";
-    public const string StockIssueSyncParent = "qimerp-accounting-ar-stock-issue-sync";
-    public const string CustomerSyncParent = "qimerp-accounting-ar-customer-sync";
-    public const string VendorSyncParent = "qimerp-accounting-ap-vendor-sync";
+    public const string StockIssueSyncParent = "qimerp-finance-ar-stock-issue-sync";
+    public const string CustomerSyncParent = "qimerp-finance-ar-customer-sync";
+    public const string VendorSyncParent = "qimerp-finance-ap-vendor-sync";
     public const string PersonErasureParent = "qimerp-corehr-person-erasure";
 
     public static string Suffix(string parentQueueBase, string? currentQueue) =>

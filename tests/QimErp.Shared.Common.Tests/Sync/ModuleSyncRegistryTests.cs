@@ -30,7 +30,7 @@ public class ModuleSyncRegistryTests
             [ModuleKeys.CoreAccounting, ModuleKeys.CashManagement]);
         withCash.Should().Contain(s => s.ModuleKey == ModuleKeys.CashManagement);
         withCash.Should().Contain(s =>
-            s.TaskQueue == "qimerp-accounting-cash-management-employee-sync"
+            s.TaskQueue == "qimerp-finance-cash-management-employee-sync"
             && s.ActivitySuffix == "CashManagement");
 
         var withoutCash = ModuleSyncRegistry.FilterByInstalled(
@@ -139,7 +139,7 @@ public class ModuleSyncRegistryTests
             && s.ActivitySuffix == "CoreHR");
         subscribers.Should().Contain(s =>
             s.ModuleKey == ModuleKeys.CashManagement
-            && s.TaskQueue == "qimerp-accounting-cash-management-employee-sync"
+            && s.TaskQueue == "qimerp-finance-cash-management-employee-sync"
             && s.ActivitySuffix == "CashManagement");
         subscribers.Should().Contain(s =>
             s.ModuleKey == ModuleKeys.Workflow
