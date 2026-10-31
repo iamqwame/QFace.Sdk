@@ -131,6 +131,50 @@ public static class EmailTemplateCatalog
         ["FirstName", "ItemName", "ItemTypeLabel", "ItemInitial", "PriceLabel"],
         ["Link", "Portal", "InstalledByName"]);
 
+    // ── Support desk ──────────────────────────────────────────────────────────
+
+    public static readonly EmailTemplateDefinition SupportTicketCreated = new(
+        "support-ticket-created",
+        ["FirstName", "TicketNumber", "Subject", "Module", "Priority", "TenantDomain"],
+        []);
+
+    public static readonly EmailTemplateDefinition SupportTicketReply = new(
+        "support-ticket-reply",
+        ["FirstName", "TicketNumber", "Subject", "TenantDomain"],
+        []);
+
+    public static readonly EmailTemplateDefinition SupportTicketResolved = new(
+        "support-ticket-resolved",
+        ["FirstName", "TicketNumber", "Subject", "TenantDomain"],
+        []);
+
+    public static readonly EmailTemplateDefinition SupportTicketSlaBreach = new(
+        "support-ticket-sla-breach",
+        ["FirstName", "TicketNumber", "Subject", "TenantName", "Priority", "Module", "BreachKind", "DueAt"],
+        []);
+
+    public static readonly EmailTemplateDefinition SupportTicketAssigned = new(
+        "support-ticket-assigned",
+        ["FirstName", "TicketNumber", "Subject", "TenantName", "Priority", "Module"],
+        []);
+
+    public static readonly EmailTemplateDefinition SupportTicketQueued = new(
+        "support-ticket-queued",
+        ["TicketNumber", "Subject", "TenantName", "Priority", "Module"],
+        []);
+
+    // ── Tenant onboarding ─────────────────────────────────────────────────────
+
+    public static readonly EmailTemplateDefinition TenantApproved = new(
+        "tenant-approved",
+        ["FirstName", "Company", "LoginUrl"],
+        []);
+
+    public static readonly EmailTemplateDefinition TenantRejected = new(
+        "tenant-rejected",
+        ["FirstName", "Company", "Reason"],
+        []);
+
     public static IReadOnlyDictionary<string, EmailTemplateDefinition> All => AllLazy.Value;
 
     private static readonly Lazy<IReadOnlyDictionary<string, EmailTemplateDefinition>> AllLazy = new(() =>
@@ -159,6 +203,14 @@ public static class EmailTemplateCatalog
             ["password-reset-confirmation"] = PasswordResetConfirmation,
             ["login-success"]               = LoginSuccess,
             ["app-store-item-installed"]    = AppStoreItemInstalled,
+            ["support-ticket-created"]      = SupportTicketCreated,
+            ["support-ticket-reply"]        = SupportTicketReply,
+            ["support-ticket-resolved"]     = SupportTicketResolved,
+            ["support-ticket-sla-breach"]   = SupportTicketSlaBreach,
+            ["support-ticket-assigned"]     = SupportTicketAssigned,
+            ["support-ticket-queued"]       = SupportTicketQueued,
+            ["tenant-approved"]             = TenantApproved,
+            ["tenant-rejected"]             = TenantRejected,
         });
 
     public static EmailTemplateDefinition? TryGet(string templateCode) =>

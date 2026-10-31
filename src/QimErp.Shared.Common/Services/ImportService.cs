@@ -252,7 +252,7 @@ public abstract class ImportService<TContext> : IImportService
     {
         try
         {
-            var import = await Imports.FindAsync([importId], cancellationToken);
+            var import = await Imports.FirstOrDefaultAsync(i => i.Id == importId, cancellationToken);
             if (import == null)
             {
                 return null;

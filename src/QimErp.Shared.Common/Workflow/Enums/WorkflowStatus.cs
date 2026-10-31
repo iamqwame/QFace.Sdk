@@ -8,7 +8,8 @@ public enum WorkflowStatus
     Rejected = 3,
     OnHold = 4,
     Cancelled = 5,
-    Returned = 6
+    Returned = 6,
+    TimedOut = 7
 }
 
 

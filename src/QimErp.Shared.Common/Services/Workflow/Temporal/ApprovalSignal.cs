@@ -21,4 +21,6 @@ public class ApprovalSignal
     public string? ApprovedByImage { get; set; }
     public string Comments { get; set; } = "";
     public DateTime ActedAt { get; set; } = DateTime.UtcNow;
+    public string? OnBehalfOfEmployeeId { get; set; }
+    public string? OnBehalfOfName { get; set; }
 }

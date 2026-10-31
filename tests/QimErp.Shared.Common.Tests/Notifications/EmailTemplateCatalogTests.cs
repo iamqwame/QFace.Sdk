@@ -19,7 +19,7 @@ public class EmailTemplateCatalogTests
     [Fact]
     public void Catalog_ShouldContainAllExpectedTemplates()
     {
-        EmailTemplateCatalog.All.Should().HaveCount(23);
+        EmailTemplateCatalog.All.Should().HaveCount(31);
     }
 
     [Fact]

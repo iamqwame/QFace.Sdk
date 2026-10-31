@@ -745,7 +745,6 @@ public class AuditEntitySaveChangesInterceptor(
         if (string.IsNullOrWhiteSpace(currentUser))
             currentUser = "system";
         var tenantId = userContextService?.GetTenantId() ?? string.Empty;
-        string moduleName = GetModuleFromConfiguration();
 
         List<EntityEntry<IWorkflowEnabled>> statusChanges = context.ChangeTracker.Entries<IWorkflowEnabled>()
             .Where(e => e.State is EntityState.Added or EntityState.Modified && e.Entity.IsWorkflowEnabled)
@@ -788,7 +787,7 @@ public class AuditEntitySaveChangesInterceptor(
                 NewStatus = newStatus,
                 Comments = entity.WorkflowComments,
                 ChangedBy = currentUser,
-                Module = moduleName,
+                Module = GetModuleFor(entity),
                 EntityData = GetEntityData(entry),
                 TenantId = ResolveTenantIdForEntity(entity)
             };
@@ -909,7 +908,7 @@ public class AuditEntitySaveChangesInterceptor(
                     WorkflowId = workflowHistoryId,
                     RequiredApprovalLevel = null,
                     InitiatedBy = userContextService?.GetUserEmail() ?? currentUser,
-                    Module = moduleName,
+                    Module = GetModuleFor(entity),
                     EntityData = GetEntityData(entry),
                     TenantId = resolvedTenantId,
                     TriggeredBy = currentUser,
@@ -972,7 +971,7 @@ public class AuditEntitySaveChangesInterceptor(
                     FinalStatus = newStatus,
                     CompletedBy = currentUser,
                     Comments = entity.WorkflowComments,
-                    Module = moduleName,
+                    Module = GetModuleFor(entity),
                     EntityData = GetEntityData(entry),
                     TenantId = ResolveTenantIdForEntity(entity)
                 });
@@ -1000,9 +999,15 @@ public class AuditEntitySaveChangesInterceptor(
                 foreach (var domainEvent in domainEvents)
                 {
                     // The event is built before SaveChanges stamps the row.
-                    if (domainEvent is DomainEvent settable && string.IsNullOrWhiteSpace(settable.TenantId))
-                        settable.TenantId = entry.Entity.TenantId;
-                    domainOutbox.Add(domainEvent, entityId, version);
+                    var stamped = domainEvent;
+                    if (string.IsNullOrWhiteSpace(stamped.TenantId))
+                    {
+                        if (stamped is DomainEvent settable)
+                            settable.TenantId = entry.Entity.TenantId;
+                        else if (stamped is BaseDomainEvent baseEvent)
+                            stamped = baseEvent with { TenantId = entry.Entity.TenantId };
+                    }
+                    domainOutbox.Add(stamped, entityId, version);
                 }
 
                 logger.LogDebug(
@@ -1087,7 +1092,7 @@ public class AuditEntitySaveChangesInterceptor(
 
             if (string.IsNullOrWhiteSpace(workflowCode))
             {
-                var module = GetModuleFromConfiguration();
+                var module = GetModuleFor(entity);
                 if (string.IsNullOrWhiteSpace(module))
                 {
                     logger.LogWarning("Module not configured in appsettings. Skipping workflow configuration lookup for {EntityType}", entity.EntityType);
@@ -1273,7 +1278,7 @@ public class AuditEntitySaveChangesInterceptor(
                 logger.LogDebug("Published workflow definition not found. Falling back to ShouldTriggerWorkflow check for {EntityType} {Operation}",
                     entity.EntityType, operation);
 
-                var module = GetModuleFromConfiguration();
+                var module = GetModuleFor(entity);
                 if (string.IsNullOrWhiteSpace(module))
                 {
                     logger.LogWarning("Module not configured. Cannot check ShouldTriggerWorkflow for {EntityType}", entity.EntityType);
@@ -1487,6 +1492,8 @@ public class AuditEntitySaveChangesInterceptor(
     }
 
     protected virtual string GetModuleName() => GetModuleFromConfiguration();
+
+    protected virtual string GetModuleFor(IWorkflowEnabled entity) => GetModuleFromConfiguration();
 
     protected virtual string GetEntityId(IWorkflowEnabled entity) =>
         entity.GetType().GetProperty("Id")?.GetValue(entity)?.ToString() ?? "";
