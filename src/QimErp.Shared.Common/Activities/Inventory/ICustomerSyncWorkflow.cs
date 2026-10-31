@@ -4,7 +4,7 @@ namespace QimErp.Shared.Common.Activities.Inventory;
 
 /// <summary>
 /// Started by AR when a customer is created, updated, or deleted.
-/// Task queue: <c>qimerp-accounting-ar-customer-sync</c>.
+/// Task queue: <c>qimerp-finance-ar-customer-sync</c>.
 /// </summary>
 [Workflow("CustomerSyncWorkflow")]
 public interface ICustomerSyncWorkflow

@@ -4,7 +4,7 @@ namespace QimErp.Shared.Common.Activities.Inventory;
 
 /// <summary>
 /// Started by AR when a sale order is created. Fans out to Inventory reservation workers.
-/// Task queue: <c>qimerp-accounting-ar-stock-reservation-sync</c>.
+/// Task queue: <c>qimerp-finance-ar-stock-reservation-sync</c>.
 /// </summary>
 [Workflow("StockReservationSyncWorkflow")]
 public interface IStockReservationSyncWorkflow

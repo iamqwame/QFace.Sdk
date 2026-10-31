@@ -4,7 +4,7 @@ namespace QimErp.Shared.Common.Activities.Inventory;
 
 /// <summary>
 /// Posts inventory valuation journal entries in Core GL.
-/// Worker queue: <c>qimerp-accounting-gl-inventory-valuation</c>.
+/// Worker queue: <c>qimerp-finance-gl-inventory-valuation</c>.
 /// </summary>
 public interface IInventoryValuationGlActivity
 {

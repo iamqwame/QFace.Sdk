@@ -4,7 +4,7 @@ namespace QimErp.Shared.Common.Activities.Operations;
 
 /// <summary>
 /// Creates a customer invoice draft from a project bill in AR.
-/// Worker queue: <c>qimerp-accounting-ar-project-bill-sync</c>.
+/// Worker queue: <c>qimerp-finance-ar-project-bill-sync</c>.
 /// </summary>
 public interface IProjectBillSyncActivity
 {
