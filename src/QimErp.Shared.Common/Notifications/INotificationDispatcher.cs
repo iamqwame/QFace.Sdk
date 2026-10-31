@@ -10,6 +10,13 @@ public interface INotificationDispatcher
         bool smsFallbackToEmail = true,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<SendResult>> DispatchAlertToFamiliesAsync(
+        string tenantId,
+        AlertPayload payload,
+        IReadOnlyCollection<NotificationChannelFamily> families,
+        bool smsFallbackToEmail = true,
+        CancellationToken cancellationToken = default);
+
     Task<SendResult> DispatchTestAlertAsync(
         string tenantId,
         NotificationProviderId providerId,

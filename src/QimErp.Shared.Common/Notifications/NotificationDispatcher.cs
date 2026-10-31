@@ -13,11 +13,27 @@ public sealed class NotificationDispatcher(
     private readonly IReadOnlyList<INotificationChannelProvider> _providers =
         providers.OrderBy(p => p.DispatchOrder).ToList();
 
-    public async Task<IReadOnlyList<SendResult>> DispatchAlertAsync(
+    public Task<IReadOnlyList<SendResult>> DispatchAlertAsync(
         string tenantId,
         AlertPayload payload,
         bool smsFallbackToEmail = true,
         CancellationToken cancellationToken = default)
+        => DispatchCoreAsync(tenantId, payload, null, smsFallbackToEmail, cancellationToken);
+
+    public Task<IReadOnlyList<SendResult>> DispatchAlertToFamiliesAsync(
+        string tenantId,
+        AlertPayload payload,
+        IReadOnlyCollection<NotificationChannelFamily> families,
+        bool smsFallbackToEmail = true,
+        CancellationToken cancellationToken = default)
+        => DispatchCoreAsync(tenantId, payload, families, smsFallbackToEmail, cancellationToken);
+
+    private async Task<IReadOnlyList<SendResult>> DispatchCoreAsync(
+        string tenantId,
+        AlertPayload payload,
+        IReadOnlyCollection<NotificationChannelFamily>? families,
+        bool smsFallbackToEmail,
+        CancellationToken cancellationToken)
     {
         var results = new List<SendResult>();
         var enabledProviders = await configService.GetEnabledProvidersAsync(tenantId, cancellationToken);
@@ -25,6 +41,11 @@ public sealed class NotificationDispatcher(
         foreach (var provider in _providers)
         {
             if (provider.Family == NotificationChannelFamily.Conferencing)
+            {
+                continue;
+            }
+
+            if (families is not null && !families.Contains(provider.Family))
             {
                 continue;
             }

@@ -20,6 +20,8 @@ public sealed class EntityCodeConfigResponse
     public string ResetPeriod { get; set; } = string.Empty;
     /// <summary>Next code as it would be formatted right now — NOT reserved, advisory only.</summary>
     public string Preview { get; set; } = string.Empty;
+    public long LastSequence { get; set; }
+    public long NextSequence { get; set; }
 }
 
 public sealed class UpdateEntityCodeConfigRequest
@@ -206,6 +208,8 @@ public sealed class EntityCodeSettingsEndpoint : ICarterModule
         Mode = config.Mode.ToString(),
         ResetPeriod = config.ResetPeriod.ToString(),
         Preview = config.FormatCode(config.LastSequence + 1),
+        LastSequence = config.LastSequence,
+        NextSequence = config.LastSequence + 1,
     };
 }
 
